@@ -18,6 +18,7 @@ log line when the LOVABLE_BROWSER_SUPABASE_* env vars are not present.
 import asyncio
 import json
 import os
+import re
 import time
 from pathlib import Path
 from playwright.async_api import async_playwright
@@ -43,7 +44,7 @@ RELOAD_THRESHOLD = 3
 
 async def select_device(page, label: str):
     await page.locator('[data-testid="device-select"]').click()
-    await page.get_by_role("option", name=lambda n: n and n.startswith(label)).first.click()
+    await page.get_by_role("option", name=re.compile("^" + re.escape(label))).first.click()
     await page.wait_for_timeout(200)
 
 
