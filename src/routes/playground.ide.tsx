@@ -1087,6 +1087,28 @@ function FilesTree(p: FilesTreeProps) {
         multiple style={{ display: "none" }}
         onChange={(e) => { if (e.target.files) { p.onUploadAssets(e.target.files, targetFolder); e.target.value = ""; } }} />
 
+      {p.uploads.length > 0 && (
+        <div className="mx-2 mt-2 rounded-md border p-2 text-[11px]" style={{ borderColor: p.palette.border, background: p.palette.bg }}>
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-semibold" style={{ color: p.palette.text }}>
+              Uploads ({p.uploads.filter((u) => u.status === "done").length}/{p.uploads.length})
+            </span>
+            <button onClick={p.onClearUploads} className="opacity-60 hover:opacity-100">Clear</button>
+          </div>
+          <ul className="grid gap-1">
+            {p.uploads.map((u) => (
+              <li key={u.id} className="flex items-center gap-2">
+                <span className="flex-1 truncate" title={u.name} style={{ color: p.palette.text }}>{u.name}</span>
+                <span className="opacity-60">{(u.size / 1024).toFixed(0)} KB</span>
+                {u.status === "pending" && <Loader2 size={12} className="animate-spin" />}
+                {u.status === "done" && <span style={{ color: "#5fd38a" }}>✓</span>}
+                {u.status === "error" && <span style={{ color: "#ff6f8a" }} title={u.error}>✕</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2">
         <ul className="grid gap-0.5">
           {rootFiles.map((f) => (
@@ -1094,10 +1116,7 @@ function FilesTree(p: FilesTreeProps) {
               canDelete={p.files.length > 1}
               onOpen={() => p.onOpen(f.id)}
               onDelete={() => p.onDeleteFile(f.id)}
-              onRename={() => {
-                const next = prompt("Rename file (path)", f.path);
-                if (next && next !== f.path) p.onRenameFile(f.id, next);
-              }} />
+              onRename={(next) => p.onRenameFile(f.id, next)} />
           ))}
           {allFolders.map((folder) => {
             const isCol = collapsed.has(folder);
@@ -1111,19 +1130,21 @@ function FilesTree(p: FilesTreeProps) {
                     {isCol ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                   </button>
                   {isCol ? <Folder size={13} className="opacity-80" /> : <FolderOpenIcon size={13} className="opacity-80" />}
-                  <span className="flex-1 truncate font-medium">{folder.split("/").pop()}</span>
+                  <button onClick={() => toggle(folder)} className="flex-1 truncate text-left font-medium" title={folder}>
+                    {folder.split("/").pop()}
+                  </button>
                   {isAssets ? (
-                    <button onClick={() => triggerUpload(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Upload asset">
+                    <button onClick={() => triggerUpload(folder)} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Upload asset">
                       <Upload size={12} />
                     </button>
                   ) : (
-                    <button onClick={() => promptNewFile(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Add file">
+                    <button onClick={() => promptNewFile(folder)} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Add file">
                       <Plus size={12} />
                     </button>
                   )}
                   <button onClick={() => {
                     if (confirm(`Delete folder "${folder}" and its files?`)) p.onDeleteFolder(folder);
-                  }} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete folder">
+                  }} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Delete folder">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -1137,10 +1158,7 @@ function FilesTree(p: FilesTreeProps) {
                         canDelete={p.files.length > 1}
                         onOpen={() => p.onOpen(f.id)}
                         onDelete={() => p.onDeleteFile(f.id)}
-                        onRename={() => {
-                          const next = prompt("Rename file (path)", f.path);
-                          if (next && next !== f.path) p.onRenameFile(f.id, next);
-                        }} />
+                        onRename={(next) => p.onRenameFile(f.id, next)} />
                     ))}
                   </ul>
                 )}
@@ -1155,8 +1173,53 @@ function FilesTree(p: FilesTreeProps) {
 
 function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename }: {
   file: IdeFile; active: boolean; palette: typeof APP_THEMES[AppThemeKey]; canDelete: boolean;
-  onOpen: () => void; onDelete: () => void; onRename: () => void;
+  onOpen: () => void; onDelete: () => void; onRename: (newPath: string) => string | null;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(file.path);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function start() {
+    setValue(file.path);
+    setError(null);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+  function commit() {
+    if (value === file.path) { setEditing(false); return; }
+    const err = onRename(value);
+    if (err) { setError(err); return; }
+    setEditing(false);
+  }
+  function cancel() { setEditing(false); setError(null); }
+
+  if (editing) {
+    return (
+      <li className="rounded-md px-2 py-1" style={{ background: palette.bg }}>
+        <div className="flex items-center gap-2">
+          {file.asset
+            ? (file.asset.mime.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />)
+            : <FileIcon name={file.name} />}
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError(null); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
+            className="h-7 flex-1 rounded border bg-transparent px-2 text-xs"
+            style={{ borderColor: error ? "#ff6f8a" : palette.border, color: palette.text }}
+          />
+          <button onClick={commit} className="rounded p-1 hover:bg-white/10" title="Save"><span style={{ color: "#5fd38a" }}>✓</span></button>
+          <button onClick={cancel} className="rounded p-1 hover:bg-white/10" title="Cancel"><X size={12} /></button>
+        </div>
+        {error && <div className="ml-6 mt-1 text-[10px]" style={{ color: "#ff6f8a" }}>{error}</div>}
+      </li>
+    );
+  }
+
   return (
     <li className="flex items-center gap-2 rounded-md px-2 py-1"
       style={{ background: active ? palette.bg : "transparent" }}>
@@ -1166,15 +1229,16 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
       <button className="flex-1 truncate text-left text-sm" onClick={onOpen} title={file.path}>
         {file.name}
       </button>
-      <button onClick={onRename} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Rename">
+      <button onClick={start} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Rename">
         <Pencil size={12} />
       </button>
       {canDelete && (
-        <button onClick={onDelete} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete">
+        <button onClick={onDelete} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Delete">
           <Trash2 size={12} />
         </button>
       )}
     </li>
   );
 }
+
 
