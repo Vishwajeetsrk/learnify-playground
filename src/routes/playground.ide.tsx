@@ -203,7 +203,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
   // Hydrate
   useEffect(() => {
-    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName);
+    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName, effectiveTrack);
     setState(s);
     setBottomTab(s.kind === "web" ? "preview" : "output");
     // eslint-disable-next-line react-hooks/exhaustive-deps
