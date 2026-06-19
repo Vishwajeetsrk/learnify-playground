@@ -1300,7 +1300,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <SheetTitle className="flex-1 min-w-0 truncate text-sm sm:text-base" style={{ color: palette.text }}>
                 Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
               </SheetTitle>
-              <button type="button" onClick={handleRunSmokeTest} disabled={smokeRunning}
+              <button type="button" onClick={() => handleRunSmokeTest()} disabled={smokeRunning}
                 className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-md border px-3 text-xs font-medium disabled:opacity-60"
                 style={{ borderColor: palette.border, color: palette.text }}
                 title="Load every template in a hidden iframe and report runtime errors / missing assets">
