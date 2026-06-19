@@ -1013,7 +1013,7 @@ function NumberBase() {
     <Card icon={Calculator} title="Number base converter" desc="Convert between binary, octal, decimal, and hex.">
       <div className="flex flex-wrap items-center gap-2">
         <input value={value} onChange={(e) => setValue(e.target.value)} className="h-9 flex-1 rounded border border-input bg-background px-2 font-mono text-xs" />
-        <Tabs value={String(base) as "10"} options={[{ value: "2", label: "Bin" }, { value: "8", label: "Oct" }, { value: "10", label: "Dec" }, { value: "16", label: "Hex" }]} onChange={(v) => setBase(Number(v) as 2 | 8 | 10 | 16)} />
+        <Tabs<string> value={String(base)} options={[{ value: "2", label: "Bin" }, { value: "8", label: "Oct" }, { value: "10", label: "Dec" }, { value: "16", label: "Hex" }]} onChange={(v) => setBase(Number(v) as 2 | 8 | 10 | 16)} />
       </div>
       {num === null ? (
         <p className="text-xs text-destructive">Invalid for base {base}</p>
