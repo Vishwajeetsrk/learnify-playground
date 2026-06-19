@@ -234,9 +234,30 @@ function PhoneMock() {
   );
 }
 
-function SmartLogo({ slug, name, size = 32, className }: { slug: string; name: string; size?: number; className?: string }) {
-  const [idx, setIdx] = useState(0);
+function InitialsBadge({ name, color, size }: { name: string; color: string; size: number }) {
+  const initials = name.replace(/[^A-Za-z0-9+#]/g, "").slice(0, 2).toUpperCase() || "•";
+  return (
+    <span
+      aria-label={`${name} logo`}
+      role="img"
+      style={{
+        width: size, height: size, background: `linear-gradient(135deg, ${color}, ${color}AA)`,
+        color: "#fff", fontSize: Math.max(10, Math.floor(size * 0.4)),
+      }}
+      className="inline-flex select-none items-center justify-center rounded-md font-bold tracking-tight shadow-inner"
+    >
+      {initials}
+    </span>
+  );
+}
+
+function SmartLogo({ slug, name, size = 32, color = "#7e5bff", className }: { slug: string; name: string; size?: number; color?: string; className?: string }) {
   const sources = [logoUrl(slug), ...logoFallbacks(slug)];
+  const [idx, setIdx] = useState(0);
+  // exhausted all CDN options → render an SVG initials badge so a tile is NEVER blank
+  if (idx >= sources.length) {
+    return <span className={className} style={{ display: "inline-flex" }}><InitialsBadge name={name} color={color} size={size} /></span>;
+  }
   return (
     <img
       src={sources[idx]}
@@ -245,7 +266,8 @@ function SmartLogo({ slug, name, size = 32, className }: { slug: string; name: s
       width={size}
       height={size}
       className={className}
-      onError={() => setIdx((i) => (i + 1 < sources.length ? i + 1 : i))}
+      draggable={false}
+      onError={() => setIdx((i) => i + 1)}
     />
   );
 }
