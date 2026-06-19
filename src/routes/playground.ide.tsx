@@ -977,13 +977,13 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
       {/* Templates sheet */}
       <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
-        <SheetContent side="bottom" className="h-[80vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
-          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
-            <div className="flex items-center gap-2">
-              <SheetTitle className="flex-1" style={{ color: palette.text }}>
+        <SheetContent side="bottom" className="h-[90vh] sm:h-[80vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-3 py-3 sm:px-4" style={{ borderColor: palette.border }}>
+            <div className="flex flex-wrap items-center gap-2">
+              <SheetTitle className="flex-1 min-w-0 truncate text-sm sm:text-base" style={{ color: palette.text }}>
                 Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
               </SheetTitle>
-              <label className="inline-flex">
+              <label className="inline-flex shrink-0">
                 <input type="file" accept=".zip,application/zip" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importZip(f); e.target.value = ""; }} />
                 <span className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border px-3 text-xs font-medium"
@@ -993,13 +993,13 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               </label>
             </div>
           </SheetHeader>
-          <div className="overflow-auto p-3">
+          <div className="h-[calc(90vh-56px)] sm:h-[calc(80vh-56px)] overflow-auto p-3">
             {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
               <>
                 <div className="mb-2 mt-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>
                   Multi-file projects
                 </div>
-                <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <div className="mb-4 grid grid-cols-1 gap-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
                   {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).map((t) => (
                     <button key={t.id} onClick={() => loadMultiTemplate(t)}
                       className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
@@ -1016,7 +1016,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>
               Single-file templates
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+
               {effectiveTrack !== "code" && (
                 <button onClick={() => newBlank("web")}
                   className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
