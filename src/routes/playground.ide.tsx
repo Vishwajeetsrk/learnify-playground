@@ -268,9 +268,23 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     ed.focus();
     ed.getAction("editor.action.startFindReplaceAction")?.run();
   }
+  async function formatDocument() {
+    const ed = editorRef.current; if (!ed) return;
+    ed.focus();
+    const act = ed.getAction("editor.action.formatDocument");
+    try { await act?.run(); toast.success("Formatted"); }
+    catch { toast.error("Formatter not available for this language"); }
+  }
 
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
+
+  // File-relationship graph for the current project (asset-aware).
+  const projectGraph = useMemo(
+    () => buildGraph(state.files.map((f) => ({ path: f.path, content: f.content, isAsset: !!f.asset }))),
+    [state.files],
+  );
+
 
   // Build preview doc.
   // - Web projects: live HTML/CSS/JS sandbox with all files connected and assets inlined.
