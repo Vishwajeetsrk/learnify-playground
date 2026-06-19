@@ -1,8 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap, Github, Star, Users, GitCommit } from "lucide-react";
+import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap, Github, Star, Users, GitCommit, RefreshCw, AlertCircle } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { GITHUB_REPO_URL, useContributors } from "@/lib/github";
+import { GITHUB_CONTRIBUTORS_URL, GITHUB_REPO_URL, describeGhError, useContributors } from "@/lib/github";
 
 export const Route = createFileRoute("/")({
   head: () => ({
