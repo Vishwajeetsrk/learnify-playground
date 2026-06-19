@@ -702,11 +702,9 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 }
 
 function FileIcon({ name }: { name: string }) {
-  const ext = name.split(".").pop()?.toLowerCase();
-  const map: Record<string, string> = {
-    html: "🟧", css: "🟦", js: "🟨", ts: "🔷", json: "📦",
-    py: "🐍", java: "☕", kt: "🟪", php: "🐘", rb: "💎",
-    go: "🐹", rs: "🦀", c: "🔧", cpp: "🔧", cs: "🔷", sh: "🟩",
+  return <FileExtIcon name={name} size={13} />;
+}
+
   };
   return <span className="text-xs">{map[ext ?? ""] ?? "📄"}</span>;
 }
