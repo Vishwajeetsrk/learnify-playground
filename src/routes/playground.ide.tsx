@@ -988,11 +988,33 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                     </button>
                   ))}
                   <button onClick={() => setState((s) => ({ ...s }))}
-                    className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload">
+                    className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload preview">
                     <RefreshCw size={12} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLayoutMode("split");
+                      setViewport("fit");
+                      setPreviewMax(false);
+                      setPanelHeight(320);
+                      setSplitWidth(50);
+                      toast.success("Preview layout reset");
+                    }}
+                    className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                    title="Reset to default split + Fit layout">
+                    Reset
                   </button>
                 </>
               )}
+              {bottomTab === "errors" && (
+                <button onClick={() => setConsoleMsgs((p) => p.filter((m) => m.level !== "error" && m.level !== "warn"))}
+                  className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
+                  <Eraser size={12} className="mr-1" /> Clear errors
+                </button>
+              )}
+              {false && (
+                <></>
+              
               {bottomTab === "preview" && canPreview && (
                 <button onClick={() => setPreviewMax((v) => !v)}
                   className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10"
