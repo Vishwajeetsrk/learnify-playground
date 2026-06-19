@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { debugCode } from "@/lib/ai.functions";
+import { useUserApiKey } from "@/lib/user-api-key";
+import { ByoKeyButton } from "@/components/byo-key-button";
 import type { ProviderKey } from "@/lib/executors";
 
 type ActionKey = "diagnose" | "explain" | "fix" | "optimize" | "convert" | "tests" | "docs" | "generate";
@@ -61,6 +63,7 @@ export function AiDebugPanel({
   onApplyFix,
 }: Props) {
   const ask = useServerFn(debugCode);
+  const { key: userApiKey } = useUserApiKey();
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
@@ -87,6 +90,7 @@ export function AiDebugPanel({
           code: code || "(empty)",
           stdout, stderr, exitCode, provider, stdin,
           question: act.prompt(language, question.trim()),
+          userApiKey,
         },
       });
       setReply(res.reply);
@@ -109,8 +113,11 @@ export function AiDebugPanel({
     <div className="flex flex-col gap-2 border-t border-border/60 bg-card/30 p-3">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground">
         <Sparkles className="h-3.5 w-3.5 text-primary" /> AI assistant
-        <span className="ml-auto rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-foreground">
-          {language}
+        <span className="ml-auto flex items-center gap-2">
+          <ByoKeyButton />
+          <span className="rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-foreground">
+            {language}
+          </span>
         </span>
       </div>
       <div className="flex flex-wrap gap-1">

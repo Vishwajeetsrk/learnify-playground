@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { debugCode } from "@/lib/ai.functions";
+import { useUserApiKey } from "@/lib/user-api-key";
+import { ByoKeyButton } from "@/components/byo-key-button";
 
 interface Props {
   html: string;
@@ -21,6 +23,7 @@ function extractBlock(reply: string, tag: string): string | null {
 
 export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props) {
   const ask = useServerFn(debugCode);
+  const { key: userApiKey } = useUserApiKey();
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
@@ -53,6 +56,7 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
           question:
             (question ? question + "\n\n" : "") +
             "Return fixed code in THREE separate fenced blocks tagged ```html, ```css, and ```js (only include the ones that need changes). Each block must be the complete file contents.",
+          userApiKey,
         },
       });
       setReply(res.reply);
@@ -74,8 +78,9 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
     <div className="flex flex-col gap-2 border-t border-border/60 bg-card/30 p-3">
       <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
         <Sparkles className="h-3.5 w-3.5 text-primary" /> AI debug helper
-        <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground/70">
-          Sees HTML · CSS · JS · console errors
+        <span className="ml-auto flex items-center gap-2 text-[10px] font-normal normal-case text-muted-foreground/70">
+          <span>Sees HTML · CSS · JS · console errors</span>
+          <ByoKeyButton />
         </span>
       </div>
       {consoleErrors && (
