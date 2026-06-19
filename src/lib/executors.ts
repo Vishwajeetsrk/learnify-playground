@@ -254,6 +254,12 @@ export interface RunResult {
   code: number | null;
   signal: string | null;
   provider: ProviderKey;
+  /** Wall-clock execution time in seconds (when the provider reports it). */
+  timeSec?: number | null;
+  /** Peak memory in KB (when the provider reports it). */
+  memoryKb?: number | null;
+  /** Human-readable status (Judge0: e.g. "Accepted", "Runtime Error"). */
+  status?: string | null;
 }
 
 class ProviderError extends Error {
@@ -272,7 +278,7 @@ class ProviderError extends Error {
 
 async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const wb = LANGUAGES[lang].wandbox;
-  if (!wb) throw new ProviderError("wandbox", null, `${LANGUAGES[lang].label} has no Wandbox compiler configured. Use the AI assistant or run locally.`);
+  if (!wb) throw new ProviderError("wandbox", null, `${LANGUAGES[lang].label} has no Wandbox compiler configured. Use Judge0 or Piston.`);
   const res = await fetch("https://wandbox.org/api/compile.json", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -297,7 +303,7 @@ async function runWandbox(lang: LangKey, source: string, stdin: string): Promise
 
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
-  if (!spec) throw new ProviderError("piston", null, `Piston does not have a config for ${LANGUAGES[lang].label}. Switch to Wandbox.`);
+  if (!spec) throw new ProviderError("piston", null, `Piston does not have a config for ${LANGUAGES[lang].label}.`);
   const base = getPistonBaseUrl();
   const res = await fetch(`${base}/execute`, {
     method: "POST",
@@ -316,7 +322,6 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
     const detail = data?.message || text.slice(0, 200);
     throw new ProviderError("piston", res.status, `Piston ${res.status}: ${detail}`);
   }
-  // Even on 200 the whitelist gate may respond with `{message: "..."}` and no run block.
   if (data?.message && !data?.run) {
     throw new ProviderError("piston", 403, `Piston: ${data.message}`);
   }
@@ -334,6 +339,47 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
   };
 }
 
+async function runJudge0(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
+  const spec = LANGUAGES[lang].judge0;
+  if (!spec) throw new ProviderError("judge0", null, `Judge0 does not have a language id for ${LANGUAGES[lang].label}.`);
+  const base = getJudge0BaseUrl();
+  const res = await fetch(`${base}/submissions?base64_encoded=false&wait=true`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      language_id: spec.id,
+      source_code: source,
+      stdin: stdin || undefined,
+    }),
+  });
+  const text = await res.text();
+  let data: any = {};
+  try { data = JSON.parse(text); } catch { /* non-json */ }
+  if (!res.ok) {
+    const detail = data?.error || data?.message || text.slice(0, 200);
+    throw new ProviderError("judge0", res.status, `Judge0 ${res.status}: ${detail}`);
+  }
+  const stdout: string = data.stdout ?? "";
+  const stderr: string = data.stderr ?? "";
+  const compileErr: string = data.compile_output ?? "";
+  const message: string = data.message ?? "";
+  const combinedErr = [compileErr, stderr, message].filter(Boolean).join("\n");
+  const exit = typeof data.exit_code === "number" ? data.exit_code : null;
+  const timeSec = data.time != null ? Number(data.time) : null;
+  const memoryKb = typeof data.memory === "number" ? data.memory : null;
+  return {
+    stdout,
+    stderr: combinedErr,
+    output: combinedErr ? `${stdout}${stdout && combinedErr ? "\n" : ""}${combinedErr}` : stdout,
+    code: exit,
+    signal: data.signal ?? null,
+    provider: "judge0",
+    timeSec: Number.isFinite(timeSec as number) ? timeSec : null,
+    memoryKb,
+    status: data.status?.description ?? null,
+  };
+}
+
 const USAGE_KEY = "playground:usage:v1";
 
 interface UsageState {
@@ -341,24 +387,33 @@ interface UsageState {
   counts: Record<ProviderKey, number>;
 }
 
+const emptyCounts = (): Record<ProviderKey, number> => ({ judge0: 0, piston: 0, wandbox: 0 });
+
 function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
 export function readUsage(): UsageState {
-  if (typeof window === "undefined") return { date: todayKey(), counts: { wandbox: 0, piston: 0 } };
+  if (typeof window === "undefined") return { date: todayKey(), counts: emptyCounts() };
   try {
     const raw = localStorage.getItem(USAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as UsageState;
       if (parsed.date === todayKey()) {
-        return { date: parsed.date, counts: { wandbox: parsed.counts?.wandbox ?? 0, piston: parsed.counts?.piston ?? 0 } };
+        return {
+          date: parsed.date,
+          counts: {
+            judge0: parsed.counts?.judge0 ?? 0,
+            piston: parsed.counts?.piston ?? 0,
+            wandbox: parsed.counts?.wandbox ?? 0,
+          },
+        };
       }
     }
   } catch {
     /* ignore */
   }
-  return { date: todayKey(), counts: { wandbox: 0, piston: 0 } };
+  return { date: todayKey(), counts: emptyCounts() };
 }
 
 export function bumpUsage(provider: ProviderKey): UsageState {
@@ -374,10 +429,14 @@ export function bumpUsage(provider: ProviderKey): UsageState {
 }
 
 async function runWithProvider(provider: ProviderKey, lang: LangKey, source: string, stdin: string) {
-  const result = provider === "piston" ? await runPiston(lang, source, stdin) : await runWandbox(lang, source, stdin);
+  let result: RunResult;
+  if (provider === "judge0") result = await runJudge0(lang, source, stdin);
+  else if (provider === "piston") result = await runPiston(lang, source, stdin);
+  else result = await runWandbox(lang, source, stdin);
   bumpUsage(provider);
   return result;
 }
+
 
 export interface RunOptions {
   fallback?: boolean;
