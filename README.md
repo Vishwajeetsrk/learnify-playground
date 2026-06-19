@@ -29,7 +29,7 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
 <a href="./docs/home.mp4" title="Watch the Polyglot Orbit tour (MP4)">
   <picture>
     <source srcset="./docs/home.gif" type="image/gif" />
-    <img src="./docs/home.png" alt="Polyglot Orbit landing page in motion — click to play the 30-second tour" width="860" />
+    <!-- <img src="./docs/home.png" alt="Polyglot Orbit landing page in motion — click to play the 30-second tour" width="860" /> -->
   </picture>
 </a>
 
@@ -46,7 +46,7 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
 &nbsp;·&nbsp;
 <a href="https://github.com/">🚀 Live demo</a>
 
-<sub>Drop <code>docs/home.gif</code>, <code>docs/home.mp4</code>, and <code>docs/home.png</code> into the repo — they render here automatically.</sub>
+<!-- <sub>Drop <code>docs/home.gif</code>, <code>docs/home.mp4</code>, and <code>docs/home.png</code> into the repo — they render here automatically.</sub> -->
 
 </div>
 
