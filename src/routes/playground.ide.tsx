@@ -1090,10 +1090,10 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
             )}
             {bottomTab === "errors" && (
-              <ConsolePanel
+              <ErrorsPanel
                 msgs={consoleMsgs.filter((m) => m.level === "error" || m.level === "warn")}
                 subtle={palette.subtle}
-                emptyText="No runtime errors or warnings from the Live Preview. 🎉"
+                palette={palette}
               />
             )}
             {bottomTab === "output" && (
