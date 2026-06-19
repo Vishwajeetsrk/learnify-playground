@@ -889,6 +889,59 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </SheetContent>
       </Sheet>
 
+      {/* Command palette */}
+      <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
+        <CommandInput placeholder="Type a command or search files..." />
+        <CommandList>
+          <CommandEmpty>No results.</CommandEmpty>
+          <CommandGroup heading="Actions">
+            <CommandItem onSelect={() => { setCmdOpen(false); handleRun(); }}>
+              <Play size={14} /> <span>Run code</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); openFindReplace(); }}>
+              <ReplaceIcon size={14} /> <span>Find &amp; Replace</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); toggleAppTheme(); }}>
+              {appTheme === "light" ? <Moon size={14} /> : <Sun size={14} />} <span>Toggle theme</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setTemplatesOpen(true); }}>
+              <LayoutGrid size={14} /> <span>Browse templates</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setFilesOpen(true); }}>
+              <FolderOpen size={14} /> <span>Open files</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setDbOpen(true); }}>
+              <DbIcon size={14} /> <span>Open database console</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setApiOpen(true); }}>
+              <Globe size={14} /> <span>Open API tester</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setAiOpen(true); }}>
+              <Sparkles size={14} /> <span>Open AI assistant</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSettingsOpen(true); }}>
+              <SettingsIcon size={14} /> <span>Open settings</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); exportZip(); }}>
+              <Download size={14} /> <span>Download as ZIP</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); handleShare(); }}>
+              <Share2 size={14} /> <span>Share project</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setFullscreen((v) => !v); }}>
+              {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />} <span>Toggle fullscreen</span>
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Files">
+            {state.files.filter((f) => !f.asset).map((f) => (
+              <CommandItem key={f.id} value={`file ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
+                <FileText size={14} /> <span>{f.path}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+
       {/* Settings sheet */}
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="w-[320px] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
