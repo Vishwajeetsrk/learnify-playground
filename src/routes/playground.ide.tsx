@@ -744,6 +744,28 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       window.history.replaceState(null, "", window.location.pathname);
     } catch { /* ignore */ }
   }, []);
+  async function handleRunSmokeTest() {
+    if (smokeRunning) return;
+    setSmokeRunning(true);
+    setSmokeResults(null);
+    setSmokeProgress({ done: 0, total: 0, current: "" });
+    try {
+      const { runSmokeTest } = await import("@/lib/playground/smoke-test");
+      const results = await runSmokeTest((done, total, current) =>
+        setSmokeProgress({ done, total, current }),
+      );
+      setSmokeResults(results);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) toast.success(`All ${results.length} templates passed`);
+      else toast.error(`${failed.length} of ${results.length} templates have errors`, {
+        description: failed.slice(0, 3).map((r) => r.name).join(", ") + (failed.length > 3 ? "…" : ""),
+      });
+    } catch (e) {
+      toast.error("Smoke test failed", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSmokeRunning(false);
+    }
+  }
 
   // --------- Editor ---------
   const onMount = useCallback<OnMount>((ed, mn) => {
