@@ -747,17 +747,31 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       window.history.replaceState(null, "", window.location.pathname);
     } catch { /* ignore */ }
   }, []);
-  async function handleRunSmokeTest() {
+  async function handleRunSmokeTest(opts?: { onlyFailed?: boolean; platform?: "all" | "web" | "mobile" }) {
     if (smokeRunning) return;
+    const platform = opts?.platform ?? smokePlatformFilter;
     setSmokeRunning(true);
-    setSmokeResults(null);
     setSmokeProgress({ done: 0, total: 0, current: "" });
     try {
-      const { runSmokeTest } = await import("@/lib/playground/smoke-test");
-      const results = await runSmokeTest((done, total, current) =>
-        setSmokeProgress({ done, total, current }),
-      );
-      setSmokeResults(results);
+      const mod = await import("@/lib/playground/smoke-test");
+      const onlyIds = opts?.onlyFailed && smokeResults
+        ? smokeResults.filter((r) => !r.ok).map((r) => r.id)
+        : undefined;
+      if (opts?.onlyFailed && (!onlyIds || onlyIds.length === 0)) {
+        toast.info("Nothing to retry — no failed templates");
+        setSmokeRunning(false);
+        return;
+      }
+      const platforms = platform === "all" ? undefined : [platform];
+      const results = await mod.runSmokeTest({
+        onlyIds, platforms,
+        onProgress: (done, total, current) => setSmokeProgress({ done, total, current }),
+      });
+      // Preserve previous run for diff; merge when retrying only failed.
+      setSmokePrevResults(smokeResults);
+      const merged = opts?.onlyFailed && smokeResults ? mod.mergeResults(smokeResults, results) : results;
+      setSmokeResults(merged);
+      setSmokeRanAt(Date.now());
       const failed = results.filter((r) => !r.ok);
       if (failed.length === 0) toast.success(`All ${results.length} templates passed`);
       else toast.error(`${failed.length} of ${results.length} templates have errors`, {
@@ -769,6 +783,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       setSmokeRunning(false);
     }
   }
+
 
   // --------- Editor ---------
   const onMount = useCallback<OnMount>((ed, mn) => {
