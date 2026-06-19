@@ -1,7 +1,8 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap, Github, Star } from "lucide-react";
+import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap, Github, Star, Users, GitCommit } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { GITHUB_REPO_URL, useContributors } from "@/lib/github";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -177,7 +178,79 @@ print(fib(20))  → 6765`}
           ))}
         </div>
       </section>
+
+      <ContributorsSection />
     </main>
+  );
+}
+
+function ContributorsSection() {
+  const { data, isLoading, isError } = useContributors(8);
+  return (
+    <section className="mx-auto max-w-6xl px-4 pb-24">
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur">
+            <Users className="h-3 w-3 text-primary" /> Open source
+          </span>
+          <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Top contributors</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Built in the open on GitHub — huge thanks to everyone shipping commits.
+          </p>
+        </div>
+        <a
+          href={`${GITHUB_REPO_URL}/graphs/contributors`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+        >
+          See all <ArrowRight className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-card/40" />
+          ))}
+        </div>
+      ) : isError || !data || data.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+          Couldn't load contributors right now.{" "}
+          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            View on GitHub
+          </a>.
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+          {data.map((c) => (
+            <a
+              key={c.id}
+              href={c.html_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-center gap-3 rounded-2xl border border-border bg-card/70 p-3 backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.18)]"
+            >
+              <img
+                src={`${c.avatar_url}&s=96`}
+                alt={`${c.login} avatar`}
+                width={48}
+                height={48}
+                loading="lazy"
+                className="h-12 w-12 shrink-0 rounded-full ring-2 ring-border transition-all group-hover:ring-primary/60"
+              />
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-foreground">@{c.login}</div>
+                <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <GitCommit className="h-3 w-3" />
+                  {c.contributions} commit{c.contributions === 1 ? "" : "s"}
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
