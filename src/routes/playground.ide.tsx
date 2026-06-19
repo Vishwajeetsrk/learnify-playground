@@ -503,7 +503,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               {state.kind === "web"
                 ? <>HTML · CSS · JS</>
                 : <><LanguageIcon language={state.language} size={11} /> {LANGUAGES[state.language].label}</>}
-              {savedAt && <span className="opacity-70">· Saved</span>}
+              {savedAt && <SavedPill at={savedAt} />}
             </span>
           </div>
 
