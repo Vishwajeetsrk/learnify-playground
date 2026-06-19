@@ -946,9 +946,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
         <SheetContent side="bottom" className="h-[80vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
           <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
-            <SheetTitle style={{ color: palette.text }}>
-              Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
-            </SheetTitle>
+            <div className="flex items-center gap-2">
+              <SheetTitle className="flex-1" style={{ color: palette.text }}>
+                Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
+              </SheetTitle>
+              <label className="inline-flex">
+                <input type="file" accept=".zip,application/zip" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importZip(f); e.target.value = ""; }} />
+                <span className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border px-3 text-xs font-medium"
+                  style={{ borderColor: palette.border, color: palette.text }}>
+                  <Upload size={12} /> Import ZIP
+                </span>
+              </label>
+            </div>
           </SheetHeader>
           <div className="overflow-auto p-3">
             {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
