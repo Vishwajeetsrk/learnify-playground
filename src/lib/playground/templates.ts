@@ -10,7 +10,7 @@ export interface WebTemplate {
   id: string;
   kind: "web";
   name: string;
-  emoji: string;
+  icon: string;
   description: string;
   tracks?: Track[];
   files: { html: string; css: string; js: string };
@@ -20,7 +20,7 @@ export interface CodeTemplate {
   id: string;
   kind: "code";
   name: string;
-  emoji: string;
+  icon: string;
   description: string;
   tracks?: Track[];
   language: LangKey;
@@ -33,7 +33,7 @@ const calculator: WebTemplate = {
   id: "calculator",
   kind: "web",
   name: "Calculator",
-  emoji: "🧮",
+  icon: "calculator",
   description: "Touch-friendly calculator with a colorful keypad.",
   files: {
     html: `<div class="calc">
@@ -93,7 +93,7 @@ const todo: WebTemplate = {
   id: "todo",
   kind: "web",
   name: "Todo App",
-  emoji: "✅",
+  icon: "todo",
   description: "Add, complete, and delete tasks. Saves to localStorage.",
   files: {
     html: `<main>
@@ -149,7 +149,7 @@ const login: WebTemplate = {
   id: "login",
   kind: "web",
   name: "Login Page",
-  emoji: "🔐",
+  icon: "login",
   description: "Glassmorphic sign-in screen with validation.",
   files: {
     html: `<div class="bg">
@@ -196,7 +196,7 @@ const chat: WebTemplate = {
   id: "chat",
   kind: "web",
   name: "Chat UI",
-  emoji: "💬",
+  icon: "chat",
   description: "Mobile-style chat thread with bubbles.",
   files: {
     html: `<header><div class="avatar">A</div><div><b>Alex</b><span>online</span></div></header>
@@ -234,7 +234,7 @@ const notes: WebTemplate = {
   id: "notes",
   kind: "web",
   name: "Notes",
-  emoji: "📝",
+  icon: "notes",
   description: "Quick scratchpad with autosave.",
   files: {
     html: `<header><h1>Notes</h1><span id="status">Saved</span></header><textarea id="pad" placeholder="Start typing…"></textarea>`,
@@ -256,7 +256,7 @@ const expense: WebTemplate = {
   id: "expense",
   kind: "web",
   name: "Expense Tracker",
-  emoji: "💸",
+  icon: "expense",
   description: "Track income and expenses with a running total.",
   files: {
     html: `<main>
@@ -303,7 +303,7 @@ const blank: WebTemplate = {
   id: "blank-web",
   kind: "web",
   name: "Blank Web",
-  emoji: "🆕",
+  icon: "blank-web",
   description: "Empty HTML/CSS/JS project.",
   files: {
     html: `<h1>Hello, world</h1>\n<p>Edit me in the editor.</p>`,
@@ -317,7 +317,7 @@ const blank: WebTemplate = {
 // Mobile-app-flavored web templates (PWAs, bottom-nav shells, mobile UIs)
 
 const bottomNavApp: WebTemplate = {
-  id: "bottom-nav", kind: "web", name: "Bottom Nav App", emoji: "📱",
+  id: "bottom-nav", kind: "web", name: "Bottom Nav App", icon: "bottom-nav",
   description: "Mobile app shell with tab bar navigation between Home, Search, and Profile.",
   files: {
     html: `<div class="app">
@@ -358,7 +358,7 @@ show('home');`,
 };
 
 const feedApp: WebTemplate = {
-  id: "feed", kind: "web", name: "Photo Feed", emoji: "📸",
+  id: "feed", kind: "web", name: "Photo Feed", icon: "feed",
   description: "Instagram-style scrollable mobile photo feed with likes.",
   files: {
     html: `<header><b>Feed</b><span>❤️</span></header>
@@ -401,7 +401,7 @@ feed.addEventListener('click', e => {
 };
 
 const pwaTodo: WebTemplate = {
-  id: "pwa-todo", kind: "web", name: "PWA Todo", emoji: "📲",
+  id: "pwa-todo", kind: "web", name: "PWA Todo", icon: "pwa",
   description: "Installable mobile todo app with offline-friendly storage.",
   files: {
     html: `<header><h1>Tasks</h1><button id="add">＋</button></header>
@@ -444,7 +444,7 @@ render();`,
 };
 
 const onboarding: WebTemplate = {
-  id: "onboarding", kind: "web", name: "Onboarding", emoji: "✨",
+  id: "onboarding", kind: "web", name: "Onboarding", icon: "onboarding",
   description: "Swipable 3-step mobile onboarding screen.",
   files: {
     html: `<div class="wrap"><div id="slides" class="slides">
@@ -478,47 +478,47 @@ document.getElementById('next').onclick=()=>{ const i=Math.round(slides.scrollLe
 };
 
 const pythonHello: CodeTemplate = {
-  id: "py-hello", kind: "code", name: "Python · Hello", emoji: "🐍",
+  id: "py-hello", kind: "code", name: "Python · Hello", icon: "python",
   description: "Classic Hello World in Python.", language: "python",
   source: `name = input("Your name? ") or "world"\nprint(f"Hello, {name}!")\n`,
 };
 const pyFizzBuzz: CodeTemplate = {
-  id: "py-fizz", kind: "code", name: "Python · FizzBuzz", emoji: "🔢",
+  id: "py-fizz", kind: "code", name: "Python · FizzBuzz", icon: "fizzbuzz",
   description: "Classic FizzBuzz in Python.", language: "python",
   source: `for i in range(1, 21):\n    if i % 15 == 0: print("FizzBuzz")\n    elif i % 3 == 0: print("Fizz")\n    elif i % 5 == 0: print("Buzz")\n    else: print(i)\n`,
 };
 const nodeHello: CodeTemplate = {
-  id: "node-hello", kind: "code", name: "Node · Hello", emoji: "🟩",
+  id: "node-hello", kind: "code", name: "Node · Hello", icon: "nodejs",
   description: "Hello World in Node.js.", language: "javascript",
   source: `const greet = (n = 'world') => \`Hello, \${n}!\`;\nconsole.log(greet('Lovable'));\n`,
 };
 const tsDemo: CodeTemplate = {
-  id: "ts-demo", kind: "code", name: "TypeScript · Types", emoji: "🔷",
+  id: "ts-demo", kind: "code", name: "TypeScript · Types", icon: "typescript",
   description: "A small typed example with interfaces.", language: "typescript",
   source: `interface User { name: string; age: number }\nconst u: User = { name: 'Ada', age: 30 };\nconsole.log(\`\${u.name} is \${u.age}\`);\n`,
 };
 const javaHello: CodeTemplate = {
-  id: "java-hello", kind: "code", name: "Java · Hello", emoji: "☕",
+  id: "java-hello", kind: "code", name: "Java · Hello", icon: "java",
   description: "Hello World in Java.", language: "java",
   source: `class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello from Java\");\n  }\n}\n`,
 };
 const cppDemo: CodeTemplate = {
-  id: "cpp-demo", kind: "code", name: "C++ · Vector sum", emoji: "🔧",
+  id: "cpp-demo", kind: "code", name: "C++ · Vector sum", icon: "cpp",
   description: "Sum elements of a vector in C++.", language: "cpp",
   source: `#include <iostream>\n#include <vector>\n#include <numeric>\nint main(){\n  std::vector<int> v{1,2,3,4,5};\n  std::cout << "sum = " << std::accumulate(v.begin(), v.end(), 0) << std::endl;\n}\n`,
 };
 const goDemo: CodeTemplate = {
-  id: "go-demo", kind: "code", name: "Go · Hello", emoji: "🐹",
+  id: "go-demo", kind: "code", name: "Go · Hello", icon: "go",
   description: "Hello World in Go.", language: "go",
   source: `package main\nimport "fmt"\nfunc main(){ fmt.Println("Hello from Go") }\n`,
 };
 const rustDemo: CodeTemplate = {
-  id: "rust-demo", kind: "code", name: "Rust · Hello", emoji: "🦀",
+  id: "rust-demo", kind: "code", name: "Rust · Hello", icon: "rust",
   description: "Hello World in Rust.", language: "rust",
   source: `fn main(){\n  let name = "Rust";\n  println!("Hello, {name}!");\n}\n`,
 };
 const javaCalc: CodeTemplate = {
-  id: "java-calc", kind: "code", name: "Java · Calculator", emoji: "🧮",
+  id: "java-calc", kind: "code", name: "Java · Calculator", icon: "calculator",
   description: "Simple Java class with add/sub methods.", language: "java",
   source: `class Calc {\n  static int add(int a, int b){ return a+b; }\n  static int sub(int a, int b){ return a-b; }\n  public static void main(String[] a){\n    System.out.println("3+4 = " + add(3,4));\n    System.out.println("9-2 = " + sub(9,2));\n  }\n}\n`,
 };
