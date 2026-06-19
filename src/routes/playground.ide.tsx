@@ -234,6 +234,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     try { return localStorage.getItem("playground:persist-preview-storage:v1") !== "0"; } catch { return true; }
   });
   const [previewStorage, setPreviewStorage] = useState<{ local: Record<string, string>; session: Record<string, string> }>({ local: {}, session: {} });
+  const [smokeRunning, setSmokeRunning] = useState(false);
+  const [smokeProgress, setSmokeProgress] = useState<{ done: number; total: number; current: string }>({ done: 0, total: 0, current: "" });
+  const [smokeResults, setSmokeResults] = useState<import("@/lib/playground/smoke-test").SmokeResult[] | null>(null);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
@@ -703,10 +706,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
   function handleShare() {
     try {
-      const payload = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      const payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+        v: 2,
+        state,
+        previewStorage: persistPreviewStorage ? previewStorage : { local: {}, session: {} },
+        persistPreviewStorage,
+      }))));
       const url = `${location.origin}${location.pathname}#share=${payload}`;
       navigator.clipboard.writeText(url);
-      toast.success("Share link copied", { description: "Anyone with the link can open this project." });
+      toast.success("Share link copied", {
+        description: persistPreviewStorage
+          ? "Link includes preview data so the recipient sees the same state."
+          : "Anyone with the link can open this project.",
+      });
     } catch { toast.error("Could not create share link"); }
   }
 
@@ -717,11 +729,43 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     if (!m) return;
     try {
       const json = decodeURIComponent(escape(atob(m[1])));
-      const parsed = JSON.parse(json) as IdeState;
-      if (parsed.files?.length) { setState(ensureActive(parsed)); toast.success("Loaded shared project"); }
+      const parsed = JSON.parse(json) as
+        | IdeState
+        | { v: 2; state: IdeState; previewStorage?: { local: Record<string,string>; session: Record<string,string> }; persistPreviewStorage?: boolean };
+      const sharedState = "v" in parsed && parsed.v === 2 ? parsed.state : (parsed as IdeState);
+      if (sharedState.files?.length) {
+        setState(ensureActive(sharedState));
+        if ("v" in parsed && parsed.v === 2) {
+          if (typeof parsed.persistPreviewStorage === "boolean") setPersistPreviewStorage(parsed.persistPreviewStorage);
+          if (parsed.previewStorage) setPreviewStorage(parsed.previewStorage);
+        }
+        toast.success("Loaded shared project");
+      }
       window.history.replaceState(null, "", window.location.pathname);
     } catch { /* ignore */ }
   }, []);
+  async function handleRunSmokeTest() {
+    if (smokeRunning) return;
+    setSmokeRunning(true);
+    setSmokeResults(null);
+    setSmokeProgress({ done: 0, total: 0, current: "" });
+    try {
+      const { runSmokeTest } = await import("@/lib/playground/smoke-test");
+      const results = await runSmokeTest((done, total, current) =>
+        setSmokeProgress({ done, total, current }),
+      );
+      setSmokeResults(results);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length === 0) toast.success(`All ${results.length} templates passed`);
+      else toast.error(`${failed.length} of ${results.length} templates have errors`, {
+        description: failed.slice(0, 3).map((r) => r.name).join(", ") + (failed.length > 3 ? "…" : ""),
+      });
+    } catch (e) {
+      toast.error("Smoke test failed", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setSmokeRunning(false);
+    }
+  }
 
   // --------- Editor ---------
   const onMount = useCallback<OnMount>((ed, mn) => {
@@ -1238,6 +1282,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <SheetTitle className="flex-1 min-w-0 truncate text-sm sm:text-base" style={{ color: palette.text }}>
                 Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
               </SheetTitle>
+              <button type="button" onClick={handleRunSmokeTest} disabled={smokeRunning}
+                className="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1 rounded-md border px-3 text-xs font-medium disabled:opacity-60"
+                style={{ borderColor: palette.border, color: palette.text }}
+                title="Load every template in a hidden iframe and report runtime errors / missing assets">
+                {smokeRunning
+                  ? <><Loader2 size={12} className="animate-spin" /> Testing {smokeProgress.done}/{smokeProgress.total}</>
+                  : <><ShieldCheck size={12} /> Smoke test</>}
+              </button>
               <label className="inline-flex shrink-0">
                 <input type="file" accept=".zip,application/zip" className="hidden"
                   onChange={(e) => { const f = e.target.files?.[0]; if (f) importZip(f); e.target.value = ""; }} />
@@ -1249,6 +1301,45 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </div>
           </SheetHeader>
           <div className="h-[calc(90vh-56px)] sm:h-[calc(80vh-56px)] overflow-auto p-3">
+            {smokeRunning && (
+              <div className="mb-3 rounded-md border p-2 text-xs" style={{ borderColor: palette.border, color: palette.subtle }}>
+                Running… {smokeProgress.current}
+              </div>
+            )}
+            {smokeResults && !smokeRunning && (
+              <div className="mb-4 rounded-md border" style={{ borderColor: palette.border }}>
+                <div className="flex items-center justify-between border-b px-3 py-2 text-xs" style={{ borderColor: palette.border }}>
+                  <span className="font-semibold" style={{ color: palette.text }}>
+                    Smoke test · {smokeResults.filter((r) => r.ok).length}/{smokeResults.length} passed
+                  </span>
+                  <button onClick={() => setSmokeResults(null)} className="opacity-60 hover:opacity-100" style={{ color: palette.text }}>
+                    <X size={12} />
+                  </button>
+                </div>
+                <ul className="max-h-56 divide-y overflow-auto text-[11px]" style={{ borderColor: palette.border }}>
+                  {smokeResults.map((r) => (
+                    <li key={r.id} className="px-3 py-1.5">
+                      <div className="flex items-center justify-between">
+                        <span style={{ color: palette.text }}>
+                          <span className="mr-2" style={{ color: r.ok ? "#39d98a" : "#ef4444" }}>{r.ok ? "✓" : "✗"}</span>
+                          {r.name}
+                        </span>
+                        <span style={{ color: palette.subtle }}>
+                          {r.errors.length > 0 && <span className="mr-2" style={{ color: "#ef4444" }}>{r.errors.length} err</span>}
+                          {r.warnings.length > 0 && <span className="mr-2" style={{ color: "#f59e0b" }}>{r.warnings.length} warn</span>}
+                          {r.recovered.length > 0 && <span style={{ color: "#39d98a" }}>{r.recovered.length} auto-fix</span>}
+                        </span>
+                      </div>
+                      {r.errors.length > 0 && (
+                        <ul className="mt-1 ml-5 list-disc space-y-0.5 break-words" style={{ color: "#fca5a5" }}>
+                          {r.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
+                        </ul>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
               <>
                 <div className="mb-2 mt-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>

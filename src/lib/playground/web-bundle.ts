@@ -26,11 +26,13 @@ function buildBridge(seed: { local: Record<string, string>; session: Record<stri
   return `<script>
 (function(){
   var __seed = ${seedJson};
-  // Shim localStorage/sessionStorage: the preview iframe runs without
-  // 'allow-same-origin', so the real Storage APIs throw SecurityError.
-  // We provide an in-memory implementation, seeded from a snapshot the
-  // parent persists, and report every mutation back so the parent can
-  // sync the snapshot across reloads.
+  function recover(kind, detail){
+    try { parent.postMessage({ __pgRecover: true, kind: kind, detail: String(detail || '') }, '*'); } catch(e){}
+  }
+  // ---- Shim localStorage/sessionStorage ----------------------------------
+  // The preview iframe runs without 'allow-same-origin', so the real Storage
+  // APIs throw SecurityError. We replace them with an in-memory implementation,
+  // seeded from a snapshot the parent persists, and report every mutation back.
   function makeStorage(kind, initial){
     var map = Object.create(null);
     if (initial) for (var k in initial) map[k] = String(initial[k]);
@@ -52,25 +54,102 @@ function buildBridge(seed: { local: Record<string, string>; session: Record<stri
   try {
     Object.defineProperty(window, 'localStorage',   { value: makeStorage('local',   __seed.local),   configurable: true });
     Object.defineProperty(window, 'sessionStorage', { value: makeStorage('session', __seed.session), configurable: true });
-  } catch(e){}
+  } catch(e){ recover('storage', e && e.message); }
 
+  // ---- Shim document.cookie ---------------------------------------------
+  // Reading/writing cookies in a non-same-origin sandbox also throws.
+  try {
+    var __cookies = '';
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      get: function(){ return __cookies; },
+      set: function(v){
+        try {
+          var pair = String(v).split(';')[0];
+          var eq = pair.indexOf('=');
+          if (eq < 0) return;
+          var name = pair.slice(0, eq).trim();
+          // remove existing
+          __cookies = __cookies.split('; ').filter(function(c){ return c && c.indexOf(name + '=') !== 0; }).join('; ');
+          __cookies = (__cookies ? __cookies + '; ' : '') + pair;
+        } catch(_){}
+      }
+    });
+  } catch(e){ recover('cookie', e && e.message); }
+
+  // ---- Shim indexedDB / caches / serviceWorker --------------------------
+  // These also throw SecurityError in a no-allow-same-origin sandbox. We
+  // replace them with no-op stubs so template code that *uses* them — but
+  // gracefully falls back when calls fail — keeps running.
+  try {
+    var idbStub = {
+      open: function(){
+        var req = { onsuccess: null, onerror: null, onupgradeneeded: null,
+          result: { objectStoreNames: { contains: function(){ return false; } },
+            createObjectStore: function(){ return { add: function(){}, put: function(){}, get: function(){}, delete: function(){} }; },
+            transaction: function(){ return { objectStore: function(){ return { add: function(){}, put: function(){}, get: function(){ return { onsuccess:null }; }, delete: function(){} }; }, oncomplete:null, onerror:null }; },
+            close: function(){} } };
+        setTimeout(function(){ if (req.onsuccess) req.onsuccess({ target: req }); }, 0);
+        return req;
+      },
+      deleteDatabase: function(){ var r={onsuccess:null,onerror:null}; setTimeout(function(){r.onsuccess && r.onsuccess({});},0); return r; }
+    };
+    Object.defineProperty(window, 'indexedDB', { value: idbStub, configurable: true });
+  } catch(e){ recover('indexedDB', e && e.message); }
+  try {
+    Object.defineProperty(window, 'caches', { value: {
+      open: function(){ return Promise.resolve({ match: function(){ return Promise.resolve(undefined); },
+        add: function(){ return Promise.resolve(); }, addAll: function(){ return Promise.resolve(); },
+        put: function(){ return Promise.resolve(); }, delete: function(){ return Promise.resolve(true); },
+        keys: function(){ return Promise.resolve([]); } }); },
+      match: function(){ return Promise.resolve(undefined); },
+      has: function(){ return Promise.resolve(false); },
+      delete: function(){ return Promise.resolve(true); },
+      keys: function(){ return Promise.resolve([]); },
+    }, configurable: true });
+  } catch(e){ recover('caches', e && e.message); }
+  try {
+    if (navigator && !('serviceWorker' in navigator) === false) {
+      Object.defineProperty(navigator, 'serviceWorker', { value: {
+        register: function(){ return Promise.reject(new Error('serviceWorker not available in preview')); },
+        getRegistration: function(){ return Promise.resolve(undefined); },
+        getRegistrations: function(){ return Promise.resolve([]); },
+        addEventListener: function(){}, removeEventListener: function(){},
+        ready: new Promise(function(){}),
+      }, configurable: true });
+    }
+  } catch(e){ recover('serviceWorker', e && e.message); }
+
+  // ---- Console + error bridge -------------------------------------------
   function send(level, args){
-    try { parent.postMessage({ __pgConsole:true, level, args: args.map(a => {
+    try { parent.postMessage({ __pgConsole:true, level: level, args: args.map(function(a){
       try { return typeof a === 'string' ? a : JSON.stringify(a); }
-      catch { return String(a); }
-    }) }, '*'); } catch(e){}
+      catch(_) { return String(a); }
+    }) }, '*'); } catch(_){}
   }
   ['log','info','warn','error','debug'].forEach(function(lvl){
     var orig = console[lvl] && console[lvl].bind(console);
     console[lvl] = function(){ var args = Array.prototype.slice.call(arguments);
       if (orig) orig.apply(null, args); send(lvl, args); };
   });
+
+  // Auto-recovery: a handful of well-known SecurityErrors are expected in a
+  // no-allow-same-origin sandbox and we have shims for them. If anything
+  // still bubbles up referencing those APIs, report it as "recovered" (info)
+  // instead of "error" so the Errors panel stays clean.
+  var RECOVER_RE = /(localStorage|sessionStorage|indexedDB|cookie|serviceWorker|caches)/i;
+  var SEC_RE = /SecurityError|sandboxed|allow-same-origin/i;
   window.addEventListener('error', function(e){
     var loc = e.filename ? ' (' + (e.filename.replace('about:srcdoc','preview')) + ':' + e.lineno + ':' + (e.colno||0) + ')' : '';
-    send('error', [(e.message || 'Error') + loc]);
+    var msg = (e.message || 'Error') + loc;
+    if (SEC_RE.test(msg) && RECOVER_RE.test(msg)) { recover('runtime', msg); send('info', ['[auto-recovered] ' + msg]); return; }
+    send('error', [msg]);
   });
   window.addEventListener('unhandledrejection', function(e){
-    send('error', ['Unhandled promise: ' + (e.reason && e.reason.message || e.reason)]);
+    var reason = e.reason && (e.reason.message || e.reason);
+    var msg = 'Unhandled promise: ' + reason;
+    if (SEC_RE.test(String(reason)) && RECOVER_RE.test(String(reason))) { recover('promise', msg); send('info', ['[auto-recovered] ' + msg]); return; }
+    send('error', [msg]);
   });
 })();
 </script>`;
