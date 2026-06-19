@@ -216,7 +216,7 @@ class MyApp extends StatelessWidget {
         ),
       );
 }
-`);
+`;
 
   zip.file("README.md", `# ${appName}
 
