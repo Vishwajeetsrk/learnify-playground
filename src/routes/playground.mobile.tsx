@@ -12,6 +12,8 @@ import {
   Trash2,
   Loader2,
   Play,
+  Copy,
+
   Square,
   Wifi,
   Signal,
@@ -420,13 +422,13 @@ function MobilePlayground() {
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col lg:h-[calc(100vh-3.5rem)]">
       <h1 className="sr-only">Android Mobile Playground</h1>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-card/40 p-2">
-        <Smartphone className="h-4 w-4 text-primary" />
-        <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
+      <div className="flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-border/60 bg-card/40 p-2 [&::-webkit-scrollbar]:h-1">
+        <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+        <span className="hidden shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
           Android · Java
         </span>
         <Select value={device} onValueChange={(v) => setDevice(v as DeviceKey)}>
-          <SelectTrigger className="h-9 w-36" data-testid="device-select">
+          <SelectTrigger className="h-9 w-36 shrink-0" data-testid="device-select">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -443,10 +445,11 @@ function MobilePlayground() {
           onClick={() => setLandscape((s) => !s)}
           aria-pressed={landscape}
           title="Rotate"
+          className="shrink-0"
         >
           <RotateCw className="mr-1 h-4 w-4" /> {landscape ? "Landscape" : "Portrait"}
         </Button>
-        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
           Zoom
           <input
             type="range"
@@ -463,7 +466,8 @@ function MobilePlayground() {
           </span>
         </label>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2 pl-2">
+
           {projectName && (
             <span
               className="hidden max-w-[180px] truncate rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-[11px] text-muted-foreground sm:inline-block"
@@ -531,6 +535,7 @@ function MobilePlayground() {
             disabled={running}
             data-testid="run-button"
             title="Build & run on the selected device"
+            className="shrink-0"
           >
             {running ? (
               <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -539,7 +544,40 @@ function MobilePlayground() {
             )}
             Run
           </Button>
-          <Button size="sm" variant="outline" onClick={handleClear} title="Clear logcat">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const text = logs.map((l) => l.text).join("\n");
+              if (!text) {
+                toast.message("Nothing to copy");
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(text);
+                toast.success("Output copied");
+              } catch (e) {
+                toast.error("Copy failed", { description: e instanceof Error ? e.message : String(e) });
+              }
+            }}
+            title="Copy logcat output"
+            className="shrink-0"
+            data-testid="copy-output"
+          >
+            <Copy className="mr-1 h-4 w-4" /> Copy
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleSave(false)}
+            disabled={busy}
+            title={projectId ? "Save project" : "Save as new project"}
+            className="shrink-0"
+            data-testid="save-project"
+          >
+            <Save className="mr-1 h-4 w-4" /> Save
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleClear} title="Clear logcat" className="shrink-0">
             <Square className="mr-1 h-4 w-4" /> Clear
           </Button>
           <Button
@@ -548,9 +586,11 @@ function MobilePlayground() {
             onClick={handleRun}
             disabled={running}
             title="Rebuild & rerun"
+            className="shrink-0"
           >
             <RefreshCw className="mr-1 h-4 w-4" /> Rerun
           </Button>
+
         </div>
       </div>
 
@@ -860,22 +900,28 @@ function PhoneFrame({
               logs.map((l, i) => {
                 const palette =
                   l.stream === "err"
-                    ? { dot: "#ef4444", label: "E", text: "#fecaca" }
+                    ? { bg: "rgba(239,68,68,0.18)", fg: "#fecaca", label: "E", text: "#fecaca" }
                     : l.stream === "sys"
-                      ? { dot: "#a78bfa", label: "S", text: "#ddd6fe" }
-                      : { dot: "#34d399", label: "I", text: "#d1fae5" };
+                      ? { bg: "rgba(167,139,250,0.18)", fg: "#ddd6fe", label: "S", text: "#ddd6fe" }
+                      : { bg: "rgba(52,211,153,0.18)", fg: "#a7f3d0", label: "I", text: "#d1fae5" };
                 return (
                   <div
                     key={i}
-                    style={{ display: "flex", gap: 8, alignItems: "baseline" }}
+                    style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 2 }}
                   >
                     <span
                       style={{
                         fontSize: 9,
                         fontWeight: 800,
-                        color: palette.dot,
-                        width: 10,
+                        color: palette.fg,
+                        background: palette.bg,
+                        padding: "1px 0",
+                        borderRadius: 4,
                         flexShrink: 0,
+                        minWidth: 16,
+                        textAlign: "center",
+                        lineHeight: "14px",
+                        marginTop: 2,
                       }}
                     >
                       {palette.label}
