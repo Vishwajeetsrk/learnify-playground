@@ -96,6 +96,21 @@ function Landing() {
               <Link to="/playground/web"><Globe className="mr-2 h-4 w-4" /> Try the web sandbox</Link>
             </Button>
           </div>
+
+          {/* GitHub Star CTA */}
+          <div className="mt-6 flex justify-center">
+            <a
+              href="https://github.com/Vishwajeetsrk/learnify-playground"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-4 py-2 text-sm font-medium text-foreground backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.18)]"
+            >
+              <Github className="h-4 w-4 transition-transform group-hover:rotate-12" />
+              <span className="h-px w-4 bg-border transition-colors group-hover:bg-primary/30" />
+              <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400 transition-transform group-hover:scale-110" />
+              Star on GitHub
+            </a>
+          </div>
         </div>
       </section>
 
