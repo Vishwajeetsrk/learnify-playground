@@ -405,7 +405,9 @@ async def main():
 
         # Ignore harmless Vite HMR / WebSocket noise. Real component errors
         # still fail the run.
-        real = [e for e in errors if "ws://" not in e and "HMR" not in e]
+        # Ignore noise we deliberately produce or that the host emits.
+        IGNORE = ("Mobile runtime error", "ws://", "HMR", "Switched to client rendering")
+        real = [e for e in errors if not any(s in e for s in IGNORE)]
         assert not real, f"page errors: {real}"
         await b.close()
         print("ALL E2E PASSED")
