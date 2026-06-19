@@ -53,8 +53,20 @@ function rewriteAssets(input: string, assets: Record<string, string>): string {
 
 export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
   const a = assets ?? {};
-  const htmlOut = rewriteAssets(html, a);
+  let htmlOut = rewriteAssets(html, a);
   const cssOut = rewriteAssets(css, a);
+  // Remove <link rel="stylesheet" href="*.css"> and <script src="*.js">
+  // tags pointing at LOCAL files — those resolve to nothing inside an
+  // srcDoc iframe (no http origin), and we inline the same content below.
+  // Keep external http(s):// and data: URLs intact.
+  htmlOut = htmlOut.replace(
+    /<link[^>]+rel=["']?stylesheet["']?[^>]*href=["']([^"']+)["'][^>]*>\s*/gi,
+    (m, href) => (/^(https?:|\/\/|data:)/i.test(href) ? m : ""),
+  );
+  htmlOut = htmlOut.replace(
+    /<script[^>]+src=["']([^"']+)["'][^>]*>\s*<\/script>\s*/gi,
+    (m, src) => (/^(https?:|\/\/|data:)/i.test(src) ? m : ""),
+  );
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -70,6 +82,7 @@ ${htmlOut}
 </body>
 </html>`;
 }
+
 
 
 export interface ConsoleMsg { level: string; text: string; at: number }
