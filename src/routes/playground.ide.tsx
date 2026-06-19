@@ -213,6 +213,10 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
+  const [formatOnSave, setFormatOnSaveState] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("playground:format-on-save:v1") === "1"; } catch { return false; }
+  });
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
