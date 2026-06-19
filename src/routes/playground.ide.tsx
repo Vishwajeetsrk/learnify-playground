@@ -34,8 +34,15 @@ export const Route = createFileRoute("/playground/ide")({
       { name: "description", content: "Full mobile IDE: write, run, preview, and AI-debug HTML/CSS/JS, Python, Node, Java, and more from your phone." },
     ],
   }),
-  component: IdePlayground,
+  component: () => <IdePlayground />,
 });
+
+export interface IdePlaygroundProps {
+  defaultKind?: "web" | "code";
+  storageKey?: string;
+  defaultLanguage?: LangKey;
+  defaultProjectName?: string;
+}
 
 // --------------------------------------------------------------------------
 // Types
@@ -59,7 +66,7 @@ interface IdeState {
 
 interface ConsoleEntry { id: number; level: string; text: string }
 
-const LS_KEY = "playground-ide:v1";
+const DEFAULT_LS_KEY = "playground-ide:v1";
 const QUICK_KEYS = ["Tab", "{", "}", "(", ")", "[", "]", ";", "=", "<", ">", "\"", "/"] as const;
 
 function uid(): string { return Math.random().toString(36).slice(2, 10); }
@@ -100,16 +107,21 @@ function extForLang(l: LangKey): string {
   return map[l];
 }
 
-function loadState(): IdeState {
+function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string): IdeState {
   if (typeof window === "undefined") return ensureActive(blankWeb());
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw) as IdeState;
       if (parsed.files?.length) return ensureActive(parsed);
     }
   } catch { /* ignore */ }
-  return ensureActive(fromTemplate(TEMPLATES[1])); // start with Calculator
+  if (defaultKind === "code") {
+    const f: IdeFile = { id: uid(), name: `main.${extForLang(defaultLanguage)}`, language: LANGUAGES[defaultLanguage].monaco, content: LANGUAGES[defaultLanguage].starter };
+    return { kind: "code", language: defaultLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], activeFileId: f.id };
+  }
+  const base = fromTemplate(TEMPLATES[1]); // Calculator web template
+  return ensureActive(defaultProjectName ? { ...base, projectName: defaultProjectName } : base);
 }
 
 function ensureActive(s: IdeState): IdeState {
@@ -120,7 +132,7 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-function IdePlayground() {
+export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName }: IdePlaygroundProps = {}) {
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
@@ -143,14 +155,19 @@ function IdePlayground() {
   const consoleIdRef = useRef(0);
 
   // Hydrate
-  useEffect(() => { setState(loadState()); }, []);
+  useEffect(() => {
+    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName);
+    setState(s);
+    setBottomTab(s.kind === "web" ? "preview" : "output");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Autosave to localStorage (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
-      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); setSavedAt(Date.now()); } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(state)); setSavedAt(Date.now()); } catch {}
     }, 600);
     return () => clearTimeout(t);
-  }, [state]);
+  }, [state, storageKey]);
 
   // Preview console capture
   useEffect(() => {
@@ -286,7 +303,7 @@ function IdePlayground() {
     }}>
       {/* Top bar */}
       {!fullscreen && (
-        <header className="flex h-14 shrink-0 items-center gap-2 overflow-x-auto border-b px-3"
+        <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2 sm:px-3"
           style={{ borderColor: palette.border, background: palette.panel }}>
           <button onClick={() => setFilesOpen(true)}
             className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
@@ -294,11 +311,11 @@ function IdePlayground() {
             title="Files">
             <FolderOpen size={16} />
           </button>
-          <div className="flex min-w-0 flex-col leading-tight">
+          <div className="flex min-w-0 flex-1 flex-col leading-tight">
             <Input
               value={state.projectName}
               onChange={(e) => setState((s) => ({ ...s, projectName: e.target.value }))}
-              className="h-7 w-44 shrink-0 border-0 bg-transparent px-0 text-sm font-semibold focus-visible:ring-0"
+              className="h-7 w-full min-w-0 border-0 bg-transparent px-0 text-sm font-semibold focus-visible:ring-0"
               style={{ color: palette.text }}
             />
             <span className="truncate text-[10px]" style={{ color: palette.subtle }}>
@@ -307,24 +324,24 @@ function IdePlayground() {
             </span>
           </div>
 
-          <div className="ml-auto flex shrink-0 items-center gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
+            <Button size="icon" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates" className="h-9 w-9">
               <LayoutGrid size={16} />
             </Button>
-            <Button size="sm" variant="ghost" onClick={handleShare} title="Share">
+            <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setAiOpen(true)} title="AI Assistant">
+            <Button size="icon" variant="ghost" onClick={() => setAiOpen(true)} title="AI Assistant" className="h-9 w-9">
               <Sparkles size={16} />
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings">
+            <Button size="icon" variant="ghost" onClick={() => setSettingsOpen(true)} title="Settings" className="h-9 w-9">
               <SettingsIcon size={16} />
             </Button>
             <Button size="sm" onClick={handleRun} disabled={running}
-              className="ml-1 h-9 rounded-xl px-4"
+              className="ml-1 h-9 rounded-xl px-3 sm:px-4"
               style={{ background: "linear-gradient(160deg,#5fd38a,#4f8cff)", color: "#001028" }}>
-              {running ? <Loader2 className="mr-1 animate-spin" size={14} /> : <Play size={14} className="mr-1" />}
-              Run
+              {running ? <Loader2 className="animate-spin sm:mr-1" size={14} /> : <Play size={14} className="sm:mr-1" />}
+              <span className="hidden sm:inline">Run</span>
             </Button>
           </div>
         </header>
