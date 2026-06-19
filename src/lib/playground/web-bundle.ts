@@ -9,11 +9,13 @@ export interface WebFiles {
 }
 
 export const PREVIEW_VIEWPORTS = {
+  fit:     { label: "Fit",     w: 0,    h: 0    },
   mobile:  { label: "Mobile",  w: 375,  h: 667  },
   tablet:  { label: "Tablet",  w: 768,  h: 1024 },
   desktop: { label: "Desktop", w: 1280, h: 800  },
 } as const;
 export type ViewportKey = keyof typeof PREVIEW_VIEWPORTS;
+
 
 const BRIDGE = `<script>
 (function(){
@@ -51,8 +53,20 @@ function rewriteAssets(input: string, assets: Record<string, string>): string {
 
 export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
   const a = assets ?? {};
-  const htmlOut = rewriteAssets(html, a);
+  let htmlOut = rewriteAssets(html, a);
   const cssOut = rewriteAssets(css, a);
+  // Remove <link rel="stylesheet" href="*.css"> and <script src="*.js">
+  // tags pointing at LOCAL files — those resolve to nothing inside an
+  // srcDoc iframe (no http origin), and we inline the same content below.
+  // Keep external http(s):// and data: URLs intact.
+  htmlOut = htmlOut.replace(
+    /<link[^>]+rel=["']?stylesheet["']?[^>]*href=["']([^"']+)["'][^>]*>\s*/gi,
+    (m, href) => (/^(https?:|\/\/|data:)/i.test(href) ? m : ""),
+  );
+  htmlOut = htmlOut.replace(
+    /<script[^>]+src=["']([^"']+)["'][^>]*>\s*<\/script>\s*/gi,
+    (m, src) => (/^(https?:|\/\/|data:)/i.test(src) ? m : ""),
+  );
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -68,6 +82,7 @@ ${htmlOut}
 </body>
 </html>`;
 }
+
 
 
 export interface ConsoleMsg { level: string; text: string; at: number }
