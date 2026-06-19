@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { WebAiDebugPanel } from "@/components/web-ai-debug-panel";
 
 const STARTER_HTML = `<!doctype html>
 <html>
@@ -19,6 +20,20 @@ const STARTER_JS = `document.getElementById('b').addEventListener('click', () =>
   alert('It works!');
 });`;
 
+const ERROR_BRIDGE = `<script>
+(function(){
+  function send(type, msg){ parent.postMessage({ __webpg: true, type, msg }, '*'); }
+  window.addEventListener('error', function(e){
+    send('error', (e.message || 'Error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : ''));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    send('error', 'Unhandled rejection: ' + (e.reason && e.reason.message ? e.reason.message : String(e.reason)));
+  });
+  var origErr = console.error;
+  console.error = function(){ send('error', Array.from(arguments).map(String).join(' ')); origErr.apply(console, arguments); };
+})();
+<\/script>`;
+
 export const Route = createFileRoute("/playground/web")({
   head: () => ({ meta: [{ title: "Web Playground" }] }),
   component: WebPlayground,
@@ -31,6 +46,7 @@ function WebPlayground() {
   const [previewKey, setPreviewKey] = useState(0);
   const [autoRun, setAutoRun] = useState(true);
   const [debounced, setDebounced] = useState({ html, css, js });
+  const [consoleErrors, setConsoleErrors] = useState("");
 
   useEffect(() => {
     if (!autoRun) return;
@@ -38,12 +54,28 @@ function WebPlayground() {
     return () => clearTimeout(t);
   }, [html, css, js, autoRun]);
 
+  useEffect(() => {
+    setConsoleErrors("");
+  }, [debounced, previewKey]);
+
+  useEffect(() => {
+    function onMsg(e: MessageEvent) {
+      const d = e.data as { __webpg?: boolean; type?: string; msg?: string };
+      if (d && d.__webpg && d.type === "error" && d.msg) {
+        setConsoleErrors((prev) => (prev ? prev + "\n" : "") + d.msg);
+      }
+    }
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
   const srcDoc = useMemo(() => {
-    return `${debounced.html}\n<style>${debounced.css}</style>\n<script>${debounced.js}<\/script>`;
+    return `${debounced.html}\n<style>${debounced.css}</style>\n${ERROR_BRIDGE}\n<script>${debounced.js}<\/script>`;
   }, [debounced]);
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col lg:h-[calc(100vh-3.5rem)]">
+      <h1 className="sr-only">Web Playground</h1>
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-card/40 p-2">
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
           <input type="checkbox" checked={autoRun} onChange={(e) => setAutoRun(e.target.checked)} />
@@ -64,7 +96,7 @@ function WebPlayground() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="flex min-h-[40vh] flex-1 flex-col border-b border-border/60 lg:border-b-0 lg:border-r">
+        <div className="flex h-[50vh] shrink-0 flex-col border-b border-border/60 lg:h-auto lg:flex-1 lg:border-b-0 lg:border-r">
           <Tabs defaultValue="html" className="flex h-full flex-col">
             <TabsList className="m-2 w-fit">
               <TabsTrigger value="html">HTML</TabsTrigger>
@@ -72,39 +104,18 @@ function WebPlayground() {
               <TabsTrigger value="js">JS</TabsTrigger>
             </TabsList>
             <TabsContent value="html" className="m-0 flex-1">
-              <Editor
-                height="100%"
-                language="html"
-                value={html}
-                theme="vs-dark"
-                onChange={(v) => setHtml(v ?? "")}
-                options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }}
-              />
+              <Editor height="100%" language="html" value={html} theme="vs-dark" onChange={(v) => setHtml(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
             </TabsContent>
             <TabsContent value="css" className="m-0 flex-1">
-              <Editor
-                height="100%"
-                language="css"
-                value={css}
-                theme="vs-dark"
-                onChange={(v) => setCss(v ?? "")}
-                options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }}
-              />
+              <Editor height="100%" language="css" value={css} theme="vs-dark" onChange={(v) => setCss(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
             </TabsContent>
             <TabsContent value="js" className="m-0 flex-1">
-              <Editor
-                height="100%"
-                language="javascript"
-                value={js}
-                theme="vs-dark"
-                onChange={(v) => setJs(v ?? "")}
-                options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }}
-              />
+              <Editor height="100%" language="javascript" value={js} theme="vs-dark" onChange={(v) => setJs(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
             </TabsContent>
           </Tabs>
         </div>
 
-        <div className="flex min-h-[35vh] w-full flex-col lg:w-[45%]">
+        <div className="flex w-full min-w-0 flex-col lg:w-[45%]">
           <div className="border-b border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Live preview
           </div>
@@ -113,7 +124,18 @@ function WebPlayground() {
             title="preview"
             sandbox="allow-scripts allow-modals"
             srcDoc={srcDoc}
-            className="h-full w-full flex-1 bg-white"
+            className="min-h-[260px] w-full flex-1 bg-white"
+          />
+          <WebAiDebugPanel
+            html={html}
+            css={css}
+            js={js}
+            consoleErrors={consoleErrors}
+            onApply={(next) => {
+              if (next.html !== undefined) setHtml(next.html);
+              if (next.css !== undefined) setCss(next.css);
+              if (next.js !== undefined) setJs(next.js);
+            }}
           />
         </div>
       </div>
