@@ -235,14 +235,32 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
 
-  // Build preview doc for web projects (debounced via key change)
+  // Build preview doc for web projects.
+  // Aggregates ALL .html/.css/.js files, plus any uploaded assets, so multi-file
+  // projects "just work" — index.html (or the first .html) is the body, every
+  // .css is concatenated, every .js is concatenated in order, and references to
+  // asset filenames (img src="logo.png", url(bg.jpg), etc.) are rewritten to the
+  // uploaded asset's data URL so images/PDFs in the assets/ folder render.
   const previewDoc = useMemo(() => {
     if (state.kind !== "web") return "";
-    const html = state.files.find((f) => f.path === "index.html")?.content ?? "";
-    const css  = state.files.find((f) => f.path === "style.css")?.content  ?? "";
-    const js   = state.files.find((f) => f.path === "script.js")?.content  ?? "";
-    return buildPreviewDoc({ html, css, js });
+    const byExt = (ext: string) =>
+      state.files.filter((f) => !f.asset && f.path.toLowerCase().endsWith(ext));
+    const htmlFile =
+      state.files.find((f) => f.path === "index.html") ??
+      byExt(".html")[0];
+    const html = htmlFile?.content ?? "";
+    const css = byExt(".css").map((f) => `/* ${f.path} */\n${f.content}`).join("\n\n");
+    const js = byExt(".js").map((f) => `// ${f.path}\n${f.content}`).join("\n;\n");
+    const assets: Record<string, string> = {};
+    for (const f of state.files) {
+      if (f.asset?.dataUrl) {
+        assets[f.path] = f.asset.dataUrl;
+        assets[basename(f.path)] = f.asset.dataUrl;
+      }
+    }
+    return buildPreviewDoc({ html, css, js, assets });
   }, [state]);
+
 
   // --------- File ops ---------
   function updateActive(content: string) {
