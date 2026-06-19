@@ -386,6 +386,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       toast.success("Preview reloaded");
       return;
     }
+    const spec = LANGUAGES[state.language];
+    if (spec.runnable === false) {
+      const info = `${spec.label} runs in snippet mode — no free online executor is available for this language.\n\nWhat you can do:\n• Use the AI assistant below to Explain, Convert (e.g. to Python/JS), Generate tests, or Document the code.\n• Copy the code into your local toolchain (Xcode for Objective-C, the Dart SDK for Dart, etc.) to execute it.\n\nThe editor, AI tools, file tree, assets and ZIP export all work normally for this language.`;
+      setOutput(info); setStdout(""); setStderr(""); setExitCode(null);
+      setBottomTab("output");
+      toast.message(`${spec.label} is snippet-only`, { description: "See the output panel for details." });
+      return;
+    }
     setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null);
     setBottomTab("output");
     try {
