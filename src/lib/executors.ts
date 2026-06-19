@@ -343,7 +343,7 @@ function friendlyError(err: unknown, provider: ProviderKey): string {
   if (err instanceof ProviderError) {
     if (err.status === 429) return `${PROVIDERS[provider].label} is rate-limited right now (HTTP 429). Try again in a moment or switch providers.`;
     if (err.status === 401 || err.status === 403) {
-      return `${PROVIDERS[provider].label} rejected the request (HTTP ${err.status}). ${provider === "piston" ? "The public Piston API is whitelist-only since Feb 2026 — switch to Wandbox." : err.message}`;
+      return `${PROVIDERS[provider].label} rejected the request (HTTP ${err.status}).${provider === "piston" ? " If you're using the public emkc.org endpoint, try a self-hosted Piston URL in Settings." : ""}`;
     }
     if (err.status && err.status >= 500) return `${PROVIDERS[provider].label} is temporarily unavailable (HTTP ${err.status}).`;
     return err.message;
@@ -361,6 +361,12 @@ export async function runCode(
   if (LANGUAGES[lang].runnable === false) {
     throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
   }
+  // If the selected provider doesn't support this language but the other one
+  // does, transparently route to the one that does (Kotlin/Dart → Piston,
+  // Ruby/Bash → Wandbox, etc.).
+  const spec = LANGUAGES[lang];
+  if (provider === "wandbox" && !spec.wandbox && spec.piston) provider = "piston";
+  else if (provider === "piston" && !spec.piston && spec.wandbox) provider = "wandbox";
   try {
     return await runWithProvider(provider, lang, source, stdin);
   } catch (err) {
