@@ -614,6 +614,8 @@ function MobilePlayground() {
               logs={logs}
               screenRef={screenRef}
               onRun={handleRun}
+              onClear={handleClear}
+              onRerun={handleRun}
             />
           </div>
 
