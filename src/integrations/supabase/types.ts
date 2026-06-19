@@ -14,7 +14,110 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      playground_projects: {
+        Row: {
+          code: string | null
+          created_at: string
+          css: string | null
+          html: string | null
+          id: string
+          js: string | null
+          kind: Database["public"]["Enums"]["playground_kind"]
+          language: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          css?: string | null
+          html?: string | null
+          id?: string
+          js?: string | null
+          kind?: Database["public"]["Enums"]["playground_kind"]
+          language?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          css?: string | null
+          html?: string | null
+          id?: string
+          js?: string | null
+          kind?: Database["public"]["Enums"]["playground_kind"]
+          language?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      playground_runs: {
+        Row: {
+          created_at: string
+          exit_code: number | null
+          id: string
+          language: string
+          project_id: string | null
+          source: string
+          stderr: string | null
+          stdout: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          exit_code?: number | null
+          id?: string
+          language: string
+          project_id?: string | null
+          source: string
+          stderr?: string | null
+          stdout?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          exit_code?: number | null
+          id?: string
+          language?: string
+          project_id?: string | null
+          source?: string
+          stderr?: string | null
+          stdout?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playground_runs_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "playground_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +126,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      playground_kind: "code" | "web"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +253,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      playground_kind: ["code", "web"],
+    },
   },
 } as const
