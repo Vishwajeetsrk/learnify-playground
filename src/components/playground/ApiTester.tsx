@@ -87,6 +87,8 @@ export function ApiTester() {
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryEntry[]>(() => loadList<HistoryEntry>(HIST_KEY));
   const [saved, setSaved] = useState<SavedEntry[]>(() => loadList<SavedEntry>(SAVED_KEY));
+  const [snippetLang, setSnippetLang] = useState<SnippetLang>("curl");
+  const [snippetOpen, setSnippetOpen] = useState(false);
 
   useEffect(() => {
     try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* ignore */ }
