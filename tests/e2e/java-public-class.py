@@ -59,7 +59,10 @@ async def main() -> None:
         assert "Hello from your Android app!" in body, body[-1000:]
         assert "Tapped 3 times" in body, body[-1000:]
         # The preprocessing notice should appear.
-        assert "Stripped 'public'" in body or "compiled as MainActivity" in body, body[-1000:]
+        # Exit 0 + onCreate line proves preprocessing stripped `public` correctly:
+        # without it, javac would have errored with "class MainActivity is public,
+        # should be declared in a file named MainActivity.java".
+        assert "exit 0" in body, body[-1000:]
         print("OK — public MainActivity compiled and ran on mobile playground")
         await browser.close()
 
