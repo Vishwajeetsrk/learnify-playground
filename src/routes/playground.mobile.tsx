@@ -271,6 +271,15 @@ function MobilePlayground() {
   // --- Project ops ---
   const refreshList = useCallback(async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setProjects([]);
+        setProjectsLoaded(true);
+        toast.message("Sign in to sync projects", {
+          description: "Saved projects will appear once you log in.",
+        });
+        return;
+      }
       const r = await list();
       setProjects(r.projects as ProjectRow[]);
       setProjectsLoaded(true);
