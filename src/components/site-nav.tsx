@@ -21,10 +21,10 @@ function StarCount() {
   if (isLoading) {
     return <span className="inline-block h-3 w-5 animate-pulse rounded bg-foreground/20" aria-label="Loading stars" />;
   }
-  if (isError || !data) return null;
+  if (isError || !data || !data.ok) return null;
   return (
     <span className="rounded-full bg-foreground/10 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-foreground">
-      {formatCompact(data.stargazers_count)}
+      {formatCompact(data.data.stargazers_count)}
     </span>
   );
 }
