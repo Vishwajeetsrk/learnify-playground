@@ -19,16 +19,24 @@ export type LangKey =
   | "go"
   | "rust"
   | "ruby"
-  | "bash";
+  | "bash"
+  | "kotlin"
+  | "swift"
+  | "dart"
+  | "scala"
+  | "objc"
+  | "sql";
 
 export type ProviderKey = "wandbox" | "piston";
 
 interface LangSpec {
   label: string;
   monaco: string;
-  wandbox: { compiler: string };
+  wandbox?: { compiler: string };
   piston?: { language: string; version: string; filename: string };
   starter: string;
+  /** false = no live executor; runCode throws a friendly snippet-mode message. */
+  runnable?: boolean;
 }
 
 export const LANGUAGES: Record<LangKey, LangSpec> = {
