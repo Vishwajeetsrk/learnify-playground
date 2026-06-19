@@ -23,6 +23,7 @@ import { templatesForTrack, type CodeTemplate } from "@/lib/playground/templates
 import { loadSqlJs, runSql, exportCsv, exportJson, type ExecResult } from "@/lib/playground/sqljs";
 import { TemplateIcon } from "@/lib/playground/icons";
 import { AiDebugPanel } from "@/components/ai-debug-panel";
+import { SchemaBuilder } from "@/components/playground/SchemaBuilder";
 
 export const Route = createFileRoute("/playground/database")({
   ssr: false,
@@ -72,7 +73,8 @@ function DatabasePlayground() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
-  const [bottomTab, setBottomTab] = useState<"results" | "console">("results");
+  const [bottomTab, setBottomTab] = useState<"results" | "console" | "schema">("results");
+  const [schemaTick, setSchemaTick] = useState(0);
   const dbRef = useRef<SqlDb | null>(null);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const palette = APP_THEMES[appTheme];
@@ -256,6 +258,15 @@ function DatabasePlayground() {
               }}>
               Console
             </button>
+            <button onClick={() => { setSchemaTick((n) => n + 1); setBottomTab("schema"); }}
+              className="inline-flex h-7 items-center rounded-md px-2.5 text-[11px] font-medium"
+              style={{
+                background: bottomTab === "schema" ? palette.bg : "transparent",
+                color: palette.text,
+                border: `1px solid ${bottomTab === "schema" ? palette.border : "transparent"}`,
+              }}>
+              <TableIcon size={12} className="mr-1" /> Schema Builder
+            </button>
             <div className="ml-auto">
               {bottomTab === "results" && result && result.blocks.length > 0 && (
                 <button onClick={() => exportBlock(0, "csv")}
@@ -273,10 +284,14 @@ function DatabasePlayground() {
           </div>
 
           <div className="min-h-0 flex-1 overflow-auto">
-            {bottomTab === "results" ? (
+            {bottomTab === "results" && (
               <ResultsView result={result} subtle={palette.subtle} onExport={exportBlock} />
-            ) : (
+            )}
+            {bottomTab === "console" && (
               <ConsoleView error={error} result={result} subtle={palette.subtle} />
+            )}
+            {bottomTab === "schema" && (
+              <SchemaBuilder key={schemaTick} db={dbRef.current} onChange={() => { /* user can rerun query */ }} />
             )}
           </div>
         </div>
