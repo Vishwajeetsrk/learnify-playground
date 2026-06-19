@@ -232,89 +232,203 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
   return (
     <Link
       to={lang ? `${to}?lang=${encodeURIComponent(lang)}` : to}
-      className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
-      style={{ transformStyle: "preserve-3d" }}
-      title={name}
+      className="group relative block aspect-square [perspective:800px]"
+      title={`${name} — open playground`}
     >
-      <div
-        className="pointer-events-none absolute inset-0 -z-10 rounded-xl opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-70"
-        style={{ background: `radial-gradient(closest-side, ${color}55, transparent 70%)` }}
-      />
-      <img
-        src={logoUrl(slug)}
-        alt={`${name} logo`}
-        loading="lazy"
-        width={40}
-        height={40}
-        className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
-        style={{ transformStyle: "preserve-3d" }}
-        onError={(e) => {
-          const img = e.currentTarget;
-          if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(slug); }
-        }}
-      />
-      <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-        {name}
-      </span>
+      <div className="relative h-full w-full transition-transform duration-700 ease-out [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+        {/* Front face: logo */}
+        <div
+          className="absolute inset-0 flex items-center justify-center rounded-xl border border-border bg-card/80 p-3 shadow-sm [backface-visibility:hidden]"
+        >
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10 rounded-xl opacity-0 blur-md transition-opacity duration-500 group-hover:opacity-80"
+            style={{ background: `radial-gradient(closest-side, ${color}66, transparent 70%)` }}
+          />
+          <img
+            src={logoUrl(slug)}
+            alt={`${name} logo`}
+            loading="lazy"
+            width={44}
+            height={44}
+            className="h-11 w-11 drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)]"
+            onError={(e) => {
+              const img = e.currentTarget;
+              if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(slug); }
+            }}
+          />
+        </div>
+        {/* Back face: name */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center gap-1 rounded-xl border border-primary/40 p-2 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]"
+          style={{ background: `linear-gradient(135deg, ${color}22, ${color}05)` }}
+        >
+          <span className="text-xs font-semibold" style={{ color }}>{name}</span>
+          <span className="inline-flex items-center gap-0.5 text-[9px] uppercase tracking-wider text-muted-foreground">
+            Open <ArrowRight className="h-2.5 w-2.5" />
+          </span>
+        </div>
+      </div>
     </Link>
   );
 }
 
-function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: string; lang?: string }[] }) {
-  const radius = 260; // px
+/**
+ * LogoOrbit — premium interactive 3D carousel.
+ * - Auto-rotates; pauses on hover
+ * - Mouse-move tilts the whole orbit (parallax)
+ * - Drag horizontally to spin manually
+ * - Each logo sits on a glowing pedestal with brand-color halo
+ */
+function LogoOrbit({ items }: { items: { name: string; slug: string; color: string; to: string; lang?: string }[] }) {
+  const radius = 280;
   const step = 360 / items.length;
+  const wrapRef = React.useRef<HTMLDivElement>(null);
+  const stageRef = React.useRef<HTMLDivElement>(null);
+  const [autoAngle, setAutoAngle] = React.useState(0);
+  const [dragOffset, setDragOffset] = React.useState(0);
+  const [paused, setPaused] = React.useState(false);
+  const [tilt, setTilt] = React.useState({ x: -14, y: 0 });
+  const dragState = React.useRef<{ startX: number; startOffset: number } | null>(null);
+
+  // Auto-rotation loop (RAF for smoothness, pauses on hover/drag)
+  React.useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const tick = (t: number) => {
+      const dt = t - last; last = t;
+      if (!paused && !dragState.current) {
+        setAutoAngle((a) => (a + dt * 0.012) % 360); // ~30s per revolution
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [paused]);
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    // Drag-to-spin
+    if (dragState.current) {
+      const dx = e.clientX - dragState.current.startX;
+      setDragOffset(dragState.current.startOffset + dx * 0.4);
+      return;
+    }
+    // Parallax tilt
+    const el = wrapRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    setTilt({ x: -14 + py * -14, y: px * 22 });
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    dragState.current = { startX: e.clientX, startOffset: dragOffset };
+  };
+  const endDrag = (e: React.PointerEvent) => {
+    if (dragState.current) {
+      try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+      dragState.current = null;
+    }
+  };
+
+  const angle = autoAngle + dragOffset;
+
   return (
-    <div className="logo-ring-wrap relative mx-auto h-[340px] w-full max-w-[640px]" style={{ perspective: "1200px" }}>
-      <style>{`
-        @keyframes ring-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-        .logo-ring { animation: ring-spin 28s linear infinite; transform-style: preserve-3d; }
-        .logo-ring-wrap:hover .logo-ring { animation-play-state: paused; }
-        @media (prefers-reduced-motion: reduce) { .logo-ring { animation: none; } }
-      `}</style>
-      {/* Floor reflection */}
+    <div
+      ref={wrapRef}
+      className="relative mx-auto h-[380px] w-full max-w-[720px] touch-none select-none"
+      style={{ perspective: "1400px" }}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={(e) => { setPaused(false); setTilt({ x: -14, y: 0 }); endDrag(e); }}
+      onPointerMove={onPointerMove}
+      onPointerDown={onPointerDown}
+      onPointerUp={endDrag}
+      onPointerCancel={endDrag}
+    >
+      {/* Floor glow */}
       <div
         aria-hidden
-        className="absolute left-1/2 top-1/2 -z-10 h-[60px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] opacity-50 blur-2xl"
-        style={{ background: "radial-gradient(closest-side, hsl(var(--primary) / 0.4), transparent 70%)" }}
+        className="absolute left-1/2 top-[78%] -z-10 h-[80px] w-[520px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] opacity-60 blur-3xl"
+        style={{ background: "radial-gradient(closest-side, hsl(var(--primary) / 0.5), transparent 70%)" }}
       />
-      <div className="logo-ring absolute left-1/2 top-1/2 h-0 w-0">
-        {items.map((it, i) => {
-          const angle = i * step;
-          return (
-            <Link
-              key={it.slug}
-              to={it.lang ? `${it.to}?lang=${encodeURIComponent(it.lang)}` : it.to}
-              title={`${it.name} — open playground`}
-              className="group absolute -left-7 -top-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-lg backdrop-blur transition-colors hover:border-primary"
-              style={{
-                transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
-                transformStyle: "preserve-3d",
-              }}
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 rounded-2xl opacity-40 blur-md"
-                style={{ background: `radial-gradient(closest-side, ${it.color}60, transparent 70%)` }}
-              />
-              <img
-                src={logoUrl(it.slug)}
-                alt={`${it.name} logo`}
-                loading="lazy"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-                /* Counter-rotate so logos always face the camera */
-                style={{ transform: `rotateY(${-angle}deg)` }}
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(it.slug); }
+      {/* Ground ring */}
+      <div
+        aria-hidden
+        className="absolute left-1/2 top-1/2 -z-10 h-[8px] w-[600px] -translate-x-1/2 rounded-full opacity-30"
+        style={{
+          background: "linear-gradient(90deg, transparent, hsl(var(--primary) / 0.6), transparent)",
+          transform: `translate(-50%, 110px) rotateX(75deg)`,
+        }}
+      />
+
+      <div
+        ref={stageRef}
+        className="absolute left-1/2 top-1/2 h-0 w-0"
+        style={{
+          transformStyle: "preserve-3d",
+          transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+          transition: dragState.current ? "none" : "transform 400ms ease-out",
+        }}
+      >
+        <div
+          className="absolute left-0 top-0 h-0 w-0"
+          style={{
+            transformStyle: "preserve-3d",
+            transform: `rotateY(${angle}deg)`,
+          }}
+        >
+          {items.map((it, i) => {
+            const a = i * step;
+            return (
+              <Link
+                key={it.slug}
+                to={it.lang ? `${it.to}?lang=${encodeURIComponent(it.lang)}` : it.to}
+                title={`${it.name} — open playground`}
+                onClick={(e) => { if (dragState.current) e.preventDefault(); }}
+                className="group absolute -left-8 -top-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-[0_10px_30px_-12px_rgba(0,0,0,0.6)] backdrop-blur transition-[border-color,box-shadow] duration-300 hover:border-primary hover:shadow-[0_18px_40px_-10px_rgba(0,0,0,0.7)]"
+                style={{
+                  transform: `rotateY(${a}deg) translateZ(${radius}px)`,
+                  transformStyle: "preserve-3d",
                 }}
-              />
-            </Link>
-          );
-        })}
+              >
+                {/* Brand-color halo */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -z-10 rounded-2xl opacity-60 blur-md transition-opacity duration-300 group-hover:opacity-100"
+                  style={{ background: `radial-gradient(closest-side, ${it.color}70, transparent 70%)` }}
+                />
+                {/* Glass highlight */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 rounded-2xl"
+                  style={{ background: "linear-gradient(135deg, rgba(255,255,255,0.18), transparent 45%)" }}
+                />
+                <img
+                  src={logoUrl(it.slug)}
+                  alt={`${it.name} logo`}
+                  loading="lazy"
+                  width={36}
+                  height={36}
+                  className="h-9 w-9 drop-shadow-[0_4px_8px_rgba(0,0,0,0.4)] transition-transform duration-500 group-hover:scale-110"
+                  style={{ transform: `rotateY(${-(angle + a)}deg) rotateX(${-tilt.x}deg)` }}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(it.slug); }
+                  }}
+                />
+                {/* Pedestal reflection */}
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute left-1/2 top-full mt-1 h-2 w-10 -translate-x-1/2 rounded-[50%] opacity-50 blur-sm"
+                  style={{ background: `radial-gradient(closest-side, ${it.color}aa, transparent 70%)` }}
+                />
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
-
   );
 }
