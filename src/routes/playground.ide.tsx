@@ -675,18 +675,39 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
             <div className="min-h-0 flex-1 overflow-auto">
               {bottomTab === "preview" && (state.kind === "web" || effectiveTrack === "mobile") && (
-                <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
+                <div className="flex h-full flex-col">
+                  {effectiveTrack === "mobile" && (
+                    <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                      <span className="font-semibold" style={{ color: palette.text }}>Mobile Playground</span> supports code execution, syntax validation, and learning snippets. Full Android/iOS app rendering requires Android Studio, Xcode, or Flutter SDK.
+                    </div>
+                  )}
+                  <div className="min-h-0 flex-1">
+                    <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
+                  </div>
+                </div>
               )}
               {bottomTab === "console" && (
                 <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
               )}
               {bottomTab === "output" && (
-                <pre className="m-0 h-full overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
-                  style={{ background: "#000", color: "#7ce38b" }}>
-                  {output || "Tap Run to execute your code."}
-                </pre>
+                <div className="flex h-full flex-col">
+                  {lastRun && (
+                    <div className="shrink-0 border-b px-3 py-1.5 text-[11px]" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                      <span className="font-semibold" style={{ color: palette.text }}>{lastRun.provider}</span>
+                      {lastRun.status && <span className="ml-2">· {lastRun.status}</span>}
+                      {lastRun.timeSec != null && <span className="ml-2">· {lastRun.timeSec.toFixed(3)}s</span>}
+                      {lastRun.memoryKb != null && <span className="ml-2">· {(lastRun.memoryKb / 1024).toFixed(1)} MB</span>}
+                      {exitCode !== null && <span className="ml-2">· exit {exitCode}</span>}
+                    </div>
+                  )}
+                  <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
+                    style={{ background: "#000", color: "#7ce38b" }}>
+                    {output || "Tap Run to execute your code."}
+                  </pre>
+                </div>
               )}
             </div>
+
           </div>
         )}
       </div>
