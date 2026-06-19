@@ -20,10 +20,6 @@ export function SiteNav() {
           <Button asChild variant="ghost" size="sm">
             <Link to="/playground/mobile">Mobile</Link>
           </Button>
-          <Button asChild variant="default" size="sm">
-            <Link to="/playground/ide">IDE</Link>
-          </Button>
-
           <Button asChild variant="ghost" size="sm">
             <Link to="/tools">Tools</Link>
           </Button>
