@@ -1324,40 +1324,149 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 Running… {smokeProgress.current}
               </div>
             )}
-            {smokeResults && !smokeRunning && (
-              <div className="mb-4 rounded-md border" style={{ borderColor: palette.border }}>
-                <div className="flex items-center justify-between border-b px-3 py-2 text-xs" style={{ borderColor: palette.border }}>
-                  <span className="font-semibold" style={{ color: palette.text }}>
-                    Smoke test · {smokeResults.filter((r) => r.ok).length}/{smokeResults.length} passed
-                  </span>
-                  <button onClick={() => setSmokeResults(null)} className="opacity-60 hover:opacity-100" style={{ color: palette.text }}>
-                    <X size={12} />
-                  </button>
-                </div>
-                <ul className="max-h-56 divide-y overflow-auto text-[11px]" style={{ borderColor: palette.border }}>
-                  {smokeResults.map((r) => (
-                    <li key={r.id} className="px-3 py-1.5">
-                      <div className="flex items-center justify-between">
-                        <span style={{ color: palette.text }}>
-                          <span className="mr-2" style={{ color: r.ok ? "#39d98a" : "#ef4444" }}>{r.ok ? "✓" : "✗"}</span>
-                          {r.name}
-                        </span>
-                        <span style={{ color: palette.subtle }}>
-                          {r.errors.length > 0 && <span className="mr-2" style={{ color: "#ef4444" }}>{r.errors.length} err</span>}
-                          {r.warnings.length > 0 && <span className="mr-2" style={{ color: "#f59e0b" }}>{r.warnings.length} warn</span>}
-                          {r.recovered.length > 0 && <span style={{ color: "#39d98a" }}>{r.recovered.length} auto-fix</span>}
-                        </span>
+            {smokeResults && !smokeRunning && (() => {
+              const mod = require("@/lib/playground/smoke-test") as typeof import("@/lib/playground/smoke-test");
+              const summary = mod.summarize(smokeResults, smokeRanAt);
+              const diff = mod.diffRuns(smokePrevResults, smokeResults);
+              const filtered = smokePlatformFilter === "all"
+                ? smokeResults
+                : smokeResults.filter((r) => r.platform === smokePlatformFilter);
+              const failedCount = smokeResults.filter((r) => !r.ok).length;
+              const fmtTime = (t: number | null) => t ? new Date(t).toLocaleTimeString() : "—";
+              return (
+                <div className="mb-4 rounded-md border" style={{ borderColor: palette.border }}>
+                  {/* Compact summary */}
+                  <div className="border-b px-3 py-2 text-xs" style={{ borderColor: palette.border }}>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="font-semibold" style={{ color: palette.text }}>
+                        Smoke test · {summary.passed}/{summary.total} passed ({Math.round(summary.passRate * 100)}%)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span style={{ color: palette.subtle }}>Last run {fmtTime(summary.lastRunAt)}</span>
+                        <button onClick={() => { setSmokeResults(null); setSmokePrevResults(null); setSmokeRanAt(null); }}
+                          className="opacity-60 hover:opacity-100" style={{ color: palette.text }}>
+                          <X size={12} />
+                        </button>
                       </div>
-                      {r.errors.length > 0 && (
-                        <ul className="mt-1 ml-5 list-disc space-y-0.5 break-words" style={{ color: "#fca5a5" }}>
-                          {r.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
-                        </ul>
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="rounded px-2 py-0.5" style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>
+                        Web {summary.byPlatform.web.passed}/{summary.byPlatform.web.total}
+                        {summary.byPlatform.web.failed > 0 && <span className="ml-1" style={{ color: "#ef4444" }}>· {summary.byPlatform.web.failed} fail</span>}
+                      </span>
+                      <span className="rounded px-2 py-0.5" style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>
+                        Mobile {summary.byPlatform.mobile.passed}/{summary.byPlatform.mobile.total}
+                        {summary.byPlatform.mobile.failed > 0 && <span className="ml-1" style={{ color: "#ef4444" }}>· {summary.byPlatform.mobile.failed} fail</span>}
+                      </span>
+                      {summary.topCategories.length > 0 && (
+                        <span style={{ color: palette.subtle }}>
+                          Top: {summary.topCategories.map((c) => `${c.category} (${c.count})`).join(" · ")}
+                        </span>
                       )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
+                    </div>
+                    <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                      {(["all", "web", "mobile"] as const).map((p) => (
+                        <button key={p} onClick={() => setSmokePlatformFilter(p)}
+                          className="rounded px-2 py-0.5 text-[10px] uppercase tracking-wider"
+                          style={{
+                            background: smokePlatformFilter === p ? palette.text : "transparent",
+                            color: smokePlatformFilter === p ? palette.bg : palette.subtle,
+                            border: `1px solid ${palette.border}`,
+                          }}>
+                          {p}
+                        </button>
+                      ))}
+                      <button onClick={() => handleRunSmokeTest({ onlyFailed: true })}
+                        disabled={failedCount === 0}
+                        className="ml-auto rounded px-2 py-0.5 text-[10px] font-medium disabled:opacity-40"
+                        style={{ border: `1px solid ${palette.border}`, color: palette.text }}>
+                        <RefreshCw size={10} className="mr-1 inline" />
+                        Retry failed ({failedCount})
+                      </button>
+                      <button onClick={() => handleRunSmokeTest()}
+                        className="rounded px-2 py-0.5 text-[10px] font-medium"
+                        style={{ border: `1px solid ${palette.border}`, color: palette.text }}>
+                        Rerun all
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Diff vs previous run */}
+                  {smokePrevResults && diff.changed.length > 0 && (
+                    <div className="border-b px-3 py-2 text-[11px]" style={{ borderColor: palette.border }}>
+                      <div className="mb-1 font-semibold" style={{ color: palette.text }}>
+                        Changes vs previous run · {diff.regressed.length} regressed · {diff.recovered.length} recovered
+                      </div>
+                      <ul className="space-y-1">
+                        {diff.changed.slice(0, 8).map((d) => (
+                          <li key={d.id} className="flex flex-wrap items-start gap-x-2">
+                            <span style={{
+                              color: d.status === "regressed" ? "#ef4444"
+                                : d.status === "recovered" ? "#39d98a"
+                                : palette.subtle,
+                            }}>
+                              {d.status === "regressed" ? "↓" : d.status === "recovered" ? "↑" : "•"}
+                            </span>
+                            <span style={{ color: palette.text }}>{d.name}</span>
+                            <span className="text-[10px] uppercase opacity-60" style={{ color: palette.subtle }}>{d.platform}</span>
+                            <span className="text-[10px]" style={{ color: palette.subtle }}>{d.status}</span>
+                            {d.newErrors.length > 0 && (
+                              <span className="basis-full pl-4" style={{ color: "#fca5a5" }}>
+                                + {d.newErrors.slice(0, 2).join(" | ")}
+                              </span>
+                            )}
+                            {d.newAssetFailures.length > 0 && (
+                              <span className="basis-full pl-4" style={{ color: "#fdba74" }}>
+                                + asset: {d.newAssetFailures.slice(0, 2).join(" | ")}
+                              </span>
+                            )}
+                            {d.fixedErrors.length > 0 && (
+                              <span className="basis-full pl-4" style={{ color: "#86efac" }}>
+                                − {d.fixedErrors.slice(0, 2).join(" | ")}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Per-template results */}
+                  <ul className="max-h-56 divide-y overflow-auto text-[11px]" style={{ borderColor: palette.border }}>
+                    {filtered.map((r) => (
+                      <li key={r.id} className="px-3 py-1.5">
+                        <div className="flex items-center justify-between">
+                          <span style={{ color: palette.text }}>
+                            <span className="mr-2" style={{ color: r.ok ? "#39d98a" : "#ef4444" }}>{r.ok ? "✓" : "✗"}</span>
+                            {r.name}
+                            <span className="ml-2 text-[10px] uppercase opacity-60" style={{ color: palette.subtle }}>
+                              {r.platform}{r.staticOnly ? " · static" : ""}
+                            </span>
+                          </span>
+                          <span style={{ color: palette.subtle }}>
+                            {r.errors.length > 0 && <span className="mr-2" style={{ color: "#ef4444" }}>{r.errors.length} err</span>}
+                            {r.assetFailures.length > 0 && <span className="mr-2" style={{ color: "#fdba74" }}>{r.assetFailures.length} 404</span>}
+                            {r.warnings.length > 0 && <span className="mr-2" style={{ color: "#f59e0b" }}>{r.warnings.length} warn</span>}
+                            {r.recovered.length > 0 && <span style={{ color: "#39d98a" }}>{r.recovered.length} auto-fix</span>}
+                          </span>
+                        </div>
+                        {r.errors.length > 0 && (
+                          <ul className="mt-1 ml-5 list-disc space-y-0.5 break-words" style={{ color: "#fca5a5" }}>
+                            {r.errors.slice(0, 3).map((e, i) => <li key={i}>{e}</li>)}
+                          </ul>
+                        )}
+                        {r.assetFailures.length > 0 && (
+                          <ul className="mt-1 ml-5 list-disc space-y-0.5 break-words" style={{ color: "#fdba74" }}>
+                            {r.assetFailures.slice(0, 2).map((e, i) => <li key={i}>{e}</li>)}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })()}
+
             {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
               <>
                 <div className="mb-2 mt-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>
