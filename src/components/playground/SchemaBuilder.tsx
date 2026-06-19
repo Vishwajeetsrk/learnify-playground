@@ -55,6 +55,7 @@ export function SchemaBuilder({ db, onChange }: SchemaBuilderProps) {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"editor" | "diagram">("editor");
 
   const refresh = useCallback(() => {
     if (!db) { setTables([]); return; }
