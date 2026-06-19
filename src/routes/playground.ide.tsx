@@ -433,6 +433,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         zip.file(f.path, b64, { base64: true });
       } else {
         zip.file(f.path, f.content);
+      }
     }
     // project.json manifest + relations summary
     const manifest = buildManifest({
