@@ -41,6 +41,7 @@ import {
   renameMobileProject,
   saveMobileProject,
 } from "@/lib/playground-projects.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Android-flavoured Java starter. Wandbox compiles it as a normal Java program
 // (the playground runs JVM bytecode, not a real Android emulator), but the
@@ -270,6 +271,15 @@ function MobilePlayground() {
   // --- Project ops ---
   const refreshList = useCallback(async () => {
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setProjects([]);
+        setProjectsLoaded(true);
+        toast.message("Sign in to sync projects", {
+          description: "Saved projects will appear once you log in.",
+        });
+        return;
+      }
       const r = await list();
       setProjects(r.projects as ProjectRow[]);
       setProjectsLoaded(true);
