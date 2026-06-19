@@ -19,6 +19,9 @@ export function SiteNav() {
           <Button asChild variant="ghost" size="sm">
             <Link to="/playground/web">Web</Link>
           </Button>
+          <Button asChild variant="ghost" size="sm">
+            <Link to="/tools">Tools</Link>
+          </Button>
           {user ? (
             <>
               <span className="hidden items-center gap-1 px-2 text-xs text-muted-foreground sm:inline-flex">

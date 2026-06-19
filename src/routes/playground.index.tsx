@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { LANGUAGES, runCode, type LangKey } from "@/lib/piston";
+import { LANGUAGES, PROVIDERS, runCode, type LangKey, type ProviderKey } from "@/lib/executors";
 import { ProjectSidebar, type PlaygroundProject } from "@/components/project-sidebar";
+import { QuotaIndicator } from "@/components/quota-indicator";
+import { AiDebugPanel } from "@/components/ai-debug-panel";
 
 export const Route = createFileRoute("/playground/")({
   head: () => ({ meta: [{ title: "Code Playground" }] }),
@@ -26,6 +28,7 @@ function CodePlayground() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [lang, setLang] = useState<LangKey>("python");
+  const [provider, setProvider] = useState<ProviderKey>("piston");
   const [code, setCode] = useState(LANGUAGES.python.starter);
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
@@ -68,7 +71,7 @@ function CodePlayground() {
     setRunning(true);
     setOutput("Running…");
     try {
-      const r = await runCode(lang, code, stdin);
+      const r = await runCode(lang, code, stdin, provider);
       setOutput(r.output || "(no output)");
       if (user) {
         await supabase.from("playground_runs").insert({
@@ -169,6 +172,19 @@ function CodePlayground() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={provider} onValueChange={(v) => setProvider(v as ProviderKey)}>
+            <SelectTrigger className="h-9 w-40" title="Code execution provider">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PROVIDERS) as ProviderKey[]).map((k) => (
+                <SelectItem key={k} value={k}>
+                  {PROVIDERS[k].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <QuotaIndicator provider={provider} />
           <div className="ml-auto flex flex-wrap gap-2">
             <Button onClick={handleRun} disabled={running} size="sm">
               {running ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Play className="mr-1 h-4 w-4" />}
@@ -220,6 +236,7 @@ function CodePlayground() {
             <pre className="flex-1 overflow-auto bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
               {output || "Run your code to see output here."}
             </pre>
+            <AiDebugPanel language={lang} code={code} output={output} />
           </div>
         </div>
 
