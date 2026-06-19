@@ -885,10 +885,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 className="hidden h-9 w-[150px] shrink-0 sm:inline-flex"
                 style={{ borderColor: palette.border }}
               >
-                <span className="inline-flex items-center gap-2">
-                  <LanguageIcon language={state.language} size={14} />
-                  <SelectValue />
-                </span>
+                <SelectValue />
+
               </SelectTrigger>
               <SelectContent className="max-h-80">
                 {(Object.keys(LANGUAGES) as LangKey[]).map((k) => (
