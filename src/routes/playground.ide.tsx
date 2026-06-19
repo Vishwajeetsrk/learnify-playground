@@ -278,8 +278,13 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       return { ...s, files, activeFileId: id === s.activeFileId ? files[0].id : s.activeFileId };
     });
   }
-  function renameFile(id: string, newPath: string) {
-    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, path: newPath, name: basename(newPath), language: monacoLangFromName(newPath) } : f) }));
+  function renameFile(id: string, newPath: string): string | null {
+    const clean = newPath.trim().replace(/^\/+|\/+$/g, "");
+    if (!clean) return "Name cannot be empty";
+    if (!/^[A-Za-z0-9._\-/]+$/.test(clean)) return "Use letters, numbers, . _ - /";
+    if (state.files.some((f) => f.id !== id && f.path === clean)) return "A file with that path already exists";
+    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, path: clean, name: basename(clean), language: monacoLangFromName(clean) } : f) }));
+    return null;
   }
   async function uploadAssets(fileList: FileList, folder = "assets") {
     addFolder(folder);
