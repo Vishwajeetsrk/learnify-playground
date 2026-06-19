@@ -125,7 +125,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   kotlin: {
     label: "Kotlin",
     monaco: "kotlin",
-    wandbox: { compiler: "kotlin-1.9.23" },
+    runnable: false,
     starter: `fun main() {\n  println("Hello from Kotlin")\n}\n`,
   },
   swift: {
