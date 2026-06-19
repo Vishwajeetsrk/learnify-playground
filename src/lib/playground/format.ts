@@ -47,7 +47,11 @@ export async function formatSource(lang: FormatLang, source: string): Promise<st
     if (!parser) return null;
     const prettier = await import("prettier/standalone");
     const plugins = await loadPrettierPlugins(parser);
-    return await prettier.format(source, { parser, plugins, tabWidth: 2, semi: true, singleQuote: false });
+    return await prettier.format(source, {
+      parser,
+      plugins: plugins as never,
+      tabWidth: 2, semi: true, singleQuote: false,
+    });
   } catch (e) {
     console.warn("[format] failed", lang, e);
     return null;
