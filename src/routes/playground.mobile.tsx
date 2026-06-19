@@ -139,6 +139,38 @@ function parseLogcat(stdout: string, stderr: string): LogLine[] {
   return out;
 }
 
+// Derive a tiny "rendered app" view from logcat output. The playground compiles
+// Java via Wandbox (no Android emulator), so we simulate the UI a beginner
+// would expect by reading the Log.i/Log.d statements they wrote.
+interface AppModel {
+  title: string;
+  items: string[];
+  taps: number;
+  banner: string | null;
+  hasOnCreate: boolean;
+}
+function deriveAppModel(logs: LogLine[]): AppModel {
+  const items: string[] = [];
+  let title = "MainActivity";
+  let banner: string | null = null;
+  let taps = 0;
+  let hasOnCreate = false;
+  for (const l of logs) {
+    if (l.stream === "sys") continue;
+    const m = l.text.match(/^([\w.$]+)\s+([DIEW]):\s*(.*)$/);
+    if (!m) continue;
+    const tag = m[1];
+    const msg = m[3];
+    if (/^onCreate/i.test(msg)) { hasOnCreate = true; if (tag) title = tag; continue; }
+    const item = msg.match(/^item\s+\d+\s*[:\-]\s*(.+)$/i);
+    if (item) { items.push(item[1].trim()); continue; }
+    const tap = msg.match(/Tapped\s+(\d+)\s+times?/i);
+    if (tap) { taps = Math.max(taps, parseInt(tap[1], 10)); continue; }
+    if (msg.length > 2) banner = msg;
+  }
+  return { title, items, taps, banner, hasOnCreate };
+}
+
 function MobilePlayground() {
   const [code, setCode] = useState(STARTER_JAVA);
   const [device, setDevice] = useState<DeviceKey>("pixel8");
