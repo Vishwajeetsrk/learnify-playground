@@ -19,6 +19,10 @@ import { DepGraph } from "@/components/playground/DepGraph";
 import { ValidationReport } from "@/components/playground/ValidationReport";
 import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
+import { buildAndroidZip, buildIosZip, buildFlutterZip, detectNativeTarget, downloadBlob, type NativeTarget } from "@/lib/playground/mobile-export";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -558,6 +562,31 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     toast.success("Project exported as ZIP");
   }
 
+  async function exportNative(target: NativeTarget) {
+    try {
+      const opts = {
+        projectName: state.projectName,
+        files: state.files.map((f) => ({
+          path: f.path,
+          content: f.content,
+          isAsset: !!f.asset,
+          base64: f.asset?.dataUrl.split(",")[1],
+        })),
+      };
+      const blob =
+        target === "android" ? await buildAndroidZip(opts)
+          : target === "ios" ? await buildIosZip(opts)
+          : await buildFlutterZip(opts);
+      const safe = state.projectName.replace(/[^a-z0-9._-]+/gi, "_") || "MobileApp";
+      const suffix = target === "android" ? "android" : target === "ios" ? "ios-xcode" : "flutter";
+      downloadBlob(blob, `${safe}-${suffix}.zip`);
+      const label = target === "android" ? "Android Studio" : target === "ios" ? "Xcode" : "Flutter";
+      toast.success(`${label} project exported`, { description: "Unzip and open in your local IDE." });
+    } catch (e) {
+      toast.error("Export failed", { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
   function loadTemplate(t: Template) {
     setState(ensureActive(fromTemplate(t)));
     setTemplatesOpen(false);
@@ -603,18 +632,32 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       toast.message(`${spec.label} is snippet-only`, { description: "See the output panel for details." });
       return;
     }
-    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
+    const isMobileNative = effectiveTrack === "mobile" && (state.language === "kotlin" || state.language === "swift" || state.language === "dart");
+    const mobileNotice = isMobileNative
+      ? `⚠️  Real Android emulator / iOS Simulator / Flutter device CANNOT run inside the browser.\n` +
+        `    They require Android Studio, Xcode (macOS), or the Flutter SDK on your machine.\n\n` +
+        `What the Mobile Playground does instead for ${spec.label}:\n` +
+        `  • Compiles & runs your code as a console snippet via a free public runner (Judge0 / Piston).\n` +
+        `  • Validates syntax, shows stdout/stderr, runtime and memory.\n` +
+        `  • AI assistant: Explain, Convert, Generate tests, Document.\n` +
+        `  • Export → packages a ready-to-open Android Gradle / Xcode / Flutter project ZIP.\n\n` +
+        `Attempting snippet execution…\n` + `─────────────────────────────────\n`
+      : "";
+    setRunning(true); setOutput(mobileNotice + "Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
     setBottomTab("output");
     try {
       const r = await runCode(state.language, activeFile.content, "", "judge0", {
         fallback: true,
         onFallback: (info) => toast.warning(`${PROVIDERS[info.from].label} → ${PROVIDERS[info.to].label}`, { description: info.reason }),
       });
-      setOutput(r.output || "(no output)"); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
+      setOutput(mobileNotice + (r.output || "(no output)")); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
       setLastRun({ provider: PROVIDERS[r.provider].label, timeSec: r.timeSec, memoryKb: r.memoryKb, status: r.status });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setOutput(`Error: ${msg}`); setStderr(msg);
+      const hint = isMobileNative
+        ? `\n\nTip: Tap the Export button (download icon) to download a ready-to-run ${state.language === "kotlin" ? "Android Studio" : state.language === "swift" ? "Xcode" : "Flutter"} project, then run it locally.`
+        : "";
+      setOutput(mobileNotice + `Error: ${msg}${hint}`); setStderr(msg);
       toast.error("Run failed", { description: msg });
     } finally { setRunning(false); }
   }
@@ -725,6 +768,44 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
               <Download size={16} />
             </Button>
+            {effectiveTrack === "mobile" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" title="Export native project (Android / iOS / Flutter)" className="h-9 w-9">
+                    <Smartphone size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel className="text-xs">Export to local IDE</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => exportNative("android")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Android (Gradle · Kotlin)</span>
+                      <span className="text-[10px] opacity-70">Open in Android Studio</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => exportNative("ios")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">iOS (Xcode · SwiftUI)</span>
+                      <span className="text-[10px] opacity-70">Open in Xcode on macOS</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => exportNative("flutter")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Flutter (Dart)</span>
+                      <span className="text-[10px] opacity-70">flutter run on any device</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled className="opacity-60">
+                    <span className="text-[10px]">Browser sandboxes can't run real emulators.</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
             </Button>
@@ -907,7 +988,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 <div className="flex h-full flex-col">
                   {effectiveTrack === "mobile" && (
                     <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
-                      <span className="font-semibold" style={{ color: palette.text }}>Mobile Playground</span> supports code execution, syntax validation, and learning snippets. Full Android/iOS app rendering requires Android Studio, Xcode, or Flutter SDK.
+                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>Why no live emulator?</span> Real Android emulators and the iOS Simulator can't run inside a browser sandbox — they need virtualization, native toolchains and (for iOS) macOS.</div>
+                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>What works here:</span> Kotlin / Swift / Dart code execution (console output), syntax validation, AI assist (Explain · Convert · Tests · Docs), multi-file projects, asset manager, and ZIP / native-project export.</div>
+                      <div><span className="font-semibold" style={{ color: palette.text }}>To run as a real app:</span> tap the <Smartphone size={11} className="inline -mt-0.5" /> Export button → choose Android Studio, Xcode, or Flutter → open the ZIP locally.</div>
                     </div>
                   )}
                   <div className="min-h-0 flex-1">
