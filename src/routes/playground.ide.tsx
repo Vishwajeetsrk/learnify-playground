@@ -988,7 +988,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 <div className="flex h-full flex-col">
                   {effectiveTrack === "mobile" && (
                     <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
-                      <span className="font-semibold" style={{ color: palette.text }}>Mobile Playground</span> supports code execution, syntax validation, and learning snippets. Full Android/iOS app rendering requires Android Studio, Xcode, or Flutter SDK.
+                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>Why no live emulator?</span> Real Android emulators and the iOS Simulator can't run inside a browser sandbox — they need virtualization, native toolchains and (for iOS) macOS.</div>
+                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>What works here:</span> Kotlin / Swift / Dart code execution (console output), syntax validation, AI assist (Explain · Convert · Tests · Docs), multi-file projects, asset manager, and ZIP / native-project export.</div>
+                      <div><span className="font-semibold" style={{ color: palette.text }}>To run as a real app:</span> tap the <Smartphone size={11} className="inline -mt-0.5" /> Export button → choose Android Studio, Xcode, or Flutter → open the ZIP locally.</div>
                     </div>
                   )}
                   <div className="min-h-0 flex-1">
