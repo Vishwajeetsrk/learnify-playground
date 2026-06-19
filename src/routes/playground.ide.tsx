@@ -421,14 +421,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       toast.message(`${spec.label} is snippet-only`, { description: "See the output panel for details." });
       return;
     }
-    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null);
+    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
     setBottomTab("output");
     try {
-      const r = await runCode(state.language, activeFile.content, "", "wandbox", {
+      const r = await runCode(state.language, activeFile.content, "", "judge0", {
         fallback: true,
         onFallback: (info) => toast.warning(`${PROVIDERS[info.from].label} → ${PROVIDERS[info.to].label}`, { description: info.reason }),
       });
       setOutput(r.output || "(no output)"); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
+      setLastRun({ provider: PROVIDERS[r.provider].label, timeSec: r.timeSec, memoryKb: r.memoryKb, status: r.status });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOutput(`Error: ${msg}`); setStderr(msg);
