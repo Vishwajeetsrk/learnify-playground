@@ -287,6 +287,7 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
       <SmartLogo
         slug={slug}
         name={name}
+        color={color}
         size={40}
         className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
       />
