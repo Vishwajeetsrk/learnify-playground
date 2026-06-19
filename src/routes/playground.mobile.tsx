@@ -103,6 +103,8 @@ const LS = {
 };
 
 export const Route = createFileRoute("/playground/mobile")({
+  // Monaco editor + device frame are client-only; SSR throws "Element type is invalid".
+  ssr: false,
   head: () => ({
     meta: [
       { title: "Android Mobile Playground" },
