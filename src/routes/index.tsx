@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap } from "lucide-react";
+import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap, Github, Star } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
