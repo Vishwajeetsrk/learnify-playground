@@ -330,6 +330,25 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     if (state.files.some((f) => f.path === fullPath)) { toast.error(`${fullPath} already exists`); return; }
     const f = mkFile(fullPath, "");
     setState((s) => ({ ...s, files: [...s.files, f], activeFileId: f.id }));
+    // Auto-link: for web projects, offer to wire new .css/.js into index.html.
+    if (state.kind === "web") autoLinkIntoHtml(fullPath);
+  }
+  function autoLinkIntoHtml(newPath: string) {
+    const ext = newPath.toLowerCase().split(".").pop();
+    if (ext !== "css" && ext !== "js") return;
+    const html = state.files.find((f) => f.path === "index.html");
+    if (!html) return;
+    const tag = ext === "css"
+      ? `  <link rel="stylesheet" href="${newPath}">\n`
+      : `  <script src="${newPath}" defer></script>\n`;
+    if (html.content.includes(newPath)) return;
+    const updated = ext === "css" && /<\/head>/i.test(html.content)
+      ? html.content.replace(/<\/head>/i, `${tag}</head>`)
+      : ext === "js" && /<\/body>/i.test(html.content)
+        ? html.content.replace(/<\/body>/i, `${tag}</body>`)
+        : `${html.content}\n${tag}`;
+    setState((s) => ({ ...s, files: s.files.map((f) => f.id === html.id ? { ...f, content: updated } : f) }));
+    toast.success(`Linked ${newPath} into index.html`);
   }
   function addFolder(path: string) {
     const clean = path.replace(/^\/+|\/+$/g, "");
