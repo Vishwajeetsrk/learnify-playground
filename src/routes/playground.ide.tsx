@@ -1171,7 +1171,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <CommandItem onSelect={() => { setCmdOpen(false); setFullscreen((v) => !v); }}>
               {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />} <span>Toggle fullscreen</span>
             </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); copyAsMarkdown(); }}>
+              <Copy size={14} /> <span>Copy project as Markdown</span>
+            </CommandItem>
           </CommandGroup>
+          {recentPaths.length > 0 && (
+            <CommandGroup heading="Recent">
+              {recentPaths
+                .map((p) => state.files.find((f) => f.path === p))
+                .filter((f): f is IdeFile => !!f && !f.asset)
+                .map((f) => (
+                  <CommandItem key={`recent-${f.id}`} value={`recent ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
+                    <FileText size={14} /> <span>{f.path}</span>
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
           <CommandGroup heading="Files">
             {state.files.filter((f) => !f.asset).map((f) => (
               <CommandItem key={f.id} value={`file ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
