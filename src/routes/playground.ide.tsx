@@ -863,6 +863,44 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </span>
           </div>
 
+          {state.kind === "code" && (
+            <Select
+              value={state.language}
+              onValueChange={(v) => {
+                const lang = v as LangKey;
+                if (lang === state.language) return;
+                setState((s) => {
+                  const f = s.files[0];
+                  return {
+                    ...s,
+                    language: lang,
+                    files: [{ ...f, name: `main.${extForLang(lang)}`, language: LANGUAGES[lang].monaco, content: LANGUAGES[lang].starter }],
+                    activeFileId: f.id,
+                  };
+                });
+              }}
+            >
+              <SelectTrigger
+                aria-label="Switch language"
+                className="hidden h-9 w-[150px] shrink-0 sm:inline-flex"
+                style={{ borderColor: palette.border }}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <LanguageIcon language={state.language} size={14} />
+                  <SelectValue />
+                </span>
+              </SelectTrigger>
+              <SelectContent className="max-h-80">
+                {(Object.keys(LANGUAGES) as LangKey[]).map((k) => (
+                  <SelectItem key={k} value={k}>
+                    <span className="inline-flex items-center gap-2">
+                      <LanguageIcon language={k} size={14} /> {LANGUAGES[k].label}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
 
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Button size="icon" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates" className="h-9 w-9">
