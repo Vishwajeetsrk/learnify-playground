@@ -75,15 +75,31 @@ function CodePlayground() {
   async function handleRun() {
     setRunning(true);
     setOutput("Running…");
+    setStdout("");
+    setStderr("");
+    setExitCode(null);
     try {
-      const r = await runCode(lang, code, stdin, provider);
+      const r = await runCode(lang, code, stdin, provider, {
+        fallback: true,
+        onFallback: ({ from, to, reason }) => {
+          toast.warning(`${PROVIDERS[from].label} unavailable — falling back to ${PROVIDERS[to].label}`, {
+            description: reason,
+          });
+          setActiveProvider(to);
+        },
+      });
+      setActiveProvider(r.provider);
       setOutput(r.output || "(no output)");
+      setStdout(r.stdout);
+      setStderr(r.stderr);
+      setExitCode(r.code);
       if (user) {
         await supabase.from("playground_runs").insert({
           user_id: user.id,
           project_id: projectId,
           language: lang,
           source: code,
+          stdin,
           stdout: r.stdout,
           stderr: r.stderr,
           exit_code: r.code,
@@ -92,11 +108,13 @@ function CodePlayground() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOutput(`Error: ${msg}`);
-      toast.error("Run failed");
+      setStderr(msg);
+      toast.error("Run failed", { description: msg });
     } finally {
       setRunning(false);
     }
   }
+
 
   async function handleSave() {
     if (!user) return;
