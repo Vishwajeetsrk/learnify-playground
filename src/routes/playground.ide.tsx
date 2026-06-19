@@ -963,6 +963,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <TabBtn active={bottomTab === "console"} onClick={() => setBottomTab("console")} palette={palette}>
               <Terminal size={12} className="mr-1" /> Console {consoleMsgs.length > 0 && <span className="ml-1 text-[10px] opacity-70">{consoleMsgs.length}</span>}
             </TabBtn>
+            {(() => {
+              const errCount = consoleMsgs.filter((m) => m.level === "error" || m.level === "warn").length;
+              return (
+                <TabBtn active={bottomTab === "errors"} onClick={() => setBottomTab("errors")} palette={palette}>
+                  <Terminal size={12} className="mr-1" /> Errors {errCount > 0 && <span className="ml-1 rounded px-1 text-[10px]" style={{ background: "#ff6f8a22", color: "#ff6f8a" }}>{errCount}</span>}
+                </TabBtn>
+              );
+            })()}
             {state.kind === "code" && (
               <TabBtn active={bottomTab === "output"} onClick={() => setBottomTab("output")} palette={palette}>
                 <Terminal size={12} className="mr-1" /> Output {exitCode !== null && <span className="ml-1 text-[10px] opacity-70">exit {exitCode}</span>}
