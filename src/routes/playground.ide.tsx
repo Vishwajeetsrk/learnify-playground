@@ -235,6 +235,23 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     return () => clearTimeout(t);
   }, [state, storageKey]);
 
+  // Recent files: hydrate + track active file changes
+  const recentKey = `${storageKey}:recent`;
+  useEffect(() => {
+    try { const raw = localStorage.getItem(recentKey); if (raw) setRecentPaths(JSON.parse(raw)); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const f = state.files.find((x) => x.id === state.activeFileId);
+    if (!f || f.asset) return;
+    setRecentPaths((prev) => {
+      const next = [f.path, ...prev.filter((p) => p !== f.path)].slice(0, 8);
+      try { localStorage.setItem(recentKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [state.activeFileId, state.files, recentKey]);
+
+
   // Preview console capture
   useEffect(() => {
     function onMsg(e: MessageEvent) {
