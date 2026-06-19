@@ -5,19 +5,18 @@ import {
   RefreshCw,
   RotateCw,
   Smartphone,
-  Bug,
-  BugOff,
   Save,
   FolderOpen,
   FilePlus2,
   Pencil,
   Trash2,
   Loader2,
+  Play,
+  Square,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -33,8 +32,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { WebAiDebugPanel } from "@/components/web-ai-debug-panel";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { AiDebugPanel } from "@/components/ai-debug-panel";
+import { runCode, PROVIDERS, type ProviderKey } from "@/lib/executors";
 import {
   deleteMobileProject,
   listMobileProjects,
@@ -43,73 +42,50 @@ import {
   saveMobileProject,
 } from "@/lib/playground-projects.functions";
 
-const STARTER_HTML = `<!doctype html>
-<html lang="en">
-  <head><meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  </head>
-  <body>
-    <header class="bar"><h1>My App</h1></header>
-    <main>
-      <div class="card">
-        <h2>Welcome 👋</h2>
-        <p>Tap the button to count.</p>
-        <button id="b" class="btn">Tapped 0 times</button>
-      </div>
-      <ul class="list">
-        <li>📦 Inbox</li><li>⭐ Starred</li><li>📅 Today</li><li>⚙️ Settings</li>
-      </ul>
-    </main>
-    <nav class="tabbar">
-      <button class="tab active">🏠<span>Home</span></button>
-      <button class="tab">🔍<span>Search</span></button>
-      <button class="tab">👤<span>Profile</span></button>
-    </nav>
-  </body>
-</html>`;
+// Android-flavoured Java starter. Wandbox compiles it as a normal Java program
+// (the playground runs JVM bytecode, not a real Android emulator), but the
+// structure mirrors what a beginner would write inside an Activity's
+// onCreate(). Output is rendered inside the phone "screen" as logcat lines.
+const STARTER_JAVA = `import java.util.*;
 
-const STARTER_CSS = `:root { color-scheme: light dark; }
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f4f7; color: #111; }
-@media (prefers-color-scheme: dark) { html, body { background: #0b0b10; color: #f4f4f7; } .card, .tabbar { background: #15151c !important; } }
-.bar { padding: env(safe-area-inset-top) 16px 12px; background: linear-gradient(135deg,#6366f1,#8b5cf6); color: white; }
-.bar h1 { margin: 12px 0 0; font-size: 22px; }
-main { padding: 16px; padding-bottom: 96px; display: grid; gap: 16px; }
-.card { background: white; border-radius: 16px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.btn { width: 100%; padding: 12px 16px; border-radius: 12px; border: 0; background: #6366f1; color: white; font-weight: 600; font-size: 15px; }
-.btn:active { transform: scale(.98); }
-.list { list-style: none; padding: 0; margin: 0; background: white; border-radius: 16px; overflow: hidden; }
-.list li { padding: 14px 16px; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 15px; }
-.list li:last-child { border: 0; }
-.tabbar { position: fixed; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around;
-  padding: 8px 0 calc(8px + env(safe-area-inset-bottom)); background: white; border-top: 1px solid rgba(0,0,0,.08); }
-.tab { background: transparent; border: 0; font-size: 20px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: #888; }
-.tab span { font-size: 10px; font-weight: 600; }
-.tab.active { color: #6366f1; }`;
+public class MainActivity {
+    // Simulated Android lifecycle entry point.
+    public static void main(String[] args) {
+        Log.d("MainActivity", "onCreate()");
 
-const STARTER_JS = `let n = 0;
-const b = document.getElementById('b');
-b.addEventListener('click', () => { n++; b.textContent = 'Tapped ' + n + ' times'; });`;
+        String[] items = { "Inbox", "Starred", "Today", "Settings" };
+        for (int i = 0; i < items.length; i++) {
+            Log.i("MainActivity", "item " + (i + 1) + ": " + items[i]);
+        }
 
-function buildErrorBridge(nonce: string) {
-  return `<script>
-(function(){
-  var NONCE = ${JSON.stringify(nonce)};
-  var seq = 0;
-  function send(t, m){ try { parent.postMessage({ __webpg: true, nonce: NONCE, seq: ++seq, type: t, msg: String(m) }, '*'); } catch(_){} }
-  window.addEventListener('error', function(e){ send('error', (e.message || 'Error') + (e.filename ? ' @ ' + e.filename + ':' + e.lineno : '')); });
-  window.addEventListener('unhandledrejection', function(e){ var r = e.reason; send('error', 'Unhandled rejection: ' + (r && r.message ? r.message : String(r))); });
-  var oe = console.error; console.error = function(){ send('error', Array.from(arguments).map(String).join(' ')); oe.apply(console, arguments); };
-})();
-<\/script>`;
+        int taps = 0;
+        for (int i = 0; i < 3; i++) {
+            taps++;
+            Log.d("Button", "Tapped " + taps + " times");
+        }
+
+        Log.i("MainActivity", "Hello from your Android app!");
+    }
+
+    // Minimal Log shim so the program compiles outside Android.
+    static class Log {
+        static void d(String tag, String msg) { System.out.println(tag + " D: " + msg); }
+        static void i(String tag, String msg) { System.out.println(tag + " I: " + msg); }
+        static void w(String tag, String msg) { System.err.println(tag + " W: " + msg); }
+        static void e(String tag, String msg) { System.err.println(tag + " E: " + msg); }
+    }
 }
+`;
 
 type DeviceKey = "iphone15" | "iphoneSE" | "pixel8" | "galaxyS24" | "ipadMini";
-const DEVICES: Record<DeviceKey, { label: string; w: number; h: number; radius: number; notch: boolean }> = {
-  iphone15: { label: "iPhone 15", w: 393, h: 852, radius: 48, notch: true },
-  iphoneSE: { label: "iPhone SE", w: 375, h: 667, radius: 22, notch: false },
+const DEVICES: Record<
+  DeviceKey,
+  { label: string; w: number; h: number; radius: number; notch: boolean }
+> = {
   pixel8: { label: "Pixel 8", w: 412, h: 915, radius: 36, notch: true },
   galaxyS24: { label: "Galaxy S24", w: 384, h: 854, radius: 32, notch: true },
+  iphone15: { label: "iPhone 15", w: 393, h: 852, radius: 48, notch: true },
+  iphoneSE: { label: "iPhone SE", w: 375, h: 667, radius: 22, notch: false },
   ipadMini: { label: "iPad mini", w: 744, h: 1133, radius: 24, notch: false },
 };
 
@@ -117,9 +93,7 @@ const LS = {
   device: "mobile-pg:device",
   landscape: "mobile-pg:landscape",
   scale: "mobile-pg:scale",
-  html: "mobile-pg:html",
-  css: "mobile-pg:css",
-  js: "mobile-pg:js",
+  code: "mobile-pg:code-java",
   projectId: "mobile-pg:projectId",
   projectName: "mobile-pg:projectName",
 };
@@ -127,8 +101,12 @@ const LS = {
 export const Route = createFileRoute("/playground/mobile")({
   head: () => ({
     meta: [
-      { title: "Mobile App Playground" },
-      { name: "description", content: "Code and preview mobile apps live inside a phone frame — iPhone, Pixel, Galaxy, iPad." },
+      { title: "Android Mobile Playground" },
+      {
+        name: "description",
+        content:
+          "Write and run Java code for Android-style mobile apps. Click Run inside the phone preview to see logcat output.",
+      },
     ],
   }),
   component: MobilePlayground,
@@ -136,29 +114,45 @@ export const Route = createFileRoute("/playground/mobile")({
 
 type ProjectRow = { id: string; name: string; updated_at: string };
 
+interface LogLine {
+  stream: "out" | "err" | "sys";
+  text: string;
+}
+
+function parseLogcat(stdout: string, stderr: string): LogLine[] {
+  const out: LogLine[] = [];
+  for (const line of stdout.split("\n"))
+    if (line.length) out.push({ stream: "out", text: line });
+  for (const line of stderr.split("\n"))
+    if (line.length) out.push({ stream: "err", text: line });
+  return out;
+}
+
 function MobilePlayground() {
-  const [html, setHtml] = useState(STARTER_HTML);
-  const [css, setCss] = useState(STARTER_CSS);
-  const [js, setJs] = useState(STARTER_JS);
-  const [device, setDevice] = useState<DeviceKey>("iphone15");
+  const [code, setCode] = useState(STARTER_JAVA);
+  const [device, setDevice] = useState<DeviceKey>("pixel8");
   const [landscape, setLandscape] = useState(false);
   const [scale, setScale] = useState(0.75);
-  const [autoRun, setAutoRun] = useState(true);
-  const [showDebug, setShowDebug] = useState(true);
-  const [previewKey, setPreviewKey] = useState(0);
-  const [debounced, setDebounced] = useState({ html, css, js });
-  const [consoleErrors, setConsoleErrors] = useState("");
+  const [running, setRunning] = useState(false);
+  const [logs, setLogs] = useState<LogLine[]>([]);
+  const [stdout, setStdout] = useState("");
+  const [stderr, setStderr] = useState("");
+  const [exitCode, setExitCode] = useState<number | null>(null);
+  const [activeProvider, setActiveProvider] = useState<ProviderKey>("wandbox");
+  const [fallbackInfo, setFallbackInfo] = useState<{
+    from: ProviderKey;
+    to: ProviderKey;
+    reason: string;
+  } | null>(null);
+
   const [projectId, setProjectId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState<string>("");
   const [projects, setProjects] = useState<ProjectRow[]>([]);
   const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-  const seenRef = useRef<Set<string>>(new Set());
+
   const hydratedRef = useRef(false);
-  const lastReloadRef = useRef(0);
-  const pendingRef = useRef<number | null>(null);
-  const isMobile = useIsMobile();
+  const screenRef = useRef<HTMLDivElement | null>(null);
 
   const list = useServerFn(listMobileProjects);
   const loadFn = useServerFn(loadMobileProject);
@@ -166,7 +160,7 @@ function MobilePlayground() {
   const renameFn = useServerFn(renameMobileProject);
   const deleteFn = useServerFn(deleteMobileProject);
 
-  // Hydrate from localStorage once on mount (avoids SSR mismatch).
+  // Hydrate from localStorage once.
   useEffect(() => {
     if (hydratedRef.current) return;
     hydratedRef.current = true;
@@ -177,31 +171,29 @@ function MobilePlayground() {
       if (l) setLandscape(l === "1");
       const s = localStorage.getItem(LS.scale);
       if (s) setScale(Math.min(1, Math.max(0.4, Number(s) || 0.75)));
-      const h = localStorage.getItem(LS.html);
-      const c = localStorage.getItem(LS.css);
-      const j = localStorage.getItem(LS.js);
-      if (h !== null) setHtml(h);
-      if (c !== null) setCss(c);
-      if (j !== null) setJs(j);
-      if (h !== null || c !== null || j !== null) {
-        setDebounced({ html: h ?? html, css: c ?? css, js: j ?? js });
-      }
+      const c = localStorage.getItem(LS.code);
+      if (c !== null) setCode(c);
       const pid = localStorage.getItem(LS.projectId);
       const pname = localStorage.getItem(LS.projectName);
       if (pid) setProjectId(pid);
       if (pname) setProjectName(pname);
     } catch {
-      /* localStorage unavailable */
+      /* ignore */
     }
   }, []);
 
-  // Persist preferences.
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.device, device); } catch {} }, [device]);
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.landscape, landscape ? "1" : "0"); } catch {} }, [landscape]);
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.scale, String(scale)); } catch {} }, [scale]);
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.html, html); } catch {} }, [html]);
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.css, css); } catch {} }, [css]);
-  useEffect(() => { if (hydratedRef.current) try { localStorage.setItem(LS.js, js); } catch {} }, [js]);
+  useEffect(() => {
+    if (hydratedRef.current) try { localStorage.setItem(LS.device, device); } catch {}
+  }, [device]);
+  useEffect(() => {
+    if (hydratedRef.current) try { localStorage.setItem(LS.landscape, landscape ? "1" : "0"); } catch {}
+  }, [landscape]);
+  useEffect(() => {
+    if (hydratedRef.current) try { localStorage.setItem(LS.scale, String(scale)); } catch {}
+  }, [scale]);
+  useEffect(() => {
+    if (hydratedRef.current) try { localStorage.setItem(LS.code, code); } catch {}
+  }, [code]);
   useEffect(() => {
     if (!hydratedRef.current) return;
     try {
@@ -212,68 +204,68 @@ function MobilePlayground() {
     } catch {}
   }, [projectId, projectName]);
 
-  // Per-render nonce so messages from a previous srcDoc cannot leak.
-  const nonce = useMemo(
-    () => Math.random().toString(36).slice(2) + Date.now().toString(36),
-    [debounced, previewKey],
-  );
-
-  // Debounce + throttle iframe reloads. Heavier limits on mobile to save battery & CPU.
+  // Autoscroll logcat.
   useEffect(() => {
-    if (!autoRun) return;
-    const debounceMs = isMobile ? 900 : 500;
-    const minIntervalMs = isMobile ? 1500 : 700;
-    if (pendingRef.current) {
-      window.clearTimeout(pendingRef.current);
-      pendingRef.current = null;
-    }
-    const schedule = (delay: number) => {
-      pendingRef.current = window.setTimeout(() => {
-        pendingRef.current = null;
-        lastReloadRef.current = Date.now();
-        setDebounced({ html, css, js });
-      }, delay);
-    };
-    const sinceLast = Date.now() - lastReloadRef.current;
-    const wait = Math.max(debounceMs, minIntervalMs - sinceLast);
-    schedule(wait);
-    return () => {
-      if (pendingRef.current) {
-        window.clearTimeout(pendingRef.current);
-        pendingRef.current = null;
-      }
-    };
-  }, [html, css, js, autoRun, isMobile]);
-
-  useEffect(() => {
-    setConsoleErrors("");
-    seenRef.current = new Set();
-  }, [nonce]);
-
-  useEffect(() => {
-    function onMsg(e: MessageEvent) {
-      if (!iframeRef.current || e.source !== iframeRef.current.contentWindow) return;
-      const d = e.data as { __webpg?: boolean; nonce?: string; seq?: number; type?: string; msg?: string };
-      if (!d || !d.__webpg || d.nonce !== nonce || d.type !== "error" || !d.msg) return;
-      const key = `${d.seq}:${d.msg}`;
-      if (seenRef.current.has(key)) return;
-      seenRef.current.add(key);
-      setConsoleErrors((p) => (p ? p + "\n" : "") + d.msg);
-    }
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [nonce]);
-
-  const srcDoc = useMemo(
-    () => `${debounced.html}\n<style>${debounced.css}</style>\n${buildErrorBridge(nonce)}\n<script>${debounced.js}<\/script>`,
-    [debounced, nonce],
-  );
+    if (screenRef.current) screenRef.current.scrollTop = screenRef.current.scrollHeight;
+  }, [logs]);
 
   const d = DEVICES[device];
   const baseW = landscape ? d.h : d.w;
   const baseH = landscape ? d.w : d.h;
 
-  // --- Project operations ---
+  async function handleRun() {
+    if (running) return;
+    setRunning(true);
+    setLogs([{ stream: "sys", text: "▶ Building APK…" }]);
+    setStdout("");
+    setStderr("");
+    setExitCode(null);
+    setFallbackInfo(null);
+    try {
+      const r = await runCode("java", code, "", "wandbox", {
+        fallback: true,
+        onFallback: (info) => {
+          toast.warning(
+            `${PROVIDERS[info.from].label} unavailable — falling back to ${PROVIDERS[info.to].label}`,
+            { description: info.reason },
+          );
+          setActiveProvider(info.to);
+          setFallbackInfo(info);
+          setLogs((p) => [
+            ...p,
+            { stream: "sys", text: `↻ Switched to ${PROVIDERS[info.to].label}: ${info.reason}` },
+          ]);
+        },
+      });
+      setActiveProvider(r.provider);
+      setStdout(r.stdout);
+      setStderr(r.stderr);
+      setExitCode(r.code);
+      const parsed = parseLogcat(r.stdout, r.stderr);
+      setLogs((p) => [
+        ...p,
+        { stream: "sys", text: `✓ Launched on ${d.label}` },
+        ...parsed,
+        { stream: "sys", text: `— exit ${r.code ?? "?"} —` },
+      ]);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setStderr(msg);
+      setLogs((p) => [...p, { stream: "err", text: msg }, { stream: "sys", text: "✗ Run failed" }]);
+      toast.error("Run failed", { description: msg });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  function handleClear() {
+    setLogs([]);
+    setStdout("");
+    setStderr("");
+    setExitCode(null);
+  }
+
+  // --- Project ops ---
   const refreshList = useCallback(async () => {
     try {
       const r = await list();
@@ -282,7 +274,9 @@ function MobilePlayground() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (/unauthor|401/i.test(msg)) {
-        toast.message("Sign in to sync projects", { description: "Saved projects will appear once you log in." });
+        toast.message("Sign in to sync projects", {
+          description: "Saved projects will appear once you log in.",
+        });
       } else {
         toast.error("Could not load projects", { description: msg });
       }
@@ -294,12 +288,11 @@ function MobilePlayground() {
     setBusy(true);
     try {
       const row = await loadFn({ data: { id } });
-      setHtml(row.html ?? "");
-      setCss(row.css ?? "");
-      setJs(row.js ?? "");
-      setDebounced({ html: row.html ?? "", css: row.css ?? "", js: row.js ?? "" });
+      const next = row.code ?? row.js ?? STARTER_JAVA;
+      setCode(next);
       setProjectId(row.id);
       setProjectName(row.name);
+      handleClear();
       toast.success(`Opened "${row.name}"`);
     } catch (e) {
       toast.error("Open failed", { description: e instanceof Error ? e.message : String(e) });
@@ -311,7 +304,7 @@ function MobilePlayground() {
   async function handleSave(asNew: boolean) {
     let name = projectName;
     if (asNew || !projectId || !name) {
-      const suggested = name || `Mobile app ${new Date().toLocaleString()}`;
+      const suggested = name || `Android app ${new Date().toLocaleString()}`;
       const input = window.prompt("Project name", suggested);
       if (!input) return;
       name = input.trim();
@@ -319,7 +312,13 @@ function MobilePlayground() {
     setBusy(true);
     try {
       const row = await saveFn({
-        data: { id: asNew ? null : projectId, name, kind: "web", html, css, js },
+        data: {
+          id: asNew ? null : projectId,
+          name,
+          kind: "code",
+          language: "java",
+          code,
+        },
       });
       setProjectId(row.id);
       setProjectName(row.name);
@@ -372,22 +371,26 @@ function MobilePlayground() {
   }
 
   function handleNew() {
-    setHtml(STARTER_HTML);
-    setCss(STARTER_CSS);
-    setJs(STARTER_JS);
-    setDebounced({ html: STARTER_HTML, css: STARTER_CSS, js: STARTER_JS });
+    setCode(STARTER_JAVA);
     setProjectId(null);
     setProjectName("");
+    handleClear();
     toast.message("New project started");
   }
 
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col lg:h-[calc(100vh-3.5rem)]">
-      <h1 className="sr-only">Mobile App Playground</h1>
+      <h1 className="sr-only">Android Mobile Playground</h1>
+
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-card/40 p-2">
         <Smartphone className="h-4 w-4 text-primary" />
+        <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
+          Android · Java
+        </span>
         <Select value={device} onValueChange={(v) => setDevice(v as DeviceKey)}>
-          <SelectTrigger className="h-9 w-36" data-testid="device-select"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="h-9 w-36" data-testid="device-select">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             {(Object.keys(DEVICES) as DeviceKey[]).map((k) => (
               <SelectItem key={k} value={k}>
@@ -396,7 +399,13 @@ function MobilePlayground() {
             ))}
           </SelectContent>
         </Select>
-        <Button size="sm" variant="outline" onClick={() => setLandscape((s) => !s)} aria-pressed={landscape} title="Rotate">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setLandscape((s) => !s)}
+          aria-pressed={landscape}
+          title="Rotate"
+        >
           <RotateCw className="mr-1 h-4 w-4" /> {landscape ? "Landscape" : "Portrait"}
         </Button>
         <label className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -411,24 +420,33 @@ function MobilePlayground() {
             className="w-20 accent-primary"
             data-testid="zoom-range"
           />
-          <span className="w-8 font-mono text-[10px]" data-testid="zoom-label">{Math.round(scale * 100)}%</span>
-        </label>
-        <label className="flex items-center gap-1 text-xs text-muted-foreground">
-          <input type="checkbox" checked={autoRun} onChange={(e) => setAutoRun(e.target.checked)} />
-          Auto-run
+          <span className="w-8 font-mono text-[10px]" data-testid="zoom-label">
+            {Math.round(scale * 100)}%
+          </span>
         </label>
 
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {projectName && (
-            <span className="hidden max-w-[180px] truncate rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-[11px] text-muted-foreground sm:inline-block" title={projectName}>
+            <span
+              className="hidden max-w-[180px] truncate rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-[11px] text-muted-foreground sm:inline-block"
+              title={projectName}
+            >
               {projectName}
             </span>
           )}
 
-          <DropdownMenu onOpenChange={(o) => { if (o && !projectsLoaded) refreshList(); }}>
+          <DropdownMenu
+            onOpenChange={(o) => {
+              if (o && !projectsLoaded) refreshList();
+            }}
+          >
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" data-testid="projects-menu" disabled={busy}>
-                {busy ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <FolderOpen className="mr-1 h-4 w-4" />}
+                {busy ? (
+                  <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                ) : (
+                  <FolderOpen className="mr-1 h-4 w-4" />
+                )}
                 Projects
               </Button>
             </DropdownMenuTrigger>
@@ -445,16 +463,18 @@ function MobilePlayground() {
               <DropdownMenuItem onSelect={handleRename} disabled={!projectId}>
                 <Pencil className="mr-2 h-4 w-4" /> Rename
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleDelete} disabled={!projectId} className="text-destructive">
+              <DropdownMenuItem
+                onSelect={handleDelete}
+                disabled={!projectId}
+                className="text-destructive"
+              >
                 <Trash2 className="mr-2 h-4 w-4" /> Delete
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Recent
               </DropdownMenuLabel>
-              {!projectsLoaded && (
-                <DropdownMenuItem disabled>Loading…</DropdownMenuItem>
-              )}
+              {!projectsLoaded && <DropdownMenuItem disabled>Loading…</DropdownMenuItem>}
               {projectsLoaded && projects.length === 0 && (
                 <DropdownMenuItem disabled>No saved projects</DropdownMenuItem>
               )}
@@ -469,47 +489,77 @@ function MobilePlayground() {
 
           <Button
             size="sm"
-            variant="outline"
-            onClick={() => setShowDebug((s) => !s)}
-            aria-pressed={showDebug}
-            aria-label={showDebug ? "Hide AI debug helper" : "Show AI debug helper"}
-            title={showDebug ? "Hide AI debug helper" : "Show AI debug helper"}
+            onClick={handleRun}
+            disabled={running}
+            data-testid="run-button"
+            title="Build & run on the selected device"
           >
-            {showDebug ? <BugOff className="mr-1 h-4 w-4" /> : <Bug className="mr-1 h-4 w-4" />}
-            {showDebug ? "Hide" : "Show"} AI
+            {running ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="mr-1 h-4 w-4" />
+            )}
+            Run
           </Button>
-          <Button size="sm" variant="outline" onClick={() => { setDebounced({ html, css, js }); setPreviewKey((k) => k + 1); lastReloadRef.current = Date.now(); }}>
-            <RefreshCw className="mr-1 h-4 w-4" /> Refresh
+          <Button size="sm" variant="outline" onClick={handleClear} title="Clear logcat">
+            <Square className="mr-1 h-4 w-4" /> Clear
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRun}
+            disabled={running}
+            title="Rebuild & rerun"
+          >
+            <RefreshCw className="mr-1 h-4 w-4" /> Rerun
           </Button>
         </div>
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <div className="flex h-[50vh] shrink-0 flex-col border-b border-border/60 lg:h-auto lg:flex-1 lg:border-b-0 lg:border-r">
-          <Tabs defaultValue="html" className="flex h-full flex-col">
-            <TabsList className="m-2 w-fit">
-              <TabsTrigger value="html">HTML</TabsTrigger>
-              <TabsTrigger value="css">CSS</TabsTrigger>
-              <TabsTrigger value="js">JS</TabsTrigger>
-            </TabsList>
-            <TabsContent value="html" className="m-0 flex-1">
-              <Editor height="100%" language="html" value={html} theme="vs-dark" onChange={(v) => setHtml(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
-            </TabsContent>
-            <TabsContent value="css" className="m-0 flex-1">
-              <Editor height="100%" language="css" value={css} theme="vs-dark" onChange={(v) => setCss(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
-            </TabsContent>
-            <TabsContent value="js" className="m-0 flex-1">
-              <Editor height="100%" language="javascript" value={js} theme="vs-dark" onChange={(v) => setJs(v ?? "")} options={{ minimap: { enabled: false }, fontSize: 14, automaticLayout: true, tabSize: 2 }} />
-            </TabsContent>
-          </Tabs>
+          <Editor
+            height="100%"
+            language="java"
+            value={code}
+            theme="vs-dark"
+            onChange={(v) => setCode(v ?? "")}
+            options={{
+              minimap: { enabled: false },
+              fontSize: 14,
+              automaticLayout: true,
+              tabSize: 4,
+            }}
+          />
         </div>
 
         <div className="flex w-full min-w-0 flex-col lg:w-[55%]">
           <div className="flex items-center justify-between border-b border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <span>Live preview</span>
-            <span className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80" data-testid="device-info">
-              {d.label} · {baseW}×{baseH}
-            </span>
+            <span>Phone preview · logcat</span>
+            <div className="flex items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] normal-case tracking-normal ${
+                  fallbackInfo
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                    : "border-primary/40 bg-primary/10 text-primary"
+                }`}
+                title={
+                  fallbackInfo
+                    ? `Fell back from ${PROVIDERS[fallbackInfo.from].label}: ${fallbackInfo.reason}`
+                    : `Built by ${PROVIDERS[activeProvider].label}`
+                }
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {PROVIDERS[activeProvider].label}
+                {fallbackInfo && <span className="opacity-70">· fallback</span>}
+              </span>
+              <span
+                className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80"
+                data-testid="device-info"
+              >
+                {d.label} · {baseW}×{baseH}
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-1 items-center justify-center overflow-auto bg-gradient-to-br from-muted/40 to-background p-4">
@@ -530,40 +580,149 @@ function MobilePlayground() {
                   aria-hidden
                 />
               )}
-              <iframe
-                ref={iframeRef}
-                key={previewKey}
-                title="mobile-preview"
+              <div
                 data-testid="mobile-preview"
-                sandbox="allow-scripts allow-modals allow-forms"
-                srcDoc={srcDoc}
                 style={{
                   width: baseW,
                   height: baseH,
                   borderRadius: d.radius,
                   transform: `scale(${scale})`,
                   transformOrigin: "top left",
-                  border: 0,
-                  background: "white",
-                  display: "block",
+                  background: "#0b0b10",
+                  color: "#e5e7eb",
+                  display: "flex",
+                  flexDirection: "column",
+                  overflow: "hidden",
+                  position: "relative",
                 }}
-              />
+              >
+                {/* Status bar */}
+                <div
+                  style={{
+                    height: 28,
+                    background: "linear-gradient(135deg,#16a34a,#059669)",
+                    color: "white",
+                    fontFamily: "system-ui, sans-serif",
+                    fontSize: 12,
+                    fontWeight: 600,
+                    padding: "6px 16px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                  }}
+                >
+                  <span>{d.label.split(" ")[0]}</span>
+                  <span>● ● ●</span>
+                  <span>100%</span>
+                </div>
+
+                {/* Logcat */}
+                <div
+                  ref={screenRef}
+                  data-testid="logcat"
+                  style={{
+                    flex: 1,
+                    overflow: "auto",
+                    padding: 12,
+                    fontFamily:
+                      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+                    fontSize: 12,
+                    lineHeight: 1.5,
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}
+                >
+                  {logs.length === 0 ? (
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        height: "100%",
+                        color: "#9ca3af",
+                        textAlign: "center",
+                        gap: 16,
+                        padding: 24,
+                      }}
+                    >
+                      <div style={{ fontSize: 48 }}>📱</div>
+                      <div style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 14 }}>
+                        Your Android app
+                      </div>
+                      <div style={{ fontSize: 12 }}>
+                        Tap the button below to build &amp; launch your Java code.
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRun}
+                        disabled={running}
+                        data-testid="screen-run"
+                        style={{
+                          marginTop: 8,
+                          padding: "10px 24px",
+                          borderRadius: 999,
+                          border: 0,
+                          background: running ? "#374151" : "#22c55e",
+                          color: "white",
+                          fontWeight: 700,
+                          fontSize: 13,
+                          cursor: running ? "wait" : "pointer",
+                        }}
+                      >
+                        {running ? "Building…" : "▶ Run app"}
+                      </button>
+                    </div>
+                  ) : (
+                    logs.map((l, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          color:
+                            l.stream === "err"
+                              ? "#f87171"
+                              : l.stream === "sys"
+                                ? "#a78bfa"
+                                : "#34d399",
+                        }}
+                      >
+                        {l.text}
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Bottom nav */}
+                <div
+                  style={{
+                    height: 40,
+                    background: "#1f2937",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-around",
+                    color: "#9ca3af",
+                    fontSize: 18,
+                    borderTop: "1px solid rgba(255,255,255,0.05)",
+                  }}
+                >
+                  <span>◁</span>
+                  <span>○</span>
+                  <span>▢</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {showDebug && (
-            <WebAiDebugPanel
-              html={html}
-              css={css}
-              js={js}
-              consoleErrors={consoleErrors}
-              onApply={(next) => {
-                if (next.html !== undefined) setHtml(next.html);
-                if (next.css !== undefined) setCss(next.css);
-                if (next.js !== undefined) setJs(next.js);
-              }}
-            />
-          )}
+          <AiDebugPanel
+            language="java"
+            code={code}
+            stdout={stdout}
+            stderr={stderr}
+            exitCode={exitCode}
+            provider={activeProvider}
+            stdin=""
+            onApplyFix={(next) => setCode(next)}
+          />
         </div>
       </div>
     </div>
