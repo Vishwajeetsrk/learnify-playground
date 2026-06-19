@@ -236,6 +236,7 @@ function CodePlayground() {
             <pre className="flex-1 overflow-auto bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
               {output || "Run your code to see output here."}
             </pre>
+            <AiDebugPanel language={lang} code={code} output={output} />
           </div>
         </div>
 
