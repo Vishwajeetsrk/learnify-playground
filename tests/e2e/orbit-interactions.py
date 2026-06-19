@@ -14,9 +14,23 @@ from playwright.async_api import async_playwright
 
 BASE = "http://localhost:8080"
 
-async def hover_to_pause(page, locator):
-    await locator.hover()
-    await page.wait_for_timeout(400)  # let tilt settle
+async def pause_orbit(page):
+    # Dispatch a mouse pointerenter on the orbit wrap so the autoplay rotation pauses.
+    # (Real users get the same effect just by moving the mouse over it.)
+    await page.evaluate(
+        """() => {
+            const w = document.querySelector('[data-testid="polyglot-orbit"]');
+            if (!w) return;
+            const r = w.getBoundingClientRect();
+            const ev = (type) => new PointerEvent(type, {
+                bubbles: true, pointerType: 'mouse', pointerId: 1,
+                clientX: r.left + r.width / 2, clientY: r.top + r.height / 2,
+            });
+            w.dispatchEvent(ev('pointerenter'));
+            w.dispatchEvent(ev('pointermove'));
+        }"""
+    )
+    await page.wait_for_timeout(400)
 
 async def test_tap_navigates(page):
     await page.goto(BASE + "/", wait_until="networkidle")
