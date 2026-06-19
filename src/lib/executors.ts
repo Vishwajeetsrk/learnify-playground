@@ -125,25 +125,27 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   kotlin: {
     label: "Kotlin",
     monaco: "kotlin",
-    runnable: false,
+    piston: { language: "kotlin", version: "1.8.20", filename: "main.kt" },
     starter: `fun main() {\n  println("Hello from Kotlin")\n}\n`,
   },
   swift: {
     label: "Swift",
     monaco: "swift",
     wandbox: { compiler: "swift-5.10.1" },
+    piston: { language: "swift", version: "5.3.3", filename: "main.swift" },
     starter: `let name = "Swift"\nprint("Hello from \\(name)")\n`,
   },
   scala: {
     label: "Scala",
     monaco: "scala",
     wandbox: { compiler: "scala-3.5.0" },
+    piston: { language: "scala", version: "3.2.2", filename: "Main.scala" },
     starter: `@main def hello() = println("Hello from Scala")\n`,
   },
   dart: {
     label: "Dart",
     monaco: "dart",
-    runnable: false,
+    piston: { language: "dart", version: "2.19.6", filename: "main.dart" },
     starter: `void main() {\n  print('Hello from Dart');\n}\n`,
   },
   objc: {
@@ -156,6 +158,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
     label: "SQL",
     monaco: "sql",
     wandbox: { compiler: "sqlite-3.46.1" },
+    piston: { language: "sqlite3", version: "3.36.0", filename: "main.sql" },
     starter: `SELECT 'Hello from SQL' AS greeting;\n`,
   },
 };
