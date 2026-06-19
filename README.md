@@ -1,4 +1,4 @@
-# Lovable Playground
+# Playground
 
 A multi-track in-browser playground with a Monaco editor, live preview, code
 runner, mobile starters, and an AI assistant. Built on TanStack Start + Vite +
