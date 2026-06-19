@@ -12,7 +12,7 @@ export interface WebTemplate {
   name: string;
   emoji: string;
   description: string;
-  tracks: Track[];
+  tracks?: Track[];
   files: { html: string; css: string; js: string };
 }
 
@@ -22,7 +22,7 @@ export interface CodeTemplate {
   name: string;
   emoji: string;
   description: string;
-  tracks: Track[];
+  tracks?: Track[];
   language: LangKey;
   source: string;
 }
