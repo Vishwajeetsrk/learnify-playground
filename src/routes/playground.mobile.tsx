@@ -920,27 +920,89 @@ function PhoneFrame({
             )}
           </button>
 
-          {/* Android 14 gesture pill */}
+          {/* Android nav bar — functional */}
           <div
             style={{
               height: 44,
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              background: "transparent",
+              justifyContent: "space-around",
+              padding: "0 24px",
+              background: "rgba(2,6,23,0.55)",
+              borderTop: "1px solid rgba(148,163,184,0.08)",
             }}
           >
-            <div
-              style={{
-                width: "30%",
-                height: 4,
-                borderRadius: 999,
-                background: "rgba(226,232,240,0.85)",
+            <NavBtn label="Back" onClick={onClear} title="Back — clear logcat">
+              <span style={{ fontSize: 18, lineHeight: 1 }}>◁</span>
+            </NavBtn>
+            <NavBtn label="Home" onClick={onRerun} title="Home — rebuild & run">
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 14,
+                  height: 14,
+                  border: "1.6px solid #e2e8f0",
+                  borderRadius: 999,
+                }}
+              />
+            </NavBtn>
+            <NavBtn
+              label="Recents"
+              onClick={() => {
+                if (screenRef.current) screenRef.current.scrollTop = 0;
               }}
-            />
+              title="Recents — scroll logcat to top"
+            >
+              <span
+                style={{
+                  display: "inline-block",
+                  width: 13,
+                  height: 13,
+                  border: "1.6px solid #e2e8f0",
+                  borderRadius: 3,
+                }}
+              />
+            </NavBtn>
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function NavBtn({
+  children,
+  label,
+  onClick,
+  title,
+}: {
+  children: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  title: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={title}
+      style={{
+        flex: 1,
+        height: "100%",
+        background: "transparent",
+        border: 0,
+        color: "#e2e8f0",
+        cursor: "pointer",
+        display: "grid",
+        placeItems: "center",
+        opacity: 0.85,
+        transition: "background 120ms, opacity 120ms",
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.06)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+    >
+      {children}
+    </button>
   );
 }
