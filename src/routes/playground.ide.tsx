@@ -599,6 +599,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <Button size="icon" variant="ghost" onClick={() => setDbOpen(true)} title="Database" className="h-9 w-9">
               <DbIcon size={16} />
             </Button>
+            <Button size="icon" variant="ghost" onClick={() => setAssetsOpen(true)} title="Asset Manager" className="hidden h-9 w-9 sm:inline-flex">
+              <Images size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setGraphOpen(true)} title="Dependency Graph" className="hidden h-9 w-9 sm:inline-flex">
+              <GitFork size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setValidateOpen(true)}
+              title={projectGraph.broken.length ? `Validate (${projectGraph.broken.length} issue${projectGraph.broken.length === 1 ? "" : "s"})` : "Validate project"}
+              className="relative h-9 w-9">
+              <ShieldCheck size={16} />
+              {projectGraph.broken.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid h-3.5 min-w-[14px] place-items-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-black">
+                  {projectGraph.broken.length}
+                </span>
+              )}
+            </Button>
             <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
               <Download size={16} />
             </Button>
