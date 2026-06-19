@@ -754,6 +754,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </div>
       )}
 
+      {/* Breadcrumb */}
+      {!fullscreen && activeFile && (
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1 text-[11px]"
+          style={{ borderColor: palette.border, background: palette.bg, color: palette.subtle }}>
+          {activeFile.path.split("/").map((seg, i, arr) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              {i > 0 && <ChevronRight size={10} />}
+              <span className={i === arr.length - 1 ? "font-medium" : ""} style={i === arr.length - 1 ? { color: palette.text } : undefined}>{seg}</span>
+            </span>
+          ))}
+          <Button size="sm" variant="ghost" onClick={formatDocument} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
+            <Wand2 size={11} className="mr-1" /> Format
+          </Button>
+        </div>
+      )}
+
       {/* Editor + bottom panel */}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1" style={{ background: palette.bg }}>
