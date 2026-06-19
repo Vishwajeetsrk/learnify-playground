@@ -1521,10 +1521,11 @@ function SavedPill({ at }: { at: number }) {
 
 function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKey; bg: string }) {
   const v = PREVIEW_VIEWPORTS[viewport];
-  // scale down so device viewport fits the panel width
+  const isFit = viewport === "fit";
   const [scale, setScale] = useState(1);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
+    if (isFit) { setScale(1); return; }
     function update() {
       if (!wrapRef.current) return;
       const w = wrapRef.current.clientWidth - 24;
@@ -1535,7 +1536,17 @@ function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKe
     const ro = new ResizeObserver(update);
     if (wrapRef.current) ro.observe(wrapRef.current);
     return () => ro.disconnect();
-  }, [viewport, v.w, v.h]);
+  }, [viewport, v.w, v.h, isFit]);
+
+  if (isFit) {
+    // Auto-fit: iframe fills the entire panel — no device frame, no scaling.
+    return (
+      <div ref={wrapRef} className="h-full w-full" style={{ background: "#fff" }}>
+        <iframe title="preview" srcDoc={doc} sandbox="allow-scripts allow-forms allow-modals"
+          style={{ width: "100%", height: "100%", border: 0, display: "block", background: "#fff" }} />
+      </div>
+    );
+  }
   return (
     <div ref={wrapRef} className="flex h-full w-full items-center justify-center"
       style={{ background: bg, backgroundImage: "radial-gradient(circle at center, rgba(255,255,255,.04) 1px, transparent 1px)", backgroundSize: "14px 14px" }}>
@@ -1551,6 +1562,43 @@ function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKe
     </div>
   );
 }
+
+function DragHandle({
+  orientation, onDelta, color,
+}: {
+  orientation: "horizontal" | "vertical";
+  /** (dy, dx, parentSize) — parentSize is height for horizontal, width for vertical. */
+  onDelta: (dy: number, dx: number, parentSize: number) => void;
+  color: string;
+}) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const start = useRef<{ x: number; y: number; parent: number } | null>(null);
+  const onDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const parentEl = ref.current?.parentElement;
+    const parent = parentEl ? (orientation === "horizontal" ? parentEl.clientHeight : parentEl.clientWidth) : 0;
+    start.current = { x: e.clientX, y: e.clientY, parent };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onMove = (e: React.PointerEvent) => {
+    if (!start.current) return;
+    onDelta(e.clientY - start.current.y, e.clientX - start.current.x, start.current.parent);
+  };
+  const onUp = (e: React.PointerEvent) => {
+    start.current = null;
+    try { (e.target as HTMLElement).releasePointerCapture(e.pointerId); } catch { /* noop */ }
+  };
+  const isH = orientation === "horizontal";
+  return (
+    <div ref={ref}
+      onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+      role="separator" aria-orientation={isH ? "horizontal" : "vertical"}
+      className={isH ? "h-1.5 w-full cursor-row-resize hover:bg-white/10" : "w-1.5 h-full cursor-col-resize hover:bg-white/10"}
+      style={{ background: color, touchAction: "none" }}
+    />
+  );
+}
+
 
 function ConsolePanel({ msgs, subtle }: { msgs: ConsoleEntry[]; subtle: string }) {
   if (msgs.length === 0) return (
