@@ -294,6 +294,62 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     catch { toast.error("Formatter not available for this language"); }
   }
 
+  async function copyAsMarkdown() {
+    const lines: string[] = [`# ${state.projectName}`, ""];
+    for (const f of state.files) {
+      if (f.asset) { lines.push(`- 📎 \`${f.path}\` (${f.asset.mime}, ${f.asset.size} B)`); continue; }
+      const lang = monacoLangFromName(f.name);
+      lines.push(`### \`${f.path}\``, "", "```" + lang, f.content, "```", "");
+    }
+    try { await navigator.clipboard.writeText(lines.join("\n")); toast.success("Project copied as Markdown"); }
+    catch { toast.error("Clipboard unavailable"); }
+  }
+
+  async function importZip(file: File) {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const newFiles: IdeFile[] = [];
+      const folders = new Set<string>();
+      let manifest: { name?: string; kind?: Kind; language?: LangKey } | null = null;
+      const entries = Object.values(zip.files);
+      for (const entry of entries) {
+        if (entry.dir) { folders.add(entry.name.replace(/\/$/, "")); continue; }
+        if (entry.name === "project.json") {
+          try { manifest = JSON.parse(await entry.async("string")); } catch {}
+          continue;
+        }
+        if (entry.name === "RELATIONS.md") continue;
+        const ct = (entry as unknown as { _data?: { type?: string } })?._data?.type;
+        const isText = /\.(html?|css|m?js|tsx?|jsx?|json|md|txt|sql|kt|java|swift|dart|py|rb|sh|c|cpp|cs|php|go|rs|scala|m|xml|yml|yaml|env)$/i.test(entry.name);
+        if (isText) {
+          const content = await entry.async("string");
+          newFiles.push(mkFile(entry.name, content));
+        } else {
+          const blob = await entry.async("blob");
+          const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error("read failed")); r.readAsDataURL(blob); });
+          const mime = blob.type || "application/octet-stream";
+          newFiles.push({ id: uid(), path: entry.name, name: basename(entry.name), language: "plaintext", content: "", asset: { mime, dataUrl, size: blob.size } });
+        }
+      }
+      if (!newFiles.length) { toast.error("ZIP has no usable files"); return; }
+      const kind: Kind = manifest?.kind ?? (newFiles.some((f) => /\.html?$/i.test(f.path)) ? "web" : "code");
+      const language: LangKey = manifest?.language ?? (kind === "web" ? "javascript" : state.language);
+      const next: IdeState = {
+        kind, language,
+        projectName: manifest?.name ?? file.name.replace(/\.zip$/i, ""),
+        files: newFiles,
+        folders: Array.from(folders),
+        activeFileId: newFiles[0].id,
+      };
+      setState(ensureActive(next));
+      setTemplatesOpen(false);
+      toast.success(`Imported ${newFiles.length} file${newFiles.length === 1 ? "" : "s"}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Import failed", { description: msg });
+    }
+  }
+
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
 
