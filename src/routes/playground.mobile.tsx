@@ -225,7 +225,13 @@ function MobilePlayground() {
     setExitCode(null);
     setFallbackInfo(null);
     try {
-      const r = await runCode("java", code, "", "wandbox", {
+      // Wandbox compiles as prog.java — strip `public` from any top-level class
+      // so the filename/class-name mismatch doesn't fail the build.
+      const sanitized = code.replace(
+        /^(\s*)public\s+(class|interface|enum|record)\s+/gm,
+        "$1$2 ",
+      );
+      const r = await runCode("java", sanitized, "", "wandbox", {
         fallback: true,
         onFallback: (info) => {
           toast.warning(
