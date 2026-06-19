@@ -460,6 +460,12 @@ function providerSupports(provider: ProviderKey, lang: LangKey): boolean {
   return provider === "judge0" ? !!spec.judge0 : provider === "piston" ? !!spec.piston : !!spec.wandbox;
 }
 
+export function isPistonUsable(): boolean {
+  // Public emkc.org endpoint became whitelist-only in Feb 2026 → always 401.
+  // Treat Piston as usable only when the user has configured a self-hosted URL.
+  return getPistonBaseUrl() !== DEFAULT_PISTON_URL;
+}
+
 export async function runCode(
   lang: LangKey,
   source: string,
@@ -470,16 +476,22 @@ export async function runCode(
   if (LANGUAGES[lang].runnable === false) {
     throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
   }
-  // If the selected provider doesn't support this language, transparently
-  // route to the first one that does. Preferred order: Judge0 → Piston → Wandbox.
-  const order: ProviderKey[] = ["judge0", "piston", "wandbox"];
-  if (!providerSupports(provider, lang)) {
-    const fallbackProvider = order.find((p) => providerSupports(p, lang));
-    if (!fallbackProvider) throw new Error(`${LANGUAGES[lang].label} has no configured executor.`);
+  const pistonOn = isPistonUsable();
+  const supports = (p: ProviderKey) => providerSupports(p, lang) && (p !== "piston" || pistonOn);
+
+  // Preferred order: Judge0 → Wandbox → Piston (only if self-hosted URL set).
+  const order: ProviderKey[] = ["judge0", "wandbox", "piston"];
+  if (!supports(provider)) {
+    const fallbackProvider = order.find(supports);
+    if (!fallbackProvider) {
+      if (provider === "piston" && !pistonOn) {
+        throw new Error("Piston public endpoint is whitelist-only. Set a self-hosted Piston URL in Settings, or use Judge0 / Wandbox.");
+      }
+      throw new Error(`${LANGUAGES[lang].label} has no configured executor.`);
+    }
     provider = fallbackProvider;
   }
-  // Build the chain: chosen first, then the remaining supported providers.
-  const chain = [provider, ...order.filter((p) => p !== provider && providerSupports(p, lang))];
+  const chain = [provider, ...order.filter((p) => p !== provider && supports(p))];
   let lastErr: unknown = null;
   for (let i = 0; i < chain.length; i++) {
     const p = chain[i];
