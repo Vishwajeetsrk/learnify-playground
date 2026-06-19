@@ -312,21 +312,6 @@ const blank: WebTemplate = {
   },
 };
 
-const pythonHello: CodeTemplate = {
-  id: "py-hello", kind: "code", name: "Python · Hello", emoji: "🐍",
-  description: "Classic Hello World in Python.", language: "python",
-  source: `name = input("Your name? ") or "world"\nprint(f"Hello, {name}!")\n`,
-};
-const nodeHello: CodeTemplate = {
-  id: "node-hello", kind: "code", name: "Node · Hello", emoji: "🟩",
-  description: "Hello World in Node.js.", language: "javascript",
-  source: `const greet = (n = 'world') => \`Hello, \${n}!\`;\nconsole.log(greet('Lovable'));\n`,
-};
-const javaHello: CodeTemplate = {
-  id: "java-hello", kind: "code", name: "Java · Hello", emoji: "☕",
-  description: "Hello World in Java.", language: "java",
-  source: `class Main {\n  public static void main(String[] args) {\n    System.out.println(\"Hello from Java\");\n  }\n}\n`,
-};
 
 // ---------------------------------------------------------------------------
 // Mobile-app-flavored web templates (PWAs, bottom-nav shells, mobile UIs)
