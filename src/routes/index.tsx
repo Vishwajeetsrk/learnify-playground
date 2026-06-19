@@ -44,7 +44,7 @@ function Landing() {
         {[
           { t: "11 languages", d: "Python, JS, TS, Java, C, C++, C#, PHP, Go, Rust, Kotlin." },
           { t: "Live web sandbox", d: "Edit HTML, CSS and JS with an instant iframe preview." },
-          { t: "Save & resume", d: "Sign in to save projects, rename them, and reopen anytime." },
+          { t: "No sign-up", d: "Open the editor and start coding — nothing to install or log in." },
         ].map((f) => (
           <div key={f.t} className="rounded-lg border border-border bg-card p-5">
             <h3 className="font-semibold">{f.t}</h3>
@@ -52,6 +52,7 @@ function Landing() {
           </div>
         ))}
       </div>
+
     </main>
   );
 }

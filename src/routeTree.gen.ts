@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as PlaygroundRouteImport } from './routes/playground'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
@@ -24,11 +23,6 @@ const ToolsRoute = ToolsRouteImport.update({
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -49,7 +43,6 @@ const PlaygroundWebRoute = PlaygroundWebRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
@@ -57,7 +50,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
   '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground': typeof PlaygroundIndexRoute
@@ -65,7 +57,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/auth': typeof AuthRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
@@ -73,19 +64,12 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    | '/'
-    | '/auth'
-    | '/playground'
-    | '/tools'
-    | '/playground/web'
-    | '/playground/'
+  fullPaths: '/' | '/playground' | '/tools' | '/playground/web' | '/playground/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/tools' | '/playground/web' | '/playground'
+  to: '/' | '/tools' | '/playground/web' | '/playground'
   id:
     | '__root__'
     | '/'
-    | '/auth'
     | '/playground'
     | '/tools'
     | '/playground/web'
@@ -94,7 +78,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AuthRoute: typeof AuthRoute
   PlaygroundRoute: typeof PlaygroundRouteWithChildren
   ToolsRoute: typeof ToolsRoute
 }
@@ -113,13 +96,6 @@ declare module '@tanstack/react-router' {
       path: '/playground'
       fullPath: '/playground'
       preLoaderRoute: typeof PlaygroundRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -162,7 +138,6 @@ const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AuthRoute: AuthRoute,
   PlaygroundRoute: PlaygroundRouteWithChildren,
   ToolsRoute: ToolsRoute,
 }
