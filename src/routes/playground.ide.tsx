@@ -192,6 +192,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [stdout, setStdout] = useState("");
   const [stderr, setStderr] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
+  const [lastRun, setLastRun] = useState<{ provider: string; timeSec?: number | null; memoryKb?: number | null; status?: string | null } | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
@@ -420,14 +421,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       toast.message(`${spec.label} is snippet-only`, { description: "See the output panel for details." });
       return;
     }
-    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null);
+    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
     setBottomTab("output");
     try {
-      const r = await runCode(state.language, activeFile.content, "", "wandbox", {
+      const r = await runCode(state.language, activeFile.content, "", "judge0", {
         fallback: true,
         onFallback: (info) => toast.warning(`${PROVIDERS[info.from].label} → ${PROVIDERS[info.to].label}`, { description: info.reason }),
       });
       setOutput(r.output || "(no output)"); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
+      setLastRun({ provider: PROVIDERS[r.provider].label, timeSec: r.timeSec, memoryKb: r.memoryKb, status: r.status });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOutput(`Error: ${msg}`); setStderr(msg);
@@ -501,7 +503,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               {state.kind === "web"
                 ? <>HTML · CSS · JS</>
                 : <><LanguageIcon language={state.language} size={11} /> {LANGUAGES[state.language].label}</>}
-              {savedAt && <span className="opacity-70">· Saved</span>}
+              {savedAt && <SavedPill at={savedAt} />}
             </span>
           </div>
 
@@ -673,18 +675,39 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
             <div className="min-h-0 flex-1 overflow-auto">
               {bottomTab === "preview" && (state.kind === "web" || effectiveTrack === "mobile") && (
-                <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
+                <div className="flex h-full flex-col">
+                  {effectiveTrack === "mobile" && (
+                    <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                      <span className="font-semibold" style={{ color: palette.text }}>Mobile Playground</span> supports code execution, syntax validation, and learning snippets. Full Android/iOS app rendering requires Android Studio, Xcode, or Flutter SDK.
+                    </div>
+                  )}
+                  <div className="min-h-0 flex-1">
+                    <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
+                  </div>
+                </div>
               )}
               {bottomTab === "console" && (
                 <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
               )}
               {bottomTab === "output" && (
-                <pre className="m-0 h-full overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
-                  style={{ background: "#000", color: "#7ce38b" }}>
-                  {output || "Tap Run to execute your code."}
-                </pre>
+                <div className="flex h-full flex-col">
+                  {lastRun && (
+                    <div className="shrink-0 border-b px-3 py-1.5 text-[11px]" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                      <span className="font-semibold" style={{ color: palette.text }}>{lastRun.provider}</span>
+                      {lastRun.status && <span className="ml-2">· {lastRun.status}</span>}
+                      {lastRun.timeSec != null && <span className="ml-2">· {lastRun.timeSec.toFixed(3)}s</span>}
+                      {lastRun.memoryKb != null && <span className="ml-2">· {(lastRun.memoryKb / 1024).toFixed(1)} MB</span>}
+                      {exitCode !== null && <span className="ml-2">· exit {exitCode}</span>}
+                    </div>
+                  )}
+                  <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
+                    style={{ background: "#000", color: "#7ce38b" }}>
+                    {output || "Tap Run to execute your code."}
+                  </pre>
+                </div>
               )}
             </div>
+
           </div>
         )}
       </div>
@@ -925,6 +948,21 @@ function FileIcon({ name }: { name: string }) {
 }
 
 
+
+function SavedPill({ at }: { at: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const ageSec = Math.max(0, Math.round((now - at) / 1000));
+  const label =
+    ageSec < 5 ? "just now"
+    : ageSec < 60 ? `${ageSec}s ago`
+    : ageSec < 3600 ? `${Math.round(ageSec / 60)}m ago`
+    : `${Math.round(ageSec / 3600)}h ago`;
+  return <span className="opacity-70">· Saved {label}</span>;
+}
 
 
 function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKey; bg: string }) {
