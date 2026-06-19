@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Database } from "sql.js";
 import {
-  Database as DbIcon, KeyRound, Link2, Plus, RefreshCw, Table as TableIcon,
+  Database as DbIcon, KeyRound, Link2, Network, Plus, RefreshCw, Table as TableIcon,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SchemaDiagram } from "./SchemaDiagram";
 
 const SQL_TYPES = ["INTEGER", "TEXT", "REAL", "NUMERIC", "BLOB", "BOOLEAN", "DATE", "DATETIME"] as const;
 type SqlType = typeof SQL_TYPES[number];
