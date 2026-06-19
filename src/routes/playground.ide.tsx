@@ -80,6 +80,7 @@ interface IdeState {
 }
 
 interface ConsoleEntry { id: number; level: string; text: string }
+interface UploadItem { id: string; name: string; size: number; status: "pending" | "done" | "error"; error?: string }
 
 const DEFAULT_LS_KEY = "playground-ide:v1";
 const QUICK_KEYS = ["Tab", "{", "}", "(", ")", "[", "]", ";", "=", "<", ">", "\"", "/"] as const;
@@ -199,6 +200,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [apiOpen, setApiOpen] = useState(false);
   const [dbOpen, setDbOpen] = useState(false);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
+  const [uploads, setUploads] = useState<UploadItem[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
@@ -278,39 +280,53 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       return { ...s, files, activeFileId: id === s.activeFileId ? files[0].id : s.activeFileId };
     });
   }
-  function renameFile(id: string, newPath: string) {
-    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, path: newPath, name: basename(newPath), language: monacoLangFromName(newPath) } : f) }));
+  function renameFile(id: string, newPath: string): string | null {
+    const clean = newPath.trim().replace(/^\/+|\/+$/g, "");
+    if (!clean) return "Name cannot be empty";
+    if (!/^[A-Za-z0-9._\-/]+$/.test(clean)) return "Use letters, numbers, . _ - /";
+    if (state.files.some((f) => f.id !== id && f.path === clean)) return "A file with that path already exists";
+    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, path: clean, name: basename(clean), language: monacoLangFromName(clean) } : f) }));
+    return null;
   }
   async function uploadAssets(fileList: FileList, folder = "assets") {
     addFolder(folder);
     const arr = Array.from(fileList);
     if (!arr.length) return;
-    const toastId = toast.loading(`Uploading 0 / ${arr.length}…`);
-    let done = 0, skipped = 0;
-    for (const file of arr) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`${file.name} is over 2MB — skipped`);
-        skipped++;
-        continue;
+    const items: UploadItem[] = arr.map((f) => ({ id: uid(), name: f.name, size: f.size, status: "pending" }));
+    setUploads((u) => [...u, ...items]);
+    let done = 0, errors = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const file = arr[i];
+      const item = items[i];
+      try {
+        if (file.size > 2 * 1024 * 1024) throw new Error("Over 2MB limit");
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(new Error("Read failed"));
+          r.readAsDataURL(file);
+        });
+        const path = `${folder}/${file.name}`;
+        const asset = { mime: file.type || "application/octet-stream", dataUrl, size: file.size };
+        const f: IdeFile = { id: uid(), path, name: file.name, language: "plaintext", content: "", asset };
+        setState((s) => {
+          const without = s.files.filter((x) => x.path !== path);
+          return { ...s, files: [...without, f], activeFileId: f.id };
+        });
+        setUploads((u) => u.map((x) => x.id === item.id ? { ...x, status: "done" } : x));
+        done++;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Upload failed";
+        setUploads((u) => u.map((x) => x.id === item.id ? { ...x, status: "error", error: msg } : x));
+        errors++;
       }
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = reject;
-        r.readAsDataURL(file);
-      });
-      const path = `${folder}/${file.name}`;
-      const asset = { mime: file.type || "application/octet-stream", dataUrl, size: file.size };
-      const f: IdeFile = { id: uid(), path, name: file.name, language: "plaintext", content: "", asset };
-      setState((s) => {
-        const without = s.files.filter((x) => x.path !== path);
-        return { ...s, files: [...without, f], activeFileId: f.id };
-      });
-      done++;
-      toast.loading(`Uploading ${done} / ${arr.length}…`, { id: toastId });
     }
-    toast.success(`Uploaded ${done} asset${done === 1 ? "" : "s"}${skipped ? ` (${skipped} skipped)` : ""}`, { id: toastId });
+    toast.success(`Uploaded ${done} asset${done === 1 ? "" : "s"}${errors ? ` · ${errors} failed` : ""}`);
+    // Auto-clear completed entries after a short delay
+    setTimeout(() => setUploads((u) => u.filter((x) => x.status === "pending")), 4000);
   }
+  function clearUploads() { setUploads([]); }
+
 
   async function exportZip() {
     const zip = new JSZip();
@@ -666,6 +682,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             onDeleteFolder={deleteFolder}
             onRenameFile={renameFile}
             onUploadAssets={uploadAssets}
+            uploads={uploads}
+            onClearUploads={clearUploads}
             onOpenTemplates={() => setTemplatesOpen(true)}
           />
         </SheetContent>
@@ -993,8 +1011,10 @@ interface FilesTreeProps {
   onAddFolder: (path: string) => void;
   onDeleteFile: (id: string) => void;
   onDeleteFolder: (path: string) => void;
-  onRenameFile: (id: string, newPath: string) => void;
+  onRenameFile: (id: string, newPath: string) => string | null;
   onUploadAssets: (files: FileList, folder?: string) => void;
+  uploads: UploadItem[];
+  onClearUploads: () => void;
   onOpenTemplates: () => void;
 }
 
@@ -1067,6 +1087,28 @@ function FilesTree(p: FilesTreeProps) {
         multiple style={{ display: "none" }}
         onChange={(e) => { if (e.target.files) { p.onUploadAssets(e.target.files, targetFolder); e.target.value = ""; } }} />
 
+      {p.uploads.length > 0 && (
+        <div className="mx-2 mt-2 rounded-md border p-2 text-[11px]" style={{ borderColor: p.palette.border, background: p.palette.bg }}>
+          <div className="mb-1 flex items-center justify-between">
+            <span className="font-semibold" style={{ color: p.palette.text }}>
+              Uploads ({p.uploads.filter((u) => u.status === "done").length}/{p.uploads.length})
+            </span>
+            <button onClick={p.onClearUploads} className="opacity-60 hover:opacity-100">Clear</button>
+          </div>
+          <ul className="grid gap-1">
+            {p.uploads.map((u) => (
+              <li key={u.id} className="flex items-center gap-2">
+                <span className="flex-1 truncate" title={u.name} style={{ color: p.palette.text }}>{u.name}</span>
+                <span className="opacity-60">{(u.size / 1024).toFixed(0)} KB</span>
+                {u.status === "pending" && <Loader2 size={12} className="animate-spin" />}
+                {u.status === "done" && <span style={{ color: "#5fd38a" }}>✓</span>}
+                {u.status === "error" && <span style={{ color: "#ff6f8a" }} title={u.error}>✕</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div className="min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2">
         <ul className="grid gap-0.5">
           {rootFiles.map((f) => (
@@ -1074,10 +1116,7 @@ function FilesTree(p: FilesTreeProps) {
               canDelete={p.files.length > 1}
               onOpen={() => p.onOpen(f.id)}
               onDelete={() => p.onDeleteFile(f.id)}
-              onRename={() => {
-                const next = prompt("Rename file (path)", f.path);
-                if (next && next !== f.path) p.onRenameFile(f.id, next);
-              }} />
+              onRename={(next) => p.onRenameFile(f.id, next)} />
           ))}
           {allFolders.map((folder) => {
             const isCol = collapsed.has(folder);
@@ -1091,19 +1130,21 @@ function FilesTree(p: FilesTreeProps) {
                     {isCol ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                   </button>
                   {isCol ? <Folder size={13} className="opacity-80" /> : <FolderOpenIcon size={13} className="opacity-80" />}
-                  <span className="flex-1 truncate font-medium">{folder.split("/").pop()}</span>
+                  <button onClick={() => toggle(folder)} className="flex-1 truncate text-left font-medium" title={folder}>
+                    {folder.split("/").pop()}
+                  </button>
                   {isAssets ? (
-                    <button onClick={() => triggerUpload(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Upload asset">
+                    <button onClick={() => triggerUpload(folder)} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Upload asset">
                       <Upload size={12} />
                     </button>
                   ) : (
-                    <button onClick={() => promptNewFile(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Add file">
+                    <button onClick={() => promptNewFile(folder)} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Add file">
                       <Plus size={12} />
                     </button>
                   )}
                   <button onClick={() => {
                     if (confirm(`Delete folder "${folder}" and its files?`)) p.onDeleteFolder(folder);
-                  }} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete folder">
+                  }} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Delete folder">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -1117,10 +1158,7 @@ function FilesTree(p: FilesTreeProps) {
                         canDelete={p.files.length > 1}
                         onOpen={() => p.onOpen(f.id)}
                         onDelete={() => p.onDeleteFile(f.id)}
-                        onRename={() => {
-                          const next = prompt("Rename file (path)", f.path);
-                          if (next && next !== f.path) p.onRenameFile(f.id, next);
-                        }} />
+                        onRename={(next) => p.onRenameFile(f.id, next)} />
                     ))}
                   </ul>
                 )}
@@ -1135,8 +1173,53 @@ function FilesTree(p: FilesTreeProps) {
 
 function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename }: {
   file: IdeFile; active: boolean; palette: typeof APP_THEMES[AppThemeKey]; canDelete: boolean;
-  onOpen: () => void; onDelete: () => void; onRename: () => void;
+  onOpen: () => void; onDelete: () => void; onRename: (newPath: string) => string | null;
 }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(file.path);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  function start() {
+    setValue(file.path);
+    setError(null);
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 0);
+  }
+  function commit() {
+    if (value === file.path) { setEditing(false); return; }
+    const err = onRename(value);
+    if (err) { setError(err); return; }
+    setEditing(false);
+  }
+  function cancel() { setEditing(false); setError(null); }
+
+  if (editing) {
+    return (
+      <li className="rounded-md px-2 py-1" style={{ background: palette.bg }}>
+        <div className="flex items-center gap-2">
+          {file.asset
+            ? (file.asset.mime.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />)
+            : <FileIcon name={file.name} />}
+          <input
+            ref={inputRef}
+            value={value}
+            onChange={(e) => { setValue(e.target.value); setError(null); }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") { e.preventDefault(); commit(); }
+              if (e.key === "Escape") { e.preventDefault(); cancel(); }
+            }}
+            className="h-7 flex-1 rounded border bg-transparent px-2 text-xs"
+            style={{ borderColor: error ? "#ff6f8a" : palette.border, color: palette.text }}
+          />
+          <button onClick={commit} className="rounded p-1 hover:bg-white/10" title="Save"><span style={{ color: "#5fd38a" }}>✓</span></button>
+          <button onClick={cancel} className="rounded p-1 hover:bg-white/10" title="Cancel"><X size={12} /></button>
+        </div>
+        {error && <div className="ml-6 mt-1 text-[10px]" style={{ color: "#ff6f8a" }}>{error}</div>}
+      </li>
+    );
+  }
+
   return (
     <li className="flex items-center gap-2 rounded-md px-2 py-1"
       style={{ background: active ? palette.bg : "transparent" }}>
@@ -1146,15 +1229,16 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
       <button className="flex-1 truncate text-left text-sm" onClick={onOpen} title={file.path}>
         {file.name}
       </button>
-      <button onClick={onRename} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Rename">
+      <button onClick={start} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Rename">
         <Pencil size={12} />
       </button>
       {canDelete && (
-        <button onClick={onDelete} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete">
+        <button onClick={onDelete} className="rounded p-1 opacity-70 hover:bg-white/10 hover:opacity-100" title="Delete">
           <Trash2 size={12} />
         </button>
       )}
     </li>
   );
 }
+
 
