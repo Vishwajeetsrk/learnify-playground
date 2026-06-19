@@ -6,8 +6,6 @@ const NAV = [
   { to: "/playground", label: "Code" },
   { to: "/playground/web", label: "Web" },
   { to: "/playground/mobile", label: "Mobile" },
-  { to: "/playground/backend", label: "Backend" },
-  { to: "/playground/database", label: "Database" },
   { to: "/tools", label: "Tools" },
 ] as const;
 
