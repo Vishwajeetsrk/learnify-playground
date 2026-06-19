@@ -213,6 +213,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
+  const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
@@ -233,6 +234,23 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     }, 600);
     return () => clearTimeout(t);
   }, [state, storageKey]);
+
+  // Recent files: hydrate + track active file changes
+  const recentKey = `${storageKey}:recent`;
+  useEffect(() => {
+    try { const raw = localStorage.getItem(recentKey); if (raw) setRecentPaths(JSON.parse(raw)); } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const f = state.files.find((x) => x.id === state.activeFileId);
+    if (!f || f.asset) return;
+    setRecentPaths((prev) => {
+      const next = [f.path, ...prev.filter((p) => p !== f.path)].slice(0, 8);
+      try { localStorage.setItem(recentKey, JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, [state.activeFileId, state.files, recentKey]);
+
 
   // Preview console capture
   useEffect(() => {
@@ -274,6 +292,62 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     const act = ed.getAction("editor.action.formatDocument");
     try { await act?.run(); toast.success("Formatted"); }
     catch { toast.error("Formatter not available for this language"); }
+  }
+
+  async function copyAsMarkdown() {
+    const lines: string[] = [`# ${state.projectName}`, ""];
+    for (const f of state.files) {
+      if (f.asset) { lines.push(`- 📎 \`${f.path}\` (${f.asset.mime}, ${f.asset.size} B)`); continue; }
+      const lang = monacoLangFromName(f.name);
+      lines.push(`### \`${f.path}\``, "", "```" + lang, f.content, "```", "");
+    }
+    try { await navigator.clipboard.writeText(lines.join("\n")); toast.success("Project copied as Markdown"); }
+    catch { toast.error("Clipboard unavailable"); }
+  }
+
+  async function importZip(file: File) {
+    try {
+      const zip = await JSZip.loadAsync(file);
+      const newFiles: IdeFile[] = [];
+      const folders = new Set<string>();
+      let manifest: { name?: string; kind?: Kind; language?: LangKey } | null = null;
+      const entries = Object.values(zip.files);
+      for (const entry of entries) {
+        if (entry.dir) { folders.add(entry.name.replace(/\/$/, "")); continue; }
+        if (entry.name === "project.json") {
+          try { manifest = JSON.parse(await entry.async("string")); } catch {}
+          continue;
+        }
+        if (entry.name === "RELATIONS.md") continue;
+        const ct = (entry as unknown as { _data?: { type?: string } })?._data?.type;
+        const isText = /\.(html?|css|m?js|tsx?|jsx?|json|md|txt|sql|kt|java|swift|dart|py|rb|sh|c|cpp|cs|php|go|rs|scala|m|xml|yml|yaml|env)$/i.test(entry.name);
+        if (isText) {
+          const content = await entry.async("string");
+          newFiles.push(mkFile(entry.name, content));
+        } else {
+          const blob = await entry.async("blob");
+          const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = () => rej(new Error("read failed")); r.readAsDataURL(blob); });
+          const mime = blob.type || "application/octet-stream";
+          newFiles.push({ id: uid(), path: entry.name, name: basename(entry.name), language: "plaintext", content: "", asset: { mime, dataUrl, size: blob.size } });
+        }
+      }
+      if (!newFiles.length) { toast.error("ZIP has no usable files"); return; }
+      const kind: Kind = manifest?.kind ?? (newFiles.some((f) => /\.html?$/i.test(f.path)) ? "web" : "code");
+      const language: LangKey = manifest?.language ?? (kind === "web" ? "javascript" : state.language);
+      const next: IdeState = {
+        kind, language,
+        projectName: manifest?.name ?? file.name.replace(/\.zip$/i, ""),
+        files: newFiles,
+        folders: Array.from(folders),
+        activeFileId: newFiles[0].id,
+      };
+      setState(ensureActive(next));
+      setTemplatesOpen(false);
+      toast.success(`Imported ${newFiles.length} file${newFiles.length === 1 ? "" : "s"}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Import failed", { description: msg });
+    }
   }
 
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
@@ -680,6 +754,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </div>
       )}
 
+      {/* Breadcrumb */}
+      {!fullscreen && activeFile && (
+        <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b px-3 py-1 text-[11px]"
+          style={{ borderColor: palette.border, background: palette.bg, color: palette.subtle }}>
+          {activeFile.path.split("/").map((seg, i, arr) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              {i > 0 && <ChevronRight size={10} />}
+              <span className={i === arr.length - 1 ? "font-medium" : ""} style={i === arr.length - 1 ? { color: palette.text } : undefined}>{seg}</span>
+            </span>
+          ))}
+          <Button size="sm" variant="ghost" onClick={formatDocument} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
+            <Wand2 size={11} className="mr-1" /> Format
+          </Button>
+        </div>
+      )}
+
       {/* Editor + bottom panel */}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1" style={{ background: palette.bg }}>
@@ -856,9 +946,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
         <SheetContent side="bottom" className="h-[80vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
           <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
-            <SheetTitle style={{ color: palette.text }}>
-              Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
-            </SheetTitle>
+            <div className="flex items-center gap-2">
+              <SheetTitle className="flex-1" style={{ color: palette.text }}>
+                Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
+              </SheetTitle>
+              <label className="inline-flex">
+                <input type="file" accept=".zip,application/zip" className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) importZip(f); e.target.value = ""; }} />
+                <span className="inline-flex h-8 cursor-pointer items-center gap-1 rounded-md border px-3 text-xs font-medium"
+                  style={{ borderColor: palette.border, color: palette.text }}>
+                  <Upload size={12} /> Import ZIP
+                </span>
+              </label>
+            </div>
           </SheetHeader>
           <div className="overflow-auto p-3">
             {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
@@ -1071,7 +1171,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <CommandItem onSelect={() => { setCmdOpen(false); setFullscreen((v) => !v); }}>
               {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />} <span>Toggle fullscreen</span>
             </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); copyAsMarkdown(); }}>
+              <Copy size={14} /> <span>Copy project as Markdown</span>
+            </CommandItem>
           </CommandGroup>
+          {recentPaths.length > 0 && (
+            <CommandGroup heading="Recent">
+              {recentPaths
+                .map((p) => state.files.find((f) => f.path === p))
+                .filter((f): f is IdeFile => !!f && !f.asset)
+                .map((f) => (
+                  <CommandItem key={`recent-${f.id}`} value={`recent ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
+                    <FileText size={14} /> <span>{f.path}</span>
+                  </CommandItem>
+                ))}
+            </CommandGroup>
+          )}
           <CommandGroup heading="Files">
             {state.files.filter((f) => !f.asset).map((f) => (
               <CommandItem key={f.id} value={`file ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
