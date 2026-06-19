@@ -2,7 +2,7 @@
 // Persists current request, history (last 30), and saved (named) to localStorage.
 import { useEffect, useMemo, useState } from "react";
 import {
-  Bookmark, BookmarkPlus, Clock, History, Loader2, Plus, Save, Send,
+  Bookmark, BookmarkPlus, Clock, Code2, History, Loader2, Plus, Send,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SNIPPET_LANGS, buildSnippet, type SnippetLang } from "@/lib/playground/snippet";
 
 interface Header { key: string; value: string }
 interface ApiRequest {
