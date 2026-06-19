@@ -448,7 +448,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
           assets[basename(f.path)] = f.asset.dataUrl;
         }
       }
-      return buildPreviewDoc({ html, css, js, assets });
+      return buildPreviewDoc({ html, css, js, assets, storageSeed: previewStorage });
     }
     return buildProjectOverviewDoc({
       projectName: state.projectName,
@@ -457,7 +457,11 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         path: f.path, language: f.language, content: f.content, asset: f.asset,
       })),
     });
+    // We intentionally rebuild on `state` changes (auto-reload on edits) but
+    // NOT on every `previewStorage` mutation — that would loop the iframe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, effectiveTrack]);
+
 
 
 
