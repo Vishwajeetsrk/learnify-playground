@@ -92,8 +92,12 @@ function rewriteAssets(input: string, assets: Record<string, string>): string {
   return out;
 }
 
-export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
+export function buildPreviewDoc({ html, css, js, assets, storageSeed }: WebFiles): string {
   const a = assets ?? {};
+  const bridge = buildBridge({
+    local:   storageSeed?.local   ?? {},
+    session: storageSeed?.session ?? {},
+  });
   let htmlOut = rewriteAssets(html, a);
   const cssOut = rewriteAssets(css, a);
   // Remove <link rel="stylesheet" href="*.css"> and <script src="*.js">
