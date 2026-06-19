@@ -6,6 +6,8 @@ export interface WebFiles {
   js: string;
   /** Map of asset path/filename -> data URL. Used to rewrite asset references. */
   assets?: Record<string, string>;
+  /** Seed snapshot for the iframe's shimmed local/session storage. */
+  storageSeed?: { local?: Record<string, string>; session?: Record<string, string> };
 }
 
 export const PREVIEW_VIEWPORTS = {
@@ -15,6 +17,8 @@ export const PREVIEW_VIEWPORTS = {
   desktop: { label: "Desktop", w: 1280, h: 800  },
 } as const;
 export type ViewportKey = keyof typeof PREVIEW_VIEWPORTS;
+
+
 
 
 function buildBridge(seed: { local: Record<string, string>; session: Record<string, string> }): string {
