@@ -14,8 +14,10 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { LANGUAGES, runCode, type LangKey } from "@/lib/piston";
+import { LANGUAGES, PROVIDERS, runCode, type LangKey, type ProviderKey } from "@/lib/executors";
 import { ProjectSidebar, type PlaygroundProject } from "@/components/project-sidebar";
+import { QuotaIndicator } from "@/components/quota-indicator";
+import { AiDebugPanel } from "@/components/ai-debug-panel";
 
 export const Route = createFileRoute("/playground/")({
   head: () => ({ meta: [{ title: "Code Playground" }] }),
@@ -26,6 +28,7 @@ function CodePlayground() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const [lang, setLang] = useState<LangKey>("python");
+  const [provider, setProvider] = useState<ProviderKey>("piston");
   const [code, setCode] = useState(LANGUAGES.python.starter);
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
