@@ -237,6 +237,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [smokeRunning, setSmokeRunning] = useState(false);
   const [smokeProgress, setSmokeProgress] = useState<{ done: number; total: number; current: string }>({ done: 0, total: 0, current: "" });
   const [smokeResults, setSmokeResults] = useState<import("@/lib/playground/smoke-test").SmokeResult[] | null>(null);
+  const [smokePrevResults, setSmokePrevResults] = useState<import("@/lib/playground/smoke-test").SmokeResult[] | null>(null);
+  const [smokeRanAt, setSmokeRanAt] = useState<number | null>(null);
+  const [smokePlatformFilter, setSmokePlatformFilter] = useState<"all" | "web" | "mobile">("all");
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
