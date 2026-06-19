@@ -1,10 +1,23 @@
 import { useMemo, useState } from "react";
-import { Check, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { Check, Loader2, Sparkles, Wand2, BookOpen, Wrench, Zap, RefreshCcw, FileText, FlaskConical, Pencil } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { debugCode } from "@/lib/ai.functions";
 import type { ProviderKey } from "@/lib/executors";
+
+type ActionKey = "diagnose" | "explain" | "fix" | "optimize" | "convert" | "tests" | "docs" | "generate";
+
+const ACTIONS: { key: ActionKey; label: string; Icon: typeof Sparkles; prompt: (lang: string, q: string) => string }[] = [
+  { key: "diagnose", label: "Diagnose",   Icon: Sparkles,     prompt: (_l, q) => q || "Diagnose any issue and return the full fixed program." },
+  { key: "explain",  label: "Explain",    Icon: BookOpen,     prompt: (_l) => "Explain what this code does step by step in plain language. Then re-output the same code unchanged so the editor stays intact." },
+  { key: "fix",      label: "Fix errors", Icon: Wrench,       prompt: () => "Find and fix any bugs or runtime errors. Return the corrected full program." },
+  { key: "optimize", label: "Optimize",   Icon: Zap,          prompt: () => "Refactor for readability and performance. Keep behaviour identical. Return the optimized full program." },
+  { key: "convert",  label: "Convert",    Icon: RefreshCcw,   prompt: (_l, q) => `Convert this program to ${q || "TypeScript"}. Return the converted full program in a fenced code block tagged with the target language.` },
+  { key: "tests",    label: "Tests",      Icon: FlaskConical, prompt: (l) => `Write unit tests for this ${l} program using the language's standard test conventions. Return the test file as a fenced code block.` },
+  { key: "docs",     label: "Docs",       Icon: FileText,     prompt: () => "Add concise docstrings/comments to every public function or type. Return the documented full program." },
+  { key: "generate", label: "Generate",   Icon: Pencil,       prompt: (l, q) => `Generate ${l} code that does the following: ${q || "describe what you want in the input box."} Return only the program in a fenced code block.` },
+];
 
 interface Props {
   language: string;

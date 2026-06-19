@@ -16,6 +16,8 @@ import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
 import { Route as PlaygroundMobileRouteImport } from './routes/playground.mobile'
 import { Route as PlaygroundIdeRouteImport } from './routes/playground.ide'
+import { Route as PlaygroundDatabaseRouteImport } from './routes/playground.database'
+import { Route as PlaygroundBackendRouteImport } from './routes/playground.backend'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -52,11 +54,23 @@ const PlaygroundIdeRoute = PlaygroundIdeRouteImport.update({
   path: '/ide',
   getParentRoute: () => PlaygroundRoute,
 } as any)
+const PlaygroundDatabaseRoute = PlaygroundDatabaseRouteImport.update({
+  id: '/database',
+  path: '/database',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+const PlaygroundBackendRoute = PlaygroundBackendRouteImport.update({
+  id: '/backend',
+  path: '/backend',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/backend': typeof PlaygroundBackendRoute
+  '/playground/database': typeof PlaygroundDatabaseRoute
   '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
@@ -65,6 +79,8 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tools': typeof ToolsRoute
+  '/playground/backend': typeof PlaygroundBackendRoute
+  '/playground/database': typeof PlaygroundDatabaseRoute
   '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
@@ -75,6 +91,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/backend': typeof PlaygroundBackendRoute
+  '/playground/database': typeof PlaygroundDatabaseRoute
   '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
@@ -86,6 +104,8 @@ export interface FileRouteTypes {
     | '/'
     | '/playground'
     | '/tools'
+    | '/playground/backend'
+    | '/playground/database'
     | '/playground/ide'
     | '/playground/mobile'
     | '/playground/web'
@@ -94,6 +114,8 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/tools'
+    | '/playground/backend'
+    | '/playground/database'
     | '/playground/ide'
     | '/playground/mobile'
     | '/playground/web'
@@ -103,6 +125,8 @@ export interface FileRouteTypes {
     | '/'
     | '/playground'
     | '/tools'
+    | '/playground/backend'
+    | '/playground/database'
     | '/playground/ide'
     | '/playground/mobile'
     | '/playground/web'
@@ -166,10 +190,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundIdeRouteImport
       parentRoute: typeof PlaygroundRoute
     }
+    '/playground/database': {
+      id: '/playground/database'
+      path: '/database'
+      fullPath: '/playground/database'
+      preLoaderRoute: typeof PlaygroundDatabaseRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
+    '/playground/backend': {
+      id: '/playground/backend'
+      path: '/backend'
+      fullPath: '/playground/backend'
+      preLoaderRoute: typeof PlaygroundBackendRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
   }
 }
 
 interface PlaygroundRouteChildren {
+  PlaygroundBackendRoute: typeof PlaygroundBackendRoute
+  PlaygroundDatabaseRoute: typeof PlaygroundDatabaseRoute
   PlaygroundIdeRoute: typeof PlaygroundIdeRoute
   PlaygroundMobileRoute: typeof PlaygroundMobileRoute
   PlaygroundWebRoute: typeof PlaygroundWebRoute
@@ -177,6 +217,8 @@ interface PlaygroundRouteChildren {
 }
 
 const PlaygroundRouteChildren: PlaygroundRouteChildren = {
+  PlaygroundBackendRoute: PlaygroundBackendRoute,
+  PlaygroundDatabaseRoute: PlaygroundDatabaseRoute,
   PlaygroundIdeRoute: PlaygroundIdeRoute,
   PlaygroundMobileRoute: PlaygroundMobileRoute,
   PlaygroundWebRoute: PlaygroundWebRoute,
