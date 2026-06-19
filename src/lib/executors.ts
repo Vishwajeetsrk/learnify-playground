@@ -144,8 +144,9 @@ class ProviderError extends Error {
   }
   get isTransient() {
     return (
-      this.status === 429 ||
+      this.status === 401 ||
       this.status === 403 ||
+      this.status === 429 ||
       (this.status !== null && this.status >= 500)
     );
   }
