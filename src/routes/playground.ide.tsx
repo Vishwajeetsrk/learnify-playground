@@ -56,11 +56,16 @@ export interface IdePlaygroundProps {
 
 type Kind = "web" | "code";
 
+interface IdeAsset { mime: string; dataUrl: string; size: number }
 interface IdeFile {
   id: string;
-  name: string;          // display + filename (e.g. index.html)
+  /** Full path within the project, e.g. "src/main.kt" or "assets/logo.png". */
+  path: string;
+  /** Display basename (derived from path; kept for legacy state). */
+  name: string;
   language: string;      // monaco language id
-  content: string;
+  content: string;       // text content; "" if asset
+  asset?: IdeAsset;      // binary asset (image/pdf)
 }
 
 interface IdeState {
@@ -68,6 +73,7 @@ interface IdeState {
   language: LangKey;     // for "code" projects
   projectName: string;
   files: IdeFile[];
+  folders?: string[];    // explicit folder paths so empty folders persist
   activeFileId: string;
 }
 
