@@ -290,11 +290,16 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     const ed = editorRef.current; if (!ed) return;
     if (!silent) ed.focus();
     const model = ed.getModel();
-    const file = activeFile;
-    if (model && file && !file.asset) {
+    if (model) {
       try {
-        const { formatSource, languageFromPath } = await import("@/lib/playground/format");
-        const lang = languageFromPath(file.path);
+        const { formatSource } = await import("@/lib/playground/format");
+        const monacoLang = model.getLanguageId();
+        const map: Record<string, Parameters<typeof formatSource>[0]> = {
+          typescript: "typescript", javascript: "javascript", json: "json",
+          css: "css", scss: "scss", less: "less", markdown: "markdown",
+          yaml: "yaml", sql: "sql",
+        };
+        const lang = map[monacoLang];
         if (lang) {
           const out = await formatSource(lang, model.getValue());
           if (out != null && out !== model.getValue()) {
