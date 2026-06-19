@@ -192,6 +192,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [stdout, setStdout] = useState("");
   const [stderr, setStderr] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
+  const [lastRun, setLastRun] = useState<{ provider: string; timeSec?: number | null; memoryKb?: number | null; status?: string | null } | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
