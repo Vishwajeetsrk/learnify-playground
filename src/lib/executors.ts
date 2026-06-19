@@ -1,6 +1,11 @@
-// Free code execution providers. Both are key-less public APIs.
-// - piston: https://github.com/engineer-man/piston (emkc.org)
-// - wandbox: https://wandbox.org (limited language coverage)
+// Free code execution providers (no API key required).
+//
+// - wandbox: https://wandbox.org/api  — primary, covers every language we expose
+// - piston:  https://emkc.org/api/v2/piston — kept as a selectable fallback.
+//   NOTE: The public Piston endpoint became whitelist-only in Feb 2026 and
+//   will usually respond with HTTP 403 + an explanatory message. When that
+//   happens we surface a clear error and (when fallback is enabled) retry
+//   on Wandbox automatically.
 
 export type LangKey =
   | "python"
@@ -13,15 +18,16 @@ export type LangKey =
   | "php"
   | "go"
   | "rust"
-  | "kotlin";
+  | "ruby"
+  | "bash";
 
-export type ProviderKey = "piston" | "wandbox";
+export type ProviderKey = "wandbox" | "piston";
 
 interface LangSpec {
   label: string;
   monaco: string;
-  piston: { language: string; version: string; filename: string };
-  wandbox?: { compiler: string };
+  wandbox: { compiler: string };
+  piston?: { language: string; version: string; filename: string };
   starter: string;
 }
 
@@ -29,89 +35,97 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   python: {
     label: "Python",
     monaco: "python",
+    wandbox: { compiler: "cpython-3.14.0" },
     piston: { language: "python", version: "3.10.0", filename: "main.py" },
-    wandbox: { compiler: "cpython-3.10.2" },
     starter: `print("Hello from Python")\n`,
   },
   javascript: {
     label: "JavaScript",
     monaco: "javascript",
+    wandbox: { compiler: "nodejs-20.17.0" },
     piston: { language: "javascript", version: "18.15.0", filename: "main.js" },
-    wandbox: { compiler: "nodejs-16.14.0" },
     starter: `console.log("Hello from JavaScript");\n`,
   },
   typescript: {
     label: "TypeScript",
     monaco: "typescript",
+    wandbox: { compiler: "typescript-5.6.2" },
     piston: { language: "typescript", version: "5.0.3", filename: "main.ts" },
     starter: `const msg: string = "Hello from TypeScript";\nconsole.log(msg);\n`,
   },
   java: {
     label: "Java",
     monaco: "java",
+    wandbox: { compiler: "openjdk-jdk-22+36" },
     piston: { language: "java", version: "15.0.2", filename: "Main.java" },
-    wandbox: { compiler: "openjdk-jdk-15.0.3+3" },
     starter: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}\n`,
   },
   c: {
     label: "C",
     monaco: "c",
+    wandbox: { compiler: "gcc-13.2.0-c" },
     piston: { language: "c", version: "10.2.0", filename: "main.c" },
-    wandbox: { compiler: "gcc-head-c" },
     starter: `#include <stdio.h>\nint main(){ printf("Hello from C\\n"); return 0; }\n`,
   },
   cpp: {
     label: "C++",
     monaco: "cpp",
+    wandbox: { compiler: "gcc-13.2.0" },
     piston: { language: "c++", version: "10.2.0", filename: "main.cpp" },
-    wandbox: { compiler: "gcc-head" },
     starter: `#include <iostream>\nint main(){ std::cout << "Hello from C++" << std::endl; return 0; }\n`,
   },
   csharp: {
     label: "C#",
     monaco: "csharp",
+    wandbox: { compiler: "mono-6.12.0.199" },
     piston: { language: "csharp", version: "6.12.0", filename: "Main.cs" },
     starter: `using System;\nclass Program { static void Main(){ Console.WriteLine("Hello from C#"); } }\n`,
   },
   php: {
     label: "PHP",
     monaco: "php",
+    wandbox: { compiler: "php-8.3.12" },
     piston: { language: "php", version: "8.2.3", filename: "main.php" },
-    wandbox: { compiler: "php-head" },
     starter: `<?php\necho "Hello from PHP\\n";\n`,
   },
   go: {
     label: "Go",
     monaco: "go",
+    wandbox: { compiler: "go-1.23.2" },
     piston: { language: "go", version: "1.16.2", filename: "main.go" },
-    wandbox: { compiler: "go-head" },
     starter: `package main\nimport "fmt"\nfunc main(){ fmt.Println("Hello from Go") }\n`,
   },
   rust: {
     label: "Rust",
     monaco: "rust",
+    wandbox: { compiler: "rust-1.82.0" },
     piston: { language: "rust", version: "1.68.2", filename: "main.rs" },
-    wandbox: { compiler: "rust-head" },
     starter: `fn main(){ println!("Hello from Rust"); }\n`,
   },
-  kotlin: {
-    label: "Kotlin",
-    monaco: "kotlin",
-    piston: { language: "kotlin", version: "1.8.20", filename: "main.kt" },
-    starter: `fun main(){ println("Hello from Kotlin") }\n`,
+  ruby: {
+    label: "Ruby",
+    monaco: "ruby",
+    wandbox: { compiler: "ruby-3.4.9" },
+    starter: `puts "Hello from Ruby"\n`,
+  },
+  bash: {
+    label: "Bash",
+    monaco: "shell",
+    wandbox: { compiler: "bash" },
+    starter: `echo "Hello from Bash"\n`,
   },
 };
 
 export const PROVIDERS: Record<ProviderKey, { label: string; description: string; dailyFreeLimit: number }> = {
-  piston: {
-    label: "Piston (emkc.org)",
-    description: "Free public Piston API · ~200 req/min shared limit",
-    dailyFreeLimit: 500,
-  },
   wandbox: {
     label: "Wandbox",
-    description: "Free public Wandbox compiler service · best for compiled languages",
+    description: "Free public Wandbox compiler service · supports every language listed",
     dailyFreeLimit: 300,
+  },
+  piston: {
+    label: "Piston (legacy)",
+    description: "Public Piston API is whitelist-only since Feb 2026 — usually returns 403. Kept for completeness.",
+    dailyFreeLimit: 500,
   },
 };
 
@@ -129,12 +143,41 @@ class ProviderError extends Error {
     super(message);
   }
   get isTransient() {
-    return this.status === 429 || (this.status !== null && this.status >= 500);
+    return (
+      this.status === 429 ||
+      this.status === 403 ||
+      (this.status !== null && this.status >= 500)
+    );
   }
+}
+
+async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
+  const wb = LANGUAGES[lang].wandbox;
+  const res = await fetch("https://wandbox.org/api/compile.json", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code: source, compiler: wb.compiler, stdin }),
+  });
+  if (!res.ok) throw new ProviderError("wandbox", res.status, `Wandbox ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  const stdout: string = data.program_output ?? "";
+  const stderr: string = data.program_error ?? "";
+  const compilerErr: string = data.compiler_error ?? "";
+  const combinedErr = [compilerErr, stderr].filter(Boolean).join("\n");
+  const exit = typeof data.status === "string" ? Number.parseInt(data.status, 10) : null;
+  return {
+    stdout,
+    stderr: combinedErr,
+    output: combinedErr ? `${stdout}${stdout && combinedErr ? "\n" : ""}${combinedErr}` : stdout,
+    code: Number.isFinite(exit as number) ? (exit as number) : null,
+    signal: data.signal || null,
+    provider: "wandbox",
+  };
 }
 
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
+  if (!spec) throw new ProviderError("piston", null, `Piston does not have a config for ${LANGUAGES[lang].label}. Switch to Wandbox.`);
   const res = await fetch("https://emkc.org/api/v2/piston/execute", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -145,8 +188,17 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
       files: [{ name: spec.filename, content: source }],
     }),
   });
-  if (!res.ok) throw new ProviderError("piston", res.status, `Piston ${res.status}: ${await res.text()}`);
-  const data = await res.json();
+  const text = await res.text();
+  let data: any = {};
+  try { data = JSON.parse(text); } catch { /* non-json */ }
+  if (!res.ok) {
+    const detail = data?.message || text.slice(0, 200);
+    throw new ProviderError("piston", res.status, `Piston ${res.status}: ${detail}`);
+  }
+  // Even on 200 the whitelist gate may respond with `{message: "..."}` and no run block.
+  if (data?.message && !data?.run) {
+    throw new ProviderError("piston", 403, `Piston: ${data.message}`);
+  }
   const run = data.run ?? {};
   const compile = data.compile ?? {};
   const stdout = (compile.stdout ?? "") + (run.stdout ?? "");
@@ -158,29 +210,6 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
     code: run.code ?? compile.code ?? null,
     signal: run.signal ?? null,
     provider: "piston",
-  };
-}
-
-
-async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
-  const wb = LANGUAGES[lang].wandbox;
-  if (!wb) throw new ProviderError("wandbox", null, `Wandbox does not support ${LANGUAGES[lang].label}. Switch to Piston.`);
-  const res = await fetch("https://wandbox.org/api/compile.json", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code: source, compiler: wb.compiler, stdin }),
-  });
-  if (!res.ok) throw new ProviderError("wandbox", res.status, `Wandbox ${res.status}: ${await res.text()}`);
-  const data = await res.json();
-  const stdout: string = data.program_output ?? data.compiler_output ?? "";
-  const stderr: string = data.program_error ?? data.compiler_error ?? "";
-  return {
-    stdout,
-    stderr,
-    output: stderr ? `${stdout}${stdout && stderr ? "\n" : ""}${stderr}` : stdout,
-    code: typeof data.status === "string" ? Number.parseInt(data.status, 10) || 0 : null,
-    signal: data.signal ?? null,
-    provider: "wandbox",
   };
 }
 
@@ -196,17 +225,19 @@ function todayKey() {
 }
 
 export function readUsage(): UsageState {
-  if (typeof window === "undefined") return { date: todayKey(), counts: { piston: 0, wandbox: 0 } };
+  if (typeof window === "undefined") return { date: todayKey(), counts: { wandbox: 0, piston: 0 } };
   try {
     const raw = localStorage.getItem(USAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as UsageState;
-      if (parsed.date === todayKey()) return parsed;
+      if (parsed.date === todayKey()) {
+        return { date: parsed.date, counts: { wandbox: 0, piston: 0, ...parsed.counts } };
+      }
     }
   } catch {
     /* ignore */
   }
-  return { date: todayKey(), counts: { piston: 0, wandbox: 0 } };
+  return { date: todayKey(), counts: { wandbox: 0, piston: 0 } };
 }
 
 export function bumpUsage(provider: ProviderKey): UsageState {
@@ -222,7 +253,7 @@ export function bumpUsage(provider: ProviderKey): UsageState {
 }
 
 async function runWithProvider(provider: ProviderKey, lang: LangKey, source: string, stdin: string) {
-  const result = provider === "wandbox" ? await runWandbox(lang, source, stdin) : await runPiston(lang, source, stdin);
+  const result = provider === "piston" ? await runPiston(lang, source, stdin) : await runWandbox(lang, source, stdin);
   bumpUsage(provider);
   return result;
 }
@@ -235,6 +266,7 @@ export interface RunOptions {
 function friendlyError(err: unknown, provider: ProviderKey): string {
   if (err instanceof ProviderError) {
     if (err.status === 429) return `${PROVIDERS[provider].label} is rate-limited right now (HTTP 429). Try again in a moment or switch providers.`;
+    if (err.status === 403) return `${PROVIDERS[provider].label} rejected the request (HTTP 403). ${err.message}`;
     if (err.status && err.status >= 500) return `${PROVIDERS[provider].label} is temporarily unavailable (HTTP ${err.status}).`;
     return err.message;
   }
@@ -245,15 +277,15 @@ export async function runCode(
   lang: LangKey,
   source: string,
   stdin = "",
-  provider: ProviderKey = "piston",
+  provider: ProviderKey = "wandbox",
   options: RunOptions = {},
 ): Promise<RunResult> {
   try {
     return await runWithProvider(provider, lang, source, stdin);
   } catch (err) {
     const transient = err instanceof ProviderError && err.isTransient;
-    const alt: ProviderKey = provider === "piston" ? "wandbox" : "piston";
-    const altSupports = alt === "piston" ? true : Boolean(LANGUAGES[lang].wandbox);
+    const alt: ProviderKey = provider === "wandbox" ? "piston" : "wandbox";
+    const altSupports = alt === "wandbox" ? true : Boolean(LANGUAGES[lang].piston);
     if (options.fallback && transient && altSupports) {
       const reason = friendlyError(err, provider);
       options.onFallback?.({ from: provider, to: alt, reason });
@@ -266,4 +298,3 @@ export async function runCode(
     throw new Error(friendlyError(err, provider));
   }
 }
-
