@@ -143,6 +143,16 @@ export function parseConsoleMessage(data: unknown): ConsoleMsg | null {
   };
 }
 
+export interface StorageMsg { kind: "local" | "session"; snapshot: Record<string, string> }
+
+export function parseStorageMessage(data: unknown): StorageMsg | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as { __pgStorage?: boolean; kind?: string; snapshot?: Record<string, string> };
+  if (!d.__pgStorage) return null;
+  const kind = d.kind === "session" ? "session" : "local";
+  return { kind, snapshot: d.snapshot ?? {} };
+}
+
 // --------------------------------------------------------------------------
 // Mobile / multi-file project overview preview.
 // Renders a phone-frame "project overview" doc so users can see every source
