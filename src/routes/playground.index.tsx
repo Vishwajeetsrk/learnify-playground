@@ -253,13 +253,31 @@ function CodePlayground() {
               placeholder="Optional input passed to your program…"
               className="min-h-[60px] resize-none bg-background p-3 font-mono text-xs outline-none"
             />
-            <div className="border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Terminal
+            <div className="flex items-center justify-between border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Terminal</span>
+              {(stdout || stderr || exitCode !== null) && (
+                <span className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80">
+                  {activeProvider} · exit {exitCode ?? "?"}
+                </span>
+              )}
             </div>
             <pre className="flex-1 overflow-auto bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
               {output || "Run your code to see output here."}
             </pre>
-            <AiDebugPanel language={lang} code={code} output={output} />
+            <AiDebugPanel
+              language={lang}
+              code={code}
+              stdout={stdout}
+              stderr={stderr}
+              exitCode={exitCode}
+              provider={activeProvider}
+              stdin={stdin}
+              onApplyFix={(next) => {
+                dirtyRef.current = true;
+                setCode(next);
+              }}
+            />
+
           </div>
         </div>
 
