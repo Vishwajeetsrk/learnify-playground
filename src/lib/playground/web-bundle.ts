@@ -1,6 +1,12 @@
 // Build a sandboxed HTML document from project files and inject a console bridge
 // so the parent window can capture console.log/info/warn/error messages.
-export interface WebFiles { html: string; css: string; js: string }
+export interface WebFiles {
+  html: string;
+  css: string;
+  js: string;
+  /** Map of asset path/filename -> data URL. Used to rewrite asset references. */
+  assets?: Record<string, string>;
+}
 
 export const PREVIEW_VIEWPORTS = {
   mobile:  { label: "Mobile",  w: 375,  h: 667  },
@@ -27,7 +33,26 @@ const BRIDGE = `<script>
 })();
 </script>`;
 
-export function buildPreviewDoc({ html, css, js }: WebFiles): string {
+/** Rewrite occurrences of an asset filename to its data URL inside HTML/CSS text. */
+function rewriteAssets(input: string, assets: Record<string, string>): string {
+  if (!input || !assets) return input;
+  let out = input;
+  // Longest paths first so "assets/logo.png" wins over "logo.png".
+  const keys = Object.keys(assets).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (!key) continue;
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    // Match in src="...", href="...", url(...), with or without ./ prefix.
+    const re = new RegExp(`(["'(\\s=])(?:\\./)?${escaped}(?=["')\\s>])`, "g");
+    out = out.replace(re, (_m, lead) => `${lead}${assets[key]}`);
+  }
+  return out;
+}
+
+export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
+  const a = assets ?? {};
+  const htmlOut = rewriteAssets(html, a);
+  const cssOut = rewriteAssets(css, a);
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -35,14 +60,15 @@ export function buildPreviewDoc({ html, css, js }: WebFiles): string {
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Preview</title>
 ${BRIDGE}
-<style>${css}</style>
+<style>${cssOut}</style>
 </head>
 <body>
-${html}
+${htmlOut}
 <script>${js}</script>
 </body>
 </html>`;
 }
+
 
 export interface ConsoleMsg { level: string; text: string; at: number }
 
