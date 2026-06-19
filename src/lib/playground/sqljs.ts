@@ -9,7 +9,7 @@ export function loadSqlJs(): Promise<SqlJsStatic> {
   cached = (async () => {
     const initSqlJs = (await import("sql.js")).default;
     return initSqlJs({
-      locateFile: (file: string) => `https://sql.js.org/dist/${file}`,
+      locateFile: (file: string) => `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`,
     });
   })();
   return cached;
