@@ -1011,8 +1011,10 @@ interface FilesTreeProps {
   onAddFolder: (path: string) => void;
   onDeleteFile: (id: string) => void;
   onDeleteFolder: (path: string) => void;
-  onRenameFile: (id: string, newPath: string) => void;
+  onRenameFile: (id: string, newPath: string) => string | null;
   onUploadAssets: (files: FileList, folder?: string) => void;
+  uploads: UploadItem[];
+  onClearUploads: () => void;
   onOpenTemplates: () => void;
 }
 
