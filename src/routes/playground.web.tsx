@@ -14,6 +14,7 @@ export const Route = createFileRoute("/playground/web")({
       defaultKind="web"
       defaultProjectName="My Web Project"
       storageKey="playground-ide:web"
+      track="web"
     />
   ),
 });
