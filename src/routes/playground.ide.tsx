@@ -562,6 +562,31 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     toast.success("Project exported as ZIP");
   }
 
+  async function exportNative(target: NativeTarget) {
+    try {
+      const opts = {
+        projectName: state.projectName,
+        files: state.files.map((f) => ({
+          path: f.path,
+          content: f.content,
+          isAsset: !!f.asset,
+          base64: f.asset?.dataUrl.split(",")[1],
+        })),
+      };
+      const blob =
+        target === "android" ? await buildAndroidZip(opts)
+          : target === "ios" ? await buildIosZip(opts)
+          : await buildFlutterZip(opts);
+      const safe = state.projectName.replace(/[^a-z0-9._-]+/gi, "_") || "MobileApp";
+      const suffix = target === "android" ? "android" : target === "ios" ? "ios-xcode" : "flutter";
+      downloadBlob(blob, `${safe}-${suffix}.zip`);
+      const label = target === "android" ? "Android Studio" : target === "ios" ? "Xcode" : "Flutter";
+      toast.success(`${label} project exported`, { description: "Unzip and open in your local IDE." });
+    } catch (e) {
+      toast.error("Export failed", { description: e instanceof Error ? e.message : String(e) });
+    }
+  }
+
   function loadTemplate(t: Template) {
     setState(ensureActive(fromTemplate(t)));
     setTemplatesOpen(false);
