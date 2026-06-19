@@ -66,7 +66,7 @@ interface IdeState {
 
 interface ConsoleEntry { id: number; level: string; text: string }
 
-const LS_KEY = "playground-ide:v1";
+const DEFAULT_LS_KEY = "playground-ide:v1";
 const QUICK_KEYS = ["Tab", "{", "}", "(", ")", "[", "]", ";", "=", "<", ">", "\"", "/"] as const;
 
 function uid(): string { return Math.random().toString(36).slice(2, 10); }
