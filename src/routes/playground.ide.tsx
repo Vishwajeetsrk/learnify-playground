@@ -66,6 +66,8 @@ export interface IdePlaygroundProps {
   defaultProjectName?: string;
   /** Filters the templates sheet ("code" | "web" | "mobile"). Defaults to defaultKind. */
   track?: Track;
+  /** If provided, loads this language on first mount and bypasses localStorage. */
+  initialLanguage?: LangKey;
 }
 
 // --------------------------------------------------------------------------
