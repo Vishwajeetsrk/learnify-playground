@@ -66,6 +66,8 @@ export interface IdePlaygroundProps {
   defaultProjectName?: string;
   /** Filters the templates sheet ("code" | "web" | "mobile"). Defaults to defaultKind. */
   track?: Track;
+  /** If provided, loads this language on first mount and bypasses localStorage. */
+  initialLanguage?: LangKey;
 }
 
 // --------------------------------------------------------------------------
@@ -159,8 +161,26 @@ function extForLang(l: LangKey): string {
   return map[l];
 }
 
-function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string, track?: Track): IdeState {
+function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string, track?: Track, initialLanguage?: LangKey): IdeState {
   if (typeof window === "undefined") return ensureActive(blankWeb());
+  // If explicit initial language is requested, bypass saved state.
+  if (initialLanguage && initialLanguage in LANGUAGES) {
+    if (track === "mobile") {
+      const mobileMap: Record<string, string> = {
+        kotlin: "android-kotlin-app",
+        swift: "ios-swift-app",
+        dart: "flutter-app",
+        java: "android-java-app",
+      };
+      const templateId = mobileMap[initialLanguage] || "android-kotlin-app";
+      const m = MULTI_TEMPLATES.find((t) => t.id === templateId);
+      if (m) return ensureActive({ ...fromMultiTemplate(m), projectName: defaultProjectName ?? m.name });
+    }
+    if (defaultKind === "code") {
+      const f = mkFile(`main.${extForLang(initialLanguage)}`, LANGUAGES[initialLanguage].starter, LANGUAGES[initialLanguage].monaco);
+      return { kind: "code", language: initialLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], folders: ["assets"], activeFileId: f.id };
+    }
+  }
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
@@ -193,8 +213,11 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName, track }: IdePlaygroundProps = {}) {
+export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName, track, initialLanguage }: IdePlaygroundProps = {}) {
   const effectiveTrack: Track = track ?? (defaultKind === "code" ? "code" : "web");
+  const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const urlLang = urlParams?.get("lang");
+  const resolvedInitialLang: LangKey | undefined = urlLang && urlLang in LANGUAGES ? (urlLang as LangKey) : initialLanguage;
   const trackTemplates = useMemo(() => templatesForTrack(effectiveTrack), [effectiveTrack]);
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
@@ -248,7 +271,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
   // Hydrate
   useEffect(() => {
-    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName, effectiveTrack);
+    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName, effectiveTrack, resolvedInitialLang);
     setState(s);
     setBottomTab(s.kind === "web" || effectiveTrack === "mobile" ? "preview" : "output");
     // eslint-disable-next-line react-hooks/exhaustive-deps
