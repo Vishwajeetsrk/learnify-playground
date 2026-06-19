@@ -80,14 +80,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Polyglot Orbit · Code, Web & Mobile Playground" },
+      { name: "description", content: "Polyglot Orbit — a 3D playground for 18+ languages, a live web sandbox, and one-click mobile starters." },
+      { name: "author", content: "Polyglot Orbit" },
+      { property: "og:title", content: "Polyglot Orbit · Code, Web & Mobile Playground" },
+      { property: "og:description", content: "Run 18+ languages, prototype web UIs live, and scaffold mobile apps — all in your browser." },
       { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:site", content: "@PolyglotOrbit" },
     ],
     links: [
       {
