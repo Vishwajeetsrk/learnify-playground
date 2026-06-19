@@ -1635,10 +1635,10 @@ function DragHandle({
 }
 
 
-function ConsolePanel({ msgs, subtle }: { msgs: ConsoleEntry[]; subtle: string }) {
+function ConsolePanel({ msgs, subtle, emptyText }: { msgs: ConsoleEntry[]; subtle: string; emptyText?: string }) {
   if (msgs.length === 0) return (
     <div className="grid h-full place-items-center p-4 text-center text-xs" style={{ color: subtle }}>
-      Console output from your preview will appear here.
+      {emptyText ?? "Console output from your preview will appear here."}
     </div>
   );
   const color: Record<string, string> = { error: "#ff6f8a", warn: "#ffb86c", info: "#7eb2ff", debug: "#9aa3cf", log: "#e8ecff" };
