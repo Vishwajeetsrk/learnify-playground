@@ -19,6 +19,10 @@ import { DepGraph } from "@/components/playground/DepGraph";
 import { ValidationReport } from "@/components/playground/ValidationReport";
 import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
+import { buildAndroidZip, buildIosZip, buildFlutterZip, detectNativeTarget, downloadBlob, type NativeTarget } from "@/lib/playground/mobile-export";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
