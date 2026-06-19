@@ -132,7 +132,7 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName }: IdePlaygroundProps = {}) {
+export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName }: IdePlaygroundProps = {}) {
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
