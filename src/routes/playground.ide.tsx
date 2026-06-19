@@ -6,8 +6,11 @@ import {
   Plus, FilePlus2, Trash2, Smartphone, Tablet, Monitor, Maximize2, Minimize2,
   Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
   FolderPlus, Folder, FolderOpen as FolderOpenIcon, Upload, ChevronRight, ChevronDown, Image as ImageIcon, FileText,
-  Download, Pencil,
+  Download, Pencil, Sun, Moon, Search as SearchIcon, Command as CommandIcon, Replace as ReplaceIcon,
 } from "lucide-react";
+import {
+  CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
+} from "@/components/ui/command";
 import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
 import { toast } from "sonner";
@@ -200,6 +203,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [apiOpen, setApiOpen] = useState(false);
   const [dbOpen, setDbOpen] = useState(false);
+  const [cmdOpen, setCmdOpen] = useState(false);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
@@ -232,6 +236,29 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
+
+  // Command palette ⌘K / Ctrl+K
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function toggleAppTheme() {
+    const order: AppThemeKey[] = ["dark", "light", "amoled"];
+    const i = order.indexOf(appTheme);
+    setAppTheme(order[(i + 1) % order.length]);
+  }
+  function openFindReplace() {
+    const ed = editorRef.current; if (!ed) return;
+    ed.focus();
+    ed.getAction("editor.action.startFindReplaceAction")?.run();
+  }
 
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
@@ -523,6 +550,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </Button>
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setCmdOpen(true)} title="Command Palette (⌘K)" className="hidden h-9 w-9 sm:inline-flex">
+              <CommandIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={openFindReplace} title="Find & Replace" className="hidden h-9 w-9 sm:inline-flex">
+              <ReplaceIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={toggleAppTheme} title={`Theme: ${APP_THEMES[appTheme].label}`} className="h-9 w-9">
+              {appTheme === "light" ? <Moon size={16} /> : <Sun size={16} />}
             </Button>
             <Button size="icon" variant="ghost" onClick={() => setAiOpen(true)} title="AI Assistant" className="h-9 w-9">
               <Sparkles size={16} />
@@ -852,6 +888,59 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
           <div className="h-[calc(85vh-3.5rem)]"><DbConsole storageKey={`${storageKey}:db`} /></div>
         </SheetContent>
       </Sheet>
+
+      {/* Command palette */}
+      <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
+        <CommandInput placeholder="Type a command or search files..." />
+        <CommandList>
+          <CommandEmpty>No results.</CommandEmpty>
+          <CommandGroup heading="Actions">
+            <CommandItem onSelect={() => { setCmdOpen(false); handleRun(); }}>
+              <Play size={14} /> <span>Run code</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); openFindReplace(); }}>
+              <ReplaceIcon size={14} /> <span>Find &amp; Replace</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); toggleAppTheme(); }}>
+              {appTheme === "light" ? <Moon size={14} /> : <Sun size={14} />} <span>Toggle theme</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setTemplatesOpen(true); }}>
+              <LayoutGrid size={14} /> <span>Browse templates</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setFilesOpen(true); }}>
+              <FolderOpen size={14} /> <span>Open files</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setDbOpen(true); }}>
+              <DbIcon size={14} /> <span>Open database console</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setApiOpen(true); }}>
+              <Globe size={14} /> <span>Open API tester</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setAiOpen(true); }}>
+              <Sparkles size={14} /> <span>Open AI assistant</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setSettingsOpen(true); }}>
+              <SettingsIcon size={14} /> <span>Open settings</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); exportZip(); }}>
+              <Download size={14} /> <span>Download as ZIP</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); handleShare(); }}>
+              <Share2 size={14} /> <span>Share project</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setFullscreen((v) => !v); }}>
+              {fullscreen ? <Minimize2 size={14} /> : <Maximize2 size={14} />} <span>Toggle fullscreen</span>
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Files">
+            {state.files.filter((f) => !f.asset).map((f) => (
+              <CommandItem key={f.id} value={`file ${f.path}`} onSelect={() => { setCmdOpen(false); setState((s) => ({ ...s, activeFileId: f.id })); }}>
+                <FileText size={14} /> <span>{f.path}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
 
       {/* Settings sheet */}
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
