@@ -198,7 +198,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
   const [viewport, setViewport] = useState<ViewportKey>("mobile");
-  const [bottomTab, setBottomTab] = useState<"preview" | "console" | "output">("preview");
+  const [bottomTab, setBottomTab] = useState<"preview" | "console" | "errors" | "output">("preview");
   const [fullscreen, setFullscreen] = useState(false);
   const [previewMax, setPreviewMax] = useState(false);
   const [layoutMode, setLayoutMode] = useState<"stacked" | "split">("stacked");
