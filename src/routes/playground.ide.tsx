@@ -705,9 +705,7 @@ function FileIcon({ name }: { name: string }) {
   return <FileExtIcon name={name} size={13} />;
 }
 
-  };
-  return <span className="text-xs">{map[ext ?? ""] ?? "📄"}</span>;
-}
+
 
 function AddFileButton({ onAdd, palette }: { onAdd: (name: string) => void; palette: typeof APP_THEMES[AppThemeKey] }) {
   const [open, setOpen] = useState(false);
