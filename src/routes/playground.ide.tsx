@@ -672,7 +672,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
-              {bottomTab === "preview" && state.kind === "web" && (
+              {bottomTab === "preview" && (state.kind === "web" || effectiveTrack === "mobile") && (
                 <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
               )}
               {bottomTab === "console" && (
