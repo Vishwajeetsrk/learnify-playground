@@ -650,11 +650,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         fallback: true,
         onFallback: (info) => toast.warning(`${PROVIDERS[info.from].label} → ${PROVIDERS[info.to].label}`, { description: info.reason }),
       });
-      setOutput(r.output || "(no output)"); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
+      setOutput(mobileNotice + (r.output || "(no output)")); setStdout(r.stdout); setStderr(r.stderr); setExitCode(r.code);
       setLastRun({ provider: PROVIDERS[r.provider].label, timeSec: r.timeSec, memoryKb: r.memoryKb, status: r.status });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      setOutput(`Error: ${msg}`); setStderr(msg);
+      const hint = isMobileNative
+        ? `\n\nTip: Tap the Export button (download icon) to download a ready-to-run ${state.language === "kotlin" ? "Android Studio" : state.language === "swift" ? "Xcode" : "Flutter"} project, then run it locally.`
+        : "";
+      setOutput(mobileNotice + `Error: ${msg}${hint}`); setStderr(msg);
       toast.error("Run failed", { description: msg });
     } finally { setRunning(false); }
   }
