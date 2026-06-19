@@ -306,20 +306,24 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
   const rafRef = useRef<number | null>(null);
   const stateRef = useRef({
     rotY: 0,
-    velocity: 0.15,        // deg/frame autoplay speed
-    tiltX: -8,             // base tilt
+    velocity: 0.15,
+    tiltX: -8,
     tiltY: 0,
     targetTiltX: -8,
     targetTiltY: 0,
     paused: false,
+    pointerDown: false,
     dragging: false,
+    isTouch: false,
+    startX: 0,
+    startY: 0,
     lastX: 0,
     lastT: 0,
+    pointerId: -1,
   });
 
   const [radius, setRadius] = useState(260);
 
-  // Responsive radius
   useEffect(() => {
     const compute = () => {
       const w = wrapRef.current?.clientWidth ?? 640;
@@ -330,14 +334,15 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => window.removeEventListener("resize", compute);
   }, []);
 
-  // Animation loop
+  // Animation loop with snap-when-close so logos stay clickable
   useEffect(() => {
     const tick = () => {
       const s = stateRef.current;
       if (!s.dragging && !s.paused) s.rotY += s.velocity;
-      // ease tilt toward target
-      s.tiltX += (s.targetTiltX - s.tiltX) * 0.08;
-      s.tiltY += (s.targetTiltY - s.tiltY) * 0.08;
+      const ex = s.targetTiltX - s.tiltX;
+      const ey = s.targetTiltY - s.tiltY;
+      s.tiltX = Math.abs(ex) < 0.05 ? s.targetTiltX : s.tiltX + ex * 0.12;
+      s.tiltY = Math.abs(ey) < 0.05 ? s.targetTiltY : s.tiltY + ey * 0.12;
       if (ringRef.current) {
         ringRef.current.style.transform =
           `rotateX(${s.tiltX.toFixed(2)}deg) rotateY(${s.rotY.toFixed(2)}deg) rotateZ(${s.tiltY.toFixed(2)}deg)`;
@@ -348,7 +353,6 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Respect reduced motion
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => { stateRef.current.velocity = mq.matches ? 0 : 0.15; };
@@ -357,37 +361,59 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // Touch needs a much larger threshold than mouse so a fingertip tap is never
+  // mis-classified as a drag. Mouse can be tighter for responsive flicks.
+  const dragThreshold = (isTouch: boolean) => (isTouch ? 14 : 6);
+
   const onPointerMove = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (rect) {
-      const cx = (e.clientX - rect.left) / rect.width - 0.5;
-      const cy = (e.clientY - rect.top) / rect.height - 0.5;
-      s.targetTiltX = -8 + cy * 14;       // parallax pitch
-      s.targetTiltY = cx * 6;             // subtle roll
+    // Parallax tilt only for fine pointers (mouse). Touch would jitter logos.
+    if (e.pointerType === "mouse") {
+      const rect = wrapRef.current?.getBoundingClientRect();
+      if (rect) {
+        const cx = (e.clientX - rect.left) / rect.width - 0.5;
+        const cy = (e.clientY - rect.top) / rect.height - 0.5;
+        s.targetTiltX = -8 + cy * 10;
+        s.targetTiltY = cx * 4;
+      }
     }
-    if (s.dragging) {
-      const now = performance.now();
-      const dx = e.clientX - s.lastX;
-      const dt = Math.max(1, now - s.lastT);
-      s.rotY += dx * 0.4;
-      s.velocity = (dx / dt) * 6;         // throw momentum (deg/frame approx)
-      s.lastX = e.clientX;
-      s.lastT = now;
+    if (s.pointerDown) {
+      if (!s.dragging) {
+        const dx0 = e.clientX - s.startX;
+        const dy0 = e.clientY - s.startY;
+        if (Math.hypot(dx0, dy0) > dragThreshold(s.isTouch)) {
+          s.dragging = true;
+          try { (e.currentTarget as HTMLElement).setPointerCapture(s.pointerId); } catch {}
+        }
+      }
+      if (s.dragging) {
+        const now = performance.now();
+        const dx = e.clientX - s.lastX;
+        const dt = Math.max(1, now - s.lastT);
+        s.rotY += dx * 0.4;
+        s.velocity = (dx / dt) * 6;
+        s.lastX = e.clientX;
+        s.lastT = now;
+      }
     }
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    s.dragging = true;
-    s.lastX = e.clientX;
+    s.pointerDown = true;
+    s.dragging = false;
+    s.isTouch = e.pointerType !== "mouse";
+    s.startX = s.lastX = e.clientX;
+    s.startY = e.clientY;
     s.lastT = performance.now();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    s.pointerId = e.pointerId;
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const s = stateRef.current;
+    const wasDragging = s.dragging;
+    s.pointerDown = false;
     s.dragging = false;
-    // Decay flung velocity back to baseline
+    if (wasDragging) e.preventDefault();   // suppress synthetic click after a real drag
     const baseline = 0.15;
     const decay = () => {
       s.velocity = s.velocity * 0.94 + baseline * 0.06;
@@ -397,10 +423,12 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     decay();
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
-  const onEnter = () => { stateRef.current.paused = true; };
-  const onLeave = () => {
+  const onEnter = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") stateRef.current.paused = true;
+  };
+  const onLeave = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    s.paused = false;
+    if (e.pointerType === "mouse") s.paused = false;
     s.targetTiltX = -8;
     s.targetTiltY = 0;
   };
