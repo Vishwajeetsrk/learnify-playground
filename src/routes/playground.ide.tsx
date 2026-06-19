@@ -271,17 +271,41 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   }, [state.activeFileId, state.files, recentKey]);
 
 
-  // Preview console capture
+  // Preview console + storage capture
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       const m = parseConsoleMessage(e.data);
-      if (!m) return;
-      consoleIdRef.current += 1;
-      setConsoleMsgs((p) => [...p, { id: consoleIdRef.current, level: m.level, text: m.text }].slice(-200));
+      if (m) {
+        consoleIdRef.current += 1;
+        setConsoleMsgs((p) => [...p, { id: consoleIdRef.current, level: m.level, text: m.text }].slice(-200));
+        return;
+      }
+      const s = parseStorageMessage(e.data);
+      if (s) setPreviewStorage((prev) => ({ ...prev, [s.kind]: s.snapshot }));
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
+
+  // Load + persist preview storage snapshot per project.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!persistPreviewStorage) { setPreviewStorage({ local: {}, session: {} }); return; }
+    try {
+      const raw = localStorage.getItem(storageStorageKey);
+      if (raw) setPreviewStorage(JSON.parse(raw));
+      else setPreviewStorage({ local: {}, session: {} });
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageStorageKey, persistPreviewStorage]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !persistPreviewStorage) return;
+    try { localStorage.setItem(storageStorageKey, JSON.stringify(previewStorage)); } catch {}
+  }, [previewStorage, storageStorageKey, persistPreviewStorage]);
+  useEffect(() => {
+    try { localStorage.setItem("playground:persist-preview-storage:v1", persistPreviewStorage ? "1" : "0"); } catch {}
+  }, [persistPreviewStorage]);
+
 
   // Command palette ⌘K / Ctrl+K
   useEffect(() => {
