@@ -226,13 +226,19 @@ function MobilePlayground() {
     setExitCode(null);
     setFallbackInfo(null);
     try {
-      // Wandbox compiles as prog.java — strip `public` from any top-level class
-      // so the filename/class-name mismatch doesn't fail the build.
-      const sanitized = code.replace(
-        /^(\s*)public\s+(class|interface|enum|record)\s+/gm,
-        "$1$2 ",
-      );
-      const r = await runCode("java", sanitized, "", "wandbox", {
+      const pre = preprocessJava(code);
+      if (pre.wrapped) {
+        setLogs((p) => [
+          ...p,
+          { stream: "sys", text: `↻ No main() found — wrapped in class ${pre.mainClass}` },
+        ]);
+      } else if (pre.changed) {
+        setLogs((p) => [
+          ...p,
+          { stream: "sys", text: `↻ Stripped 'public' from top-level types (compiled as ${pre.mainClass})` },
+        ]);
+      }
+      const r = await runCode("java", pre.code, "", "wandbox", {
         fallback: true,
         onFallback: (info) => {
           toast.warning(
@@ -252,9 +258,17 @@ function MobilePlayground() {
       setStderr(r.stderr);
       setExitCode(r.code);
       const parsed = parseLogcat(r.stdout, r.stderr);
+      const compileErrors = parseJavaErrors(r.stderr, pre.wrapped);
+      const failed = (r.code ?? 0) !== 0;
       setLogs((p) => [
         ...p,
-        { stream: "sys", text: `✓ Launched on ${d.label}` },
+        { stream: "sys", text: failed ? `✗ Build failed on ${d.label}` : `✓ Launched on ${d.label}` },
+        ...(compileErrors.length
+          ? compileErrors.map((e) => ({
+              stream: "err" as const,
+              text: `Compile error (line ${e.line}): ${e.message}`,
+            }))
+          : []),
         ...parsed,
         { stream: "sys", text: `— exit ${r.code ?? "?"} —` },
       ]);
