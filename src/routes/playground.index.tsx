@@ -172,6 +172,19 @@ function CodePlayground() {
               ))}
             </SelectContent>
           </Select>
+          <Select value={provider} onValueChange={(v) => setProvider(v as ProviderKey)}>
+            <SelectTrigger className="h-9 w-40" title="Code execution provider">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(PROVIDERS) as ProviderKey[]).map((k) => (
+                <SelectItem key={k} value={k}>
+                  {PROVIDERS[k].label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <QuotaIndicator provider={provider} />
           <div className="ml-auto flex flex-wrap gap-2">
             <Button onClick={handleRun} disabled={running} size="sm">
               {running ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Play className="mr-1 h-4 w-4" />}
