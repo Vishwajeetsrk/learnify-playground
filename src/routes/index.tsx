@@ -467,6 +467,7 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
               <SmartLogo
                 slug={it.slug}
                 name={it.name}
+                color={it.color}
                 size={34}
                 className="h-9 w-9 transition-transform duration-300 group-hover:scale-110"
               />
