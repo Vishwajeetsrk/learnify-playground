@@ -8,6 +8,8 @@ const SaveInput = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(120),
   kind: ProjectKind.default("web"),
+  language: z.string().max(50).optional().default(""),
+  code: z.string().max(200_000).optional().default(""),
   html: z.string().max(200_000).optional().default(""),
   css: z.string().max(200_000).optional().default(""),
   js: z.string().max(200_000).optional().default(""),
@@ -18,8 +20,8 @@ export const listMobileProjects = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("playground_projects")
-      .select("id,name,updated_at")
-      .eq("kind", "web")
+      .select("id,name,updated_at,kind")
+      .in("kind", ["web", "code"])
       .order("updated_at", { ascending: false });
     if (error) throw new Error(error.message);
     return { projects: data ?? [] };
@@ -31,7 +33,7 @@ export const loadMobileProject = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: row, error } = await context.supabase
       .from("playground_projects")
-      .select("id,name,html,css,js,kind")
+      .select("id,name,html,css,js,kind,language,code")
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error(error.message);
@@ -43,16 +45,19 @@ export const saveMobileProject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((i: unknown) => SaveInput.parse(i))
   .handler(async ({ data, context }) => {
+    const payload = {
+      name: data.name,
+      kind: data.kind,
+      language: data.language || null,
+      code: data.code || null,
+      html: data.html || null,
+      css: data.css || null,
+      js: data.js || null,
+    };
     if (data.id) {
       const { data: row, error } = await context.supabase
         .from("playground_projects")
-        .update({
-          name: data.name,
-          html: data.html,
-          css: data.css,
-          js: data.js,
-          updated_at: new Date().toISOString(),
-        })
+        .update({ ...payload, updated_at: new Date().toISOString() })
         .eq("id", data.id)
         .select("id,name,updated_at")
         .single();
@@ -61,14 +66,7 @@ export const saveMobileProject = createServerFn({ method: "POST" })
     }
     const { data: row, error } = await context.supabase
       .from("playground_projects")
-      .insert({
-        user_id: context.userId,
-        name: data.name,
-        kind: data.kind,
-        html: data.html,
-        css: data.css,
-        js: data.js,
-      })
+      .insert({ user_id: context.userId, ...payload })
       .select("id,name,updated_at")
       .single();
     if (error) throw new Error(error.message);
