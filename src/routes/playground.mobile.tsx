@@ -420,7 +420,7 @@ function MobilePlayground() {
     <div className="flex min-h-[calc(100vh-3.5rem)] flex-col lg:h-[calc(100vh-3.5rem)]">
       <h1 className="sr-only">Android Mobile Playground</h1>
 
-      <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-card/40 p-2">
+      <div className="flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-border/60 bg-card/40 p-2 [&::-webkit-scrollbar]:h-1">
         <Smartphone className="h-4 w-4 text-primary" />
         <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
           Android · Java
