@@ -548,17 +548,30 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       <Sheet open={templatesOpen} onOpenChange={setTemplatesOpen}>
         <SheetContent side="bottom" className="h-[80vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
           <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
-            <SheetTitle style={{ color: palette.text }}>Start from a template</SheetTitle>
+            <SheetTitle style={{ color: palette.text }}>
+              Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
+            </SheetTitle>
           </SheetHeader>
           <div className="grid grid-cols-2 gap-2 overflow-auto p-3 sm:grid-cols-3">
-            <button onClick={() => newBlank("web")}
-              className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left"
-              style={{ borderColor: palette.border, background: palette.bg }}>
-              <span className="text-2xl">🌐</span>
-              <span className="text-sm font-semibold">Blank Web</span>
-              <span className="text-[11px]" style={{ color: palette.subtle }}>HTML + CSS + JS</span>
-            </button>
-            {TEMPLATES.map((t) => (
+            {effectiveTrack !== "code" && (
+              <button onClick={() => newBlank("web")}
+                className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left"
+                style={{ borderColor: palette.border, background: palette.bg }}>
+                <span className="text-2xl">🌐</span>
+                <span className="text-sm font-semibold">Blank Web</span>
+                <span className="text-[11px]" style={{ color: palette.subtle }}>HTML + CSS + JS</span>
+              </button>
+            )}
+            {effectiveTrack === "code" && (
+              <button onClick={() => newBlank("code")}
+                className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left"
+                style={{ borderColor: palette.border, background: palette.bg }}>
+                <span className="text-2xl">📝</span>
+                <span className="text-sm font-semibold">Blank Script</span>
+                <span className="text-[11px]" style={{ color: palette.subtle }}>Pick any language</span>
+              </button>
+            )}
+            {trackTemplates.map((t) => (
               <button key={t.id} onClick={() => loadTemplate(t)}
                 className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
                 style={{ borderColor: palette.border, background: palette.bg }}>
