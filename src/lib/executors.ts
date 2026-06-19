@@ -125,25 +125,27 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   kotlin: {
     label: "Kotlin",
     monaco: "kotlin",
-    runnable: false,
+    piston: { language: "kotlin", version: "1.8.20", filename: "main.kt" },
     starter: `fun main() {\n  println("Hello from Kotlin")\n}\n`,
   },
   swift: {
     label: "Swift",
     monaco: "swift",
     wandbox: { compiler: "swift-5.10.1" },
+    piston: { language: "swift", version: "5.3.3", filename: "main.swift" },
     starter: `let name = "Swift"\nprint("Hello from \\(name)")\n`,
   },
   scala: {
     label: "Scala",
     monaco: "scala",
     wandbox: { compiler: "scala-3.5.0" },
+    piston: { language: "scala", version: "3.2.2", filename: "Main.scala" },
     starter: `@main def hello() = println("Hello from Scala")\n`,
   },
   dart: {
     label: "Dart",
     monaco: "dart",
-    runnable: false,
+    piston: { language: "dart", version: "2.19.6", filename: "main.dart" },
     starter: `void main() {\n  print('Hello from Dart');\n}\n`,
   },
   objc: {
@@ -156,6 +158,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
     label: "SQL",
     monaco: "sql",
     wandbox: { compiler: "sqlite-3.46.1" },
+    piston: { language: "sqlite3", version: "3.36.0", filename: "main.sql" },
     starter: `SELECT 'Hello from SQL' AS greeting;\n`,
   },
 };
@@ -167,11 +170,37 @@ export const PROVIDERS: Record<ProviderKey, { label: string; description: string
     dailyFreeLimit: 300,
   },
   piston: {
-    label: "Piston (legacy)",
-    description: "Public Piston API is whitelist-only since Feb 2026 — usually returns 403. Kept for completeness.",
+    label: "Piston",
+    description: "Engineer-Man Piston runner · public emkc.org by default, or point at a self-hosted instance via Settings.",
     dailyFreeLimit: 500,
   },
 };
+
+const PISTON_URL_KEY = "playground:piston-url";
+const DEFAULT_PISTON_URL = "https://emkc.org/api/v2/piston";
+
+export function getPistonBaseUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_PISTON_URL;
+  try {
+    return localStorage.getItem(PISTON_URL_KEY)?.trim() || DEFAULT_PISTON_URL;
+  } catch {
+    return DEFAULT_PISTON_URL;
+  }
+}
+
+export function setPistonBaseUrl(url: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const clean = url.trim().replace(/\/+$/, "");
+    if (clean && clean !== DEFAULT_PISTON_URL) {
+      localStorage.setItem(PISTON_URL_KEY, clean);
+    } else {
+      localStorage.removeItem(PISTON_URL_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export interface RunResult {
   stdout: string;
@@ -224,7 +253,8 @@ async function runWandbox(lang: LangKey, source: string, stdin: string): Promise
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
   if (!spec) throw new ProviderError("piston", null, `Piston does not have a config for ${LANGUAGES[lang].label}. Switch to Wandbox.`);
-  const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+  const base = getPistonBaseUrl();
+  const res = await fetch(`${base}/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -313,7 +343,7 @@ function friendlyError(err: unknown, provider: ProviderKey): string {
   if (err instanceof ProviderError) {
     if (err.status === 429) return `${PROVIDERS[provider].label} is rate-limited right now (HTTP 429). Try again in a moment or switch providers.`;
     if (err.status === 401 || err.status === 403) {
-      return `${PROVIDERS[provider].label} rejected the request (HTTP ${err.status}). ${provider === "piston" ? "The public Piston API is whitelist-only since Feb 2026 — switch to Wandbox." : err.message}`;
+      return `${PROVIDERS[provider].label} rejected the request (HTTP ${err.status}).${provider === "piston" ? " If you're using the public emkc.org endpoint, try a self-hosted Piston URL in Settings." : ""}`;
     }
     if (err.status && err.status >= 500) return `${PROVIDERS[provider].label} is temporarily unavailable (HTTP ${err.status}).`;
     return err.message;
@@ -331,6 +361,12 @@ export async function runCode(
   if (LANGUAGES[lang].runnable === false) {
     throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
   }
+  // If the selected provider doesn't support this language but the other one
+  // does, transparently route to the one that does (Kotlin/Dart → Piston,
+  // Ruby/Bash → Wandbox, etc.).
+  const spec = LANGUAGES[lang];
+  if (provider === "wandbox" && !spec.wandbox && spec.piston) provider = "piston";
+  else if (provider === "piston" && !spec.piston && spec.wandbox) provider = "wandbox";
   try {
     return await runWithProvider(provider, lang, source, stdin);
   } catch (err) {
