@@ -949,6 +949,21 @@ function FileIcon({ name }: { name: string }) {
 
 
 
+function SavedPill({ at }: { at: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 5000);
+    return () => clearInterval(t);
+  }, []);
+  const ageSec = Math.max(0, Math.round((now - at) / 1000));
+  const label =
+    ageSec < 5 ? "just now"
+    : ageSec < 60 ? `${ageSec}s ago`
+    : ageSec < 3600 ? `${Math.round(ageSec / 60)}m ago`
+    : `${Math.round(ageSec / 3600)}h ago`;
+  return <span className="opacity-70">· Saved {label}</span>;
+}
+
 
 function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKey; bg: string }) {
   const v = PREVIEW_VIEWPORTS[viewport];
