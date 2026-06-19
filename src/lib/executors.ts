@@ -27,13 +27,14 @@ export type LangKey =
   | "objc"
   | "sql";
 
-export type ProviderKey = "wandbox" | "piston";
+export type ProviderKey = "judge0" | "piston" | "wandbox";
 
 interface LangSpec {
   label: string;
   monaco: string;
   wandbox?: { compiler: string };
   piston?: { language: string; version: string; filename: string };
+  judge0?: { id: number };
   starter: string;
   /** false = no live executor; runCode throws a friendly snippet-mode message. */
   runnable?: boolean;
