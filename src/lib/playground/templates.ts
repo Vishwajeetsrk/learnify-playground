@@ -541,6 +541,16 @@ const kotlinAndroid: CodeTemplate = {
   description: "Snippet of an Android Activity with a Compose UI.", language: "kotlin",
   source: `// Snippet — paste into an Android Studio project.\n// import androidx.compose.material3.*\n// import androidx.compose.runtime.*\n\nclass MainActivity /* : ComponentActivity() */ {\n  fun onCreate() {\n    // setContent { Greeting("Android") }\n  }\n}\n\n// @Composable fun Greeting(name: String) { Text(text = "Hello \$name!") }\n`,
 };
+const javaAndroid: CodeTemplate = {
+  id: "java-android", kind: "code", name: "Java · Android Activity", icon: "android",
+  description: "Classic Android Activity in Java with a button + TextView.", language: "java",
+  source: `// Snippet — paste into an Android Studio (Java) project.\n// import android.app.Activity;\n// import android.os.Bundle;\n// import android.view.View;\n// import android.widget.Button;\n// import android.widget.TextView;\n\npublic class MainActivity /* extends Activity */ {\n  int count = 0;\n  // TextView label;\n\n  public void onCreate(/* Bundle savedInstanceState */) {\n    // super.onCreate(savedInstanceState);\n    // setContentView(R.layout.activity_main);\n    // label = findViewById(R.id.label);\n    // Button btn = findViewById(R.id.btn);\n    // btn.setOnClickListener(v -> { count++; label.setText("Taps: " + count); });\n  }\n}\n`,
+};
+const javaMobileHello: CodeTemplate = {
+  id: "java-mobile-hello", kind: "code", name: "Java · Hello (Mobile)", icon: "java",
+  description: "Plain Java starter — great for Android logic & algorithms.", language: "java",
+  source: `class Main {\n  public static void main(String[] args) {\n    String platform = \"Android\";\n    System.out.println(\"Hello from Java on \" + platform);\n  }\n}\n`,
+};
 const swiftHello: CodeTemplate = {
   id: "swift-hello", kind: "code", name: "Swift · Hello", icon: "swift",
   description: "Variables, functions, and string interpolation.", language: "swift",
