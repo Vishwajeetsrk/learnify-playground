@@ -38,7 +38,7 @@ async def test_tap_navigates(page):
     link = page.locator('[data-testid="orbit-logo-python"]').first
     href = await link.get_attribute("href")
     assert href and "/playground" in href, f"unexpected href {href!r}"
-    await hover_to_pause(page, link)
+    await pause_orbit(page)
     # Use evaluate-click to avoid Playwright's stability check on a still-easing element.
     await link.evaluate("el => el.click()")
     await page.wait_for_url("**/playground**", timeout=5000)
