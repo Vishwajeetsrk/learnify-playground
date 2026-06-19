@@ -138,7 +138,7 @@ export function AiDebugPanel({
             : action === "generate" ? "Describe what you want to build…"
             : "Optional details (or leave blank)…"
           }
-          className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-ring"
+          className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
           onKeyDown={(e) => { if (e.key === "Enter" && !loading) run(); }}
         />
         <Button size="sm" onClick={() => run()} disabled={loading}>
