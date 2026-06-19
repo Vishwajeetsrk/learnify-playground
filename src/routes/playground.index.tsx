@@ -30,11 +30,13 @@ function CodePlayground() {
   const [stderr, setStderr] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
   const [activeProvider, setActiveProvider] = useState<ProviderKey>("wandbox");
+  const [fallbackInfo, setFallbackInfo] = useState<{ from: ProviderKey; to: ProviderKey; reason: string } | null>(null);
   const [running, setRunning] = useState(false);
   const dirtyRef = useRef(false);
 
   useEffect(() => {
     setActiveProvider(provider);
+    setFallbackInfo(null);
   }, [provider]);
 
   function setLanguage(next: LangKey) {
@@ -50,14 +52,16 @@ function CodePlayground() {
     setStdout("");
     setStderr("");
     setExitCode(null);
+    setFallbackInfo(null);
     try {
       const r = await runCode(lang, code, stdin, provider, {
         fallback: true,
-        onFallback: ({ from, to, reason }) => {
-          toast.warning(`${PROVIDERS[from].label} unavailable — falling back to ${PROVIDERS[to].label}`, {
-            description: reason,
+        onFallback: (info) => {
+          toast.warning(`${PROVIDERS[info.from].label} unavailable — falling back to ${PROVIDERS[info.to].label}`, {
+            description: info.reason,
           });
-          setActiveProvider(to);
+          setActiveProvider(info.to);
+          setFallbackInfo(info);
         },
       });
       setActiveProvider(r.provider);
@@ -74,6 +78,7 @@ function CodePlayground() {
       setRunning(false);
     }
   }
+
 
   async function handleCopy() {
     if (!output) return;
