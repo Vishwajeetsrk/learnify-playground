@@ -73,7 +73,7 @@ The landing page features **Polyglot Orbit** — a premium interactive 3D carous
   <img title="Java"       src="https://cdn.simpleicons.org/openjdk"    width="36" />&nbsp;
   <img title="C"          src="https://cdn.simpleicons.org/c"          width="36" />&nbsp;
   <img title="C++"        src="https://cdn.simpleicons.org/cplusplus"  width="36" />&nbsp;
-  <img title="C#"         src="https://cdn.simpleicons.org/dotnet"     width="36" />&nbsp;
+  <img title="C#"         src="https://cdn.simpleicons.org/sharp"      width="36" />&nbsp;
   <img title="PHP"        src="https://cdn.simpleicons.org/php"        width="36" />&nbsp;
   <img title="Go"         src="https://cdn.simpleicons.org/go"         width="36" />&nbsp;
   <img title="Rust"       src="https://cdn.simpleicons.org/rust"       width="36" />&nbsp;
@@ -129,7 +129,7 @@ The **Share** link encodes:
 | Framework | <img src="https://cdn.simpleicons.org/react" width="14" /> React 19 · <img src="https://cdn.simpleicons.org/vite" width="14" /> Vite 7 · TanStack Start v1 |
 | Language | <img src="https://cdn.simpleicons.org/typescript" width="14" /> TypeScript (strict) |
 | Styling | <img src="https://cdn.simpleicons.org/tailwindcss" width="14" /> Tailwind v4 · shadcn/ui · semantic design tokens |
-| Editor | <img src="https://cdn.simpleicons.org/visualstudiocode" width="14" /> Monaco |
+| Editor | <img src="https://cdn.simpleicons.org/sublimetext" width="14" /> Monaco |
 | Runtime | <img src="https://cdn.simpleicons.org/docker" width="14" /> Piston execution API |
 | Backend | <img src="https://cdn.simpleicons.org/supabase" width="14" /> Lovable Cloud (Postgres · Auth · Storage · Edge) |
 | Deploy | <img src="https://cdn.simpleicons.org/cloudflare" width="14" /> Cloudflare Workers |
