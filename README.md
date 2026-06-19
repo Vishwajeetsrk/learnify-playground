@@ -1,10 +1,7 @@
 
 <div align="center">
 
-# Playground
-
-
-# 🛰️ Polyglot Orbit — Coding Playground
+# 🛰️ Polyglot Orbit
 
 **Code · Web · Mobile — all in one browser-native playground.**
 
@@ -16,7 +13,7 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
   <img alt="Vite 7" src="https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt="Tailwind v4" src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
-  <img alt="Supabase" src="https://img.shields.io/badge/Lovable_Cloud-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img alt="Lovable Cloud" src="https://img.shields.io/badge/Lovable_Cloud-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-A855F7?style=for-the-badge" />
 </p>
 
@@ -28,18 +25,28 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
 
 <div align="center">
 
-<a href="docs/home.mp4" title="Watch the full tour">
-  <img src="docs/home.gif" alt="Polyglot Orbit landing page in motion" width="860"
-       onerror="this.onerror=null;this.src='docs/home.png'" />
+<!-- Animated GIF thumbnail → opens full MP4 tour. Falls back to PNG poster if GIF is missing. -->
+<a href="./docs/home.mp4" title="Watch the Polyglot Orbit tour (MP4)">
+  <picture>
+    <source srcset="./docs/home.gif" type="image/gif" />
+    <img src="./docs/home.png" alt="Polyglot Orbit landing page in motion — click to play the 30-second tour" width="860" />
+  </picture>
 </a>
 
-<br />
+<br /><br />
 
-<a href="docs/home.mp4">📽️ Watch the 30-second tour →</a>
+<!-- Static poster thumbnail → also opens the MP4 tour -->
+<a href="./docs/home.mp4" title="Watch the Polyglot Orbit tour (MP4)">
+  <img src="./docs/home.png" alt="Polyglot Orbit landing page poster — click to play" width="640" />
+</a>
+
+<br /><br />
+
+<a href="./docs/home.mp4">📽️ Watch the 30-second tour →</a>
 &nbsp;·&nbsp;
 <a href="https://github.com/">🚀 Live demo</a>
 
-<sub>Drop <code>docs/home.gif</code>, <code>docs/home.mp4</code>, and an optional <code>docs/home.png</code> poster — they render here automatically.</sub>
+<sub>Drop <code>docs/home.gif</code>, <code>docs/home.mp4</code>, and <code>docs/home.png</code> into the repo — they render here automatically.</sub>
 
 </div>
 
@@ -66,7 +73,7 @@ The landing page features **Polyglot Orbit** — a premium interactive 3D carous
   <img title="Java"       src="https://cdn.simpleicons.org/openjdk"    width="36" />&nbsp;
   <img title="C"          src="https://cdn.simpleicons.org/c"          width="36" />&nbsp;
   <img title="C++"        src="https://cdn.simpleicons.org/cplusplus"  width="36" />&nbsp;
-  <img title="C#"         src="https://cdn.simpleicons.org/dotnet"     width="36" />&nbsp;
+  <img title="C#"         src="https://cdn.simpleicons.org/sharp"      width="36" />&nbsp;
   <img title="PHP"        src="https://cdn.simpleicons.org/php"        width="36" />&nbsp;
   <img title="Go"         src="https://cdn.simpleicons.org/go"         width="36" />&nbsp;
   <img title="Rust"       src="https://cdn.simpleicons.org/rust"       width="36" />&nbsp;
@@ -122,7 +129,7 @@ The **Share** link encodes:
 | Framework | <img src="https://cdn.simpleicons.org/react" width="14" /> React 19 · <img src="https://cdn.simpleicons.org/vite" width="14" /> Vite 7 · TanStack Start v1 |
 | Language | <img src="https://cdn.simpleicons.org/typescript" width="14" /> TypeScript (strict) |
 | Styling | <img src="https://cdn.simpleicons.org/tailwindcss" width="14" /> Tailwind v4 · shadcn/ui · semantic design tokens |
-| Editor | <img src="https://cdn.simpleicons.org/visualstudiocode" width="14" /> Monaco |
+| Editor | <img src="https://cdn.simpleicons.org/microsoftedge" width="14" /> Monaco Editor |
 | Runtime | <img src="https://cdn.simpleicons.org/docker" width="14" /> Piston execution API |
 | Backend | <img src="https://cdn.simpleicons.org/supabase" width="14" /> Lovable Cloud (Postgres · Auth · Storage · Edge) |
 | Deploy | <img src="https://cdn.simpleicons.org/cloudflare" width="14" /> Cloudflare Workers |

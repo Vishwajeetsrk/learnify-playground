@@ -13,9 +13,9 @@ export function SiteNav() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:px-4">
-        <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
-          <Code2 className="h-5 w-5 text-primary" />
-          <span className="hidden sm:inline">Playground</span>
+        <Link to="/" className="group flex shrink-0 items-center gap-2 font-semibold tracking-tight" aria-label="Polyglot Orbit home">
+          <Code2 className="h-5 w-5 text-primary transition-transform group-hover:rotate-12" />
+          <span className="hidden bg-gradient-to-r from-primary via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent sm:inline">Polyglot Orbit</span>
         </Link>
         <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto sm:justify-end sm:gap-1">
           {NAV.map((n) => (
