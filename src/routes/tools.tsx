@@ -821,7 +821,11 @@ function SlugifyTool() {
 
 /* ---------- Timestamp converter ---------- */
 function TimestampConverter() {
-  const [input, setInput] = useState(String(Math.floor(Date.now() / 1000)));
+  const [input, setInput] = useState("");
+  useEffect(() => {
+    if (!input) setInput(String(Math.floor(Date.now() / 1000)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const parsed = useMemo(() => {
     const s = input.trim();
     if (!s) return null;
@@ -840,6 +844,7 @@ function TimestampConverter() {
       ms: String(d.getTime()),
     };
   }, [input]);
+
   return (
     <Card icon={Clock} title="Timestamp converter" desc="Convert between Unix timestamps and ISO/local dates.">
       <div className="flex gap-2">
