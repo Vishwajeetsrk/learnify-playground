@@ -40,7 +40,8 @@ import {
 } from "@/lib/playground/themes";
 import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track } from "@/lib/playground/templates";
 import {
-  buildPreviewDoc, buildProjectOverviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
+  buildPreviewDoc, buildProjectOverviewDoc, parseConsoleMessage, parseStorageMessage,
+  PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
 import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 import { ApiTester } from "@/components/playground/ApiTester";
