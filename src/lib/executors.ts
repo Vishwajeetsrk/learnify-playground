@@ -231,7 +231,7 @@ export function readUsage(): UsageState {
     if (raw) {
       const parsed = JSON.parse(raw) as UsageState;
       if (parsed.date === todayKey()) {
-        return { date: parsed.date, counts: { wandbox: 0, piston: 0, ...parsed.counts } };
+        return { date: parsed.date, counts: { wandbox: parsed.counts?.wandbox ?? 0, piston: parsed.counts?.piston ?? 0 } };
       }
     }
   } catch {
