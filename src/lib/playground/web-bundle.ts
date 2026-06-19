@@ -225,6 +225,7 @@ export function buildProjectOverviewDoc(opts: {
     : "";
 
   const trackLabel = track === "mobile" ? "Mobile project" : track === "code" ? "Code project" : "Web project";
+  const bridge = buildBridge({ local: {}, session: {} });
 
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
