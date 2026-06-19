@@ -1,0 +1,1 @@
+ALTER TABLE public.playground_runs ADD COLUMN IF NOT EXISTS stdin TEXT;

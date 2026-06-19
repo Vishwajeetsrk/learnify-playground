@@ -124,6 +124,15 @@ export interface RunResult {
   provider: ProviderKey;
 }
 
+class ProviderError extends Error {
+  constructor(public provider: ProviderKey, public status: number | null, message: string) {
+    super(message);
+  }
+  get isTransient() {
+    return this.status === 429 || (this.status !== null && this.status >= 500);
+  }
+}
+
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
   const res = await fetch("https://emkc.org/api/v2/piston/execute", {
@@ -136,7 +145,7 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
       files: [{ name: spec.filename, content: source }],
     }),
   });
-  if (!res.ok) throw new Error(`Piston ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new ProviderError("piston", res.status, `Piston ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const run = data.run ?? {};
   const compile = data.compile ?? {};
@@ -152,15 +161,16 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
   };
 }
 
+
 async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const wb = LANGUAGES[lang].wandbox;
-  if (!wb) throw new Error(`Wandbox does not support ${LANGUAGES[lang].label}. Switch to Piston.`);
+  if (!wb) throw new ProviderError("wandbox", null, `Wandbox does not support ${LANGUAGES[lang].label}. Switch to Piston.`);
   const res = await fetch("https://wandbox.org/api/compile.json", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ code: source, compiler: wb.compiler, stdin }),
   });
-  if (!res.ok) throw new Error(`Wandbox ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new ProviderError("wandbox", res.status, `Wandbox ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const stdout: string = data.program_output ?? data.compiler_output ?? "";
   const stderr: string = data.program_error ?? data.compiler_error ?? "";
@@ -211,13 +221,49 @@ export function bumpUsage(provider: ProviderKey): UsageState {
   return state;
 }
 
+async function runWithProvider(provider: ProviderKey, lang: LangKey, source: string, stdin: string) {
+  const result = provider === "wandbox" ? await runWandbox(lang, source, stdin) : await runPiston(lang, source, stdin);
+  bumpUsage(provider);
+  return result;
+}
+
+export interface RunOptions {
+  fallback?: boolean;
+  onFallback?: (info: { from: ProviderKey; to: ProviderKey; reason: string }) => void;
+}
+
+function friendlyError(err: unknown, provider: ProviderKey): string {
+  if (err instanceof ProviderError) {
+    if (err.status === 429) return `${PROVIDERS[provider].label} is rate-limited right now (HTTP 429). Try again in a moment or switch providers.`;
+    if (err.status && err.status >= 500) return `${PROVIDERS[provider].label} is temporarily unavailable (HTTP ${err.status}).`;
+    return err.message;
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
 export async function runCode(
   lang: LangKey,
   source: string,
   stdin = "",
   provider: ProviderKey = "piston",
+  options: RunOptions = {},
 ): Promise<RunResult> {
-  const result = provider === "wandbox" ? await runWandbox(lang, source, stdin) : await runPiston(lang, source, stdin);
-  bumpUsage(provider);
-  return result;
+  try {
+    return await runWithProvider(provider, lang, source, stdin);
+  } catch (err) {
+    const transient = err instanceof ProviderError && err.isTransient;
+    const alt: ProviderKey = provider === "piston" ? "wandbox" : "piston";
+    const altSupports = alt === "piston" ? true : Boolean(LANGUAGES[lang].wandbox);
+    if (options.fallback && transient && altSupports) {
+      const reason = friendlyError(err, provider);
+      options.onFallback?.({ from: provider, to: alt, reason });
+      try {
+        return await runWithProvider(alt, lang, source, stdin);
+      } catch (err2) {
+        throw new Error(`Both providers failed.\n${reason}\n${friendlyError(err2, alt)}`);
+      }
+    }
+    throw new Error(friendlyError(err, provider));
+  }
 }
+

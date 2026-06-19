@@ -32,6 +32,10 @@ function CodePlayground() {
   const [code, setCode] = useState(LANGUAGES.python.starter);
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
+  const [stdout, setStdout] = useState("");
+  const [stderr, setStderr] = useState("");
+  const [exitCode, setExitCode] = useState<number | null>(null);
+  const [activeProvider, setActiveProvider] = useState<ProviderKey>("piston");
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("Untitled");
@@ -39,9 +43,15 @@ function CodePlayground() {
   const [refreshKey, setRefreshKey] = useState(0);
   const dirtyRef = useRef(false);
 
+
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/playground" } });
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    setActiveProvider(provider);
+  }, [provider]);
+
 
   function setLanguage(next: LangKey) {
     if (!dirtyRef.current || code === LANGUAGES[lang].starter) {
@@ -70,15 +80,31 @@ function CodePlayground() {
   async function handleRun() {
     setRunning(true);
     setOutput("Running…");
+    setStdout("");
+    setStderr("");
+    setExitCode(null);
     try {
-      const r = await runCode(lang, code, stdin, provider);
+      const r = await runCode(lang, code, stdin, provider, {
+        fallback: true,
+        onFallback: ({ from, to, reason }) => {
+          toast.warning(`${PROVIDERS[from].label} unavailable — falling back to ${PROVIDERS[to].label}`, {
+            description: reason,
+          });
+          setActiveProvider(to);
+        },
+      });
+      setActiveProvider(r.provider);
       setOutput(r.output || "(no output)");
+      setStdout(r.stdout);
+      setStderr(r.stderr);
+      setExitCode(r.code);
       if (user) {
         await supabase.from("playground_runs").insert({
           user_id: user.id,
           project_id: projectId,
           language: lang,
           source: code,
+          stdin,
           stdout: r.stdout,
           stderr: r.stderr,
           exit_code: r.code,
@@ -87,11 +113,13 @@ function CodePlayground() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       setOutput(`Error: ${msg}`);
-      toast.error("Run failed");
+      setStderr(msg);
+      toast.error("Run failed", { description: msg });
     } finally {
       setRunning(false);
     }
   }
+
 
   async function handleSave() {
     if (!user) return;
@@ -230,13 +258,31 @@ function CodePlayground() {
               placeholder="Optional input passed to your program…"
               className="min-h-[60px] resize-none bg-background p-3 font-mono text-xs outline-none"
             />
-            <div className="border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Terminal
+            <div className="flex items-center justify-between border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <span>Terminal</span>
+              {(stdout || stderr || exitCode !== null) && (
+                <span className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80">
+                  {activeProvider} · exit {exitCode ?? "?"}
+                </span>
+              )}
             </div>
             <pre className="flex-1 overflow-auto bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
               {output || "Run your code to see output here."}
             </pre>
-            <AiDebugPanel language={lang} code={code} output={output} />
+            <AiDebugPanel
+              language={lang}
+              code={code}
+              stdout={stdout}
+              stderr={stderr}
+              exitCode={exitCode}
+              provider={activeProvider}
+              stdin={stdin}
+              onApplyFix={(next) => {
+                dirtyRef.current = true;
+                setCode(next);
+              }}
+            />
+
           </div>
         </div>
 

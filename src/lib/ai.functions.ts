@@ -6,7 +6,11 @@ import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 const DebugInput = z.object({
   language: z.string().min(1).max(50),
   code: z.string().min(1).max(20000),
-  output: z.string().max(20000).optional().default(""),
+  stdout: z.string().max(20000).optional().default(""),
+  stderr: z.string().max(20000).optional().default(""),
+  exitCode: z.number().nullable().optional().default(null),
+  provider: z.string().max(50).optional().default(""),
+  stdin: z.string().max(10000).optional().default(""),
   question: z.string().max(2000).optional().default(""),
 });
 
@@ -19,25 +23,42 @@ export const debugCode = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const system = `You are a concise senior engineer helping a developer debug code in the Playground.
-- Identify root causes in the provided code or runtime output.
-- Suggest minimal, copy-pasteable fixes with short code snippets in fenced blocks.
-- If the code already runs cleanly, suggest one improvement.
-- Keep responses under 250 words. Use markdown.`;
+    const system = `You are a concise senior engineer helping a developer debug code in an online Playground.
+- Identify the root cause from the code, stderr, exit code, stdin, and provider notes.
+- Suggest a minimal fix. Always include the COMPLETE corrected program in ONE fenced code block tagged with the language (e.g. \`\`\`python). The Playground's "Apply fix" button replaces the editor with that block, so it must compile/run standalone.
+- After the code block, add 1-3 short bullet points explaining what changed and why.
+- If the code already runs cleanly, suggest one improvement and still include the full updated program.
+- Keep prose under 200 words. Use markdown.`;
 
-    const user = `Language: ${data.language}
+    const ctx = [
+      `Language: ${data.language}`,
+      `Executor: ${data.provider || "unknown"}`,
+      `Exit code: ${data.exitCode ?? "n/a"}`,
+    ].join(" · ");
+
+    const user = `${ctx}
 
 CODE:
 \`\`\`${data.language}
 ${data.code}
 \`\`\`
 
-PROGRAM OUTPUT / ERROR:
+STDIN:
 \`\`\`
-${data.output || "(no output captured)"}
+${data.stdin || "(none)"}
 \`\`\`
 
-${data.question ? `QUESTION FROM USER: ${data.question}` : "Explain any issue and suggest a fix."}`;
+STDOUT:
+\`\`\`
+${data.stdout || "(empty)"}
+\`\`\`
+
+STDERR:
+\`\`\`
+${data.stderr || "(empty)"}
+\`\`\`
+
+${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and return the full fixed program."}`;
 
     try {
       const { text } = await generateText({
