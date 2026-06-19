@@ -7,10 +7,16 @@ import {
   Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
   FolderPlus, Folder, FolderOpen as FolderOpenIcon, Upload, ChevronRight, ChevronDown, Image as ImageIcon, FileText,
   Download, Pencil, Sun, Moon, Search as SearchIcon, Command as CommandIcon, Replace as ReplaceIcon,
+  Images, ShieldCheck, GitFork, Wand2,
 } from "lucide-react";
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from "@/components/ui/command";
+import { buildGraph } from "@/lib/playground/relations";
+import { buildManifest } from "@/lib/playground/manifest";
+import { AssetManager } from "@/components/playground/AssetManager";
+import { DepGraph } from "@/components/playground/DepGraph";
+import { ValidationReport } from "@/components/playground/ValidationReport";
 import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
 import { toast } from "sonner";
