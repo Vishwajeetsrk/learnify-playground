@@ -8,6 +8,8 @@ const SaveInput = z.object({
   id: z.string().uuid().nullable().optional(),
   name: z.string().min(1).max(120),
   kind: ProjectKind.default("web"),
+  language: z.string().max(50).optional().default(""),
+  code: z.string().max(200_000).optional().default(""),
   html: z.string().max(200_000).optional().default(""),
   css: z.string().max(200_000).optional().default(""),
   js: z.string().max(200_000).optional().default(""),
