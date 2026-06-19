@@ -1,12 +1,13 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight } from "lucide-react";
+import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight, Cpu, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Coding Playground · Code, Web & Mobile" },
-      { name: "description", content: "Interactive 3D playground for 18+ languages, live web sandbox, and mobile starters. Run, ship, share — from your browser." },
+      { title: "Polyglot Orbit · Code, Web & Mobile Playground" },
+      { name: "description", content: "Polyglot Orbit — a 3D playground for 18+ languages, a live web sandbox, and one-click mobile starters. Run, ship, share — from your browser." },
     ],
   }),
   component: Landing,
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/")({
 
 // Real brand logos via simple-icons CDN (SVG, color, cached).
 // `to` routes each logo to the matching playground track.
+// Every slug below has been verified against simpleicons.org.
 type Track = "/playground" | "/playground/web" | "/playground/mobile";
 const LANGS: { name: string; slug: string; color: string; to: Track; lang?: string }[] = [
   { name: "Python",      slug: "python",      color: "#3776AB", to: "/playground",        lang: "python" },
@@ -22,7 +24,7 @@ const LANGS: { name: string; slug: string; color: string; to: Track; lang?: stri
   { name: "Java",        slug: "openjdk",     color: "#ED8B00", to: "/playground",        lang: "java" },
   { name: "C",           slug: "c",           color: "#A8B9CC", to: "/playground",        lang: "c" },
   { name: "C++",         slug: "cplusplus",   color: "#00599C", to: "/playground",        lang: "cpp" },
-  { name: "C#",          slug: "dotnet",      color: "#512BD4", to: "/playground",        lang: "csharp" },
+  { name: "C#",          slug: "sharp",       color: "#9B4F96", to: "/playground",        lang: "csharp" },
   { name: "PHP",         slug: "php",         color: "#777BB4", to: "/playground",        lang: "php" },
   { name: "Go",          slug: "go",          color: "#00ADD8", to: "/playground",        lang: "go" },
   { name: "Rust",        slug: "rust",        color: "#CE422B", to: "/playground",        lang: "rust" },
@@ -42,14 +44,14 @@ const LANGS: { name: string; slug: string; color: string; to: Track; lang?: stri
 ];
 
 function logoUrl(slug: string) {
-  // Simple Icons CDN, color variant. Falls back to devicon if blocked.
   return `https://cdn.simpleicons.org/${slug}`;
 }
-
-function logoFallback(slug: string) {
-  return `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}/${slug}-original.svg`;
+// Multi-CDN fallback chain so no tile ever shows blank.
+function logoFallbacks(slug: string): string[] {
+  const devicon = `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}/${slug}-original.svg`;
+  const unpkg = `https://unpkg.com/simple-icons@latest/icons/${slug}.svg`;
+  return [devicon, unpkg];
 }
-
 
 function Landing() {
   return (
@@ -71,24 +73,26 @@ function Landing() {
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-4 pt-16 pb-10 sm:pt-24 sm:pb-14">
         <div className="text-center">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
-            <Sparkles className="h-3 w-3" /> Powered by Piston · Monaco · AI Gateway
-          </span>
+          <PoweredBadge />
           <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-6xl">
-            Code, run, and ship —
-            <span className="block bg-gradient-to-r from-primary via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">
+            <span className="inline-block animate-fade-in">Code, run, and ship —</span>
+            <span className="block bg-gradient-to-r from-primary via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent animate-[shimmer_6s_linear_infinite] bg-[length:200%_auto]">
               from your browser.
             </span>
           </h1>
+          <style>{`@keyframes shimmer{to{background-position:200% center}}`}</style>
           <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground sm:text-lg">
             Three playgrounds in one: a multi-language code runner, a live HTML/CSS/JS sandbox,
             and mobile starters that export to Android, iOS &amp; Flutter.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Button asChild size="lg">
-              <Link to="/playground"><Play className="mr-2 h-4 w-4" /> Launch playground</Link>
+            <Button asChild size="lg" className="group relative overflow-hidden">
+              <Link to="/playground">
+                <Play className="mr-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                Launch playground
+              </Link>
             </Button>
-            <Button asChild size="lg" variant="outline">
+            <Button asChild size="lg" variant="outline" className="hover-scale">
               <Link to="/playground/web"><Globe className="mr-2 h-4 w-4" /> Try the web sandbox</Link>
             </Button>
           </div>
@@ -98,13 +102,8 @@ function Landing() {
       {/* 3D demo cards: Code · Web · Mobile */}
       <section className="mx-auto max-w-6xl px-4 pb-16">
         <div className="grid gap-6 md:grid-cols-3" style={{ perspective: "1400px" }}>
-          <DemoCard
-            to="/playground"
-            tint="from-sky-500/30 to-indigo-500/30"
-            icon={<Code2 className="h-5 w-5" />}
-            title="Code"
-            subtitle="18+ languages · instant run"
-          >
+          <DemoCard to="/playground" tint="from-sky-500/30 to-indigo-500/30"
+            icon={<Code2 className="h-5 w-5" />} title="Code" subtitle="18+ languages · instant run">
             <pre className="font-mono text-[11px] leading-relaxed text-foreground/90">
 {`# fib.py
 def fib(n):
@@ -117,15 +116,10 @@ print(fib(20))  → 6765`}
             </pre>
           </DemoCard>
 
-          <DemoCard
-            to="/playground/web"
-            tint="from-fuchsia-500/30 to-rose-500/30"
-            icon={<Globe className="h-5 w-5" />}
-            title="Web"
-            subtitle="Live HTML · CSS · JS preview"
-          >
+          <DemoCard to="/playground/web" tint="from-fuchsia-500/30 to-rose-500/30"
+            icon={<Globe className="h-5 w-5" />} title="Web" subtitle="Live HTML · CSS · JS preview">
             <div className="grid h-full grid-cols-3 gap-1.5">
-              {[ "#F7DF1E", "#E34F26", "#1572B6" ].map((c, i) => (
+              {["#F7DF1E", "#E34F26", "#1572B6"].map((c, i) => (
                 <div key={i} className="rounded-md border border-border/60"
                      style={{ background: `linear-gradient(135deg, ${c}30, transparent)` }} />
               ))}
@@ -135,34 +129,31 @@ print(fib(20))  → 6765`}
             </div>
           </DemoCard>
 
-          <DemoCard
-            to="/playground/mobile"
-            tint="from-emerald-500/30 to-cyan-500/30"
-            icon={<Smartphone className="h-5 w-5" />}
-            title="Mobile"
-            subtitle="Android · iOS · Flutter export"
-          >
+          <DemoCard to="/playground/mobile" tint="from-emerald-500/30 to-cyan-500/30"
+            icon={<Smartphone className="h-5 w-5" />} title="Mobile" subtitle="Android · iOS · Flutter export">
             <PhoneMock />
           </DemoCard>
         </div>
       </section>
 
-      {/* 3D rotating ring of language logos */}
+      {/* Polyglot Orbit — interactive 3D logo carousel */}
       <section className="mx-auto max-w-6xl px-4 pb-20">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Every language, real logos</h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1 text-[11px] font-medium text-muted-foreground backdrop-blur">
+              <Sparkles className="h-3 w-3 text-primary" /> Polyglot Orbit
+            </span>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Every language, real logos.</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Hover to pause. Click any logo to jump into the matching playground.
+              Drag to spin · hover to pause · tap any logo to jump into the matching playground.
             </p>
           </div>
           <Link to="/tools" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
             See all tools <ArrowRight className="h-3.5 w-3.5" />
-
           </Link>
         </div>
 
-        <LogoRing items={LANGS} />
+        <LogoOrbit items={LANGS} />
 
         {/* Static grid below for full discoverability */}
         <div className="mt-12 grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
@@ -176,6 +167,25 @@ print(fib(20))  → 6765`}
 }
 
 /* ---------------- Components ---------------- */
+
+function PoweredBadge() {
+  return (
+    <span className="group inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.18)]">
+      <span className="relative flex h-2 w-2">
+        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+      </span>
+      <Cpu className="h-3 w-3 text-primary transition-transform group-hover:rotate-12" />
+      Powered by Piston
+      <span className="opacity-40">·</span>
+      <Sparkles className="h-3 w-3 text-fuchsia-400 transition-transform group-hover:scale-110" />
+      Monaco
+      <span className="opacity-40">·</span>
+      <Zap className="h-3 w-3 text-amber-400 transition-transform group-hover:-rotate-12" />
+      AI Gateway
+    </span>
+  );
+}
 
 function DemoCard({
   to, tint, icon, title, subtitle, children,
@@ -224,11 +234,27 @@ function PhoneMock() {
   );
 }
 
+function SmartLogo({ slug, name, size = 32, className }: { slug: string; name: string; size?: number; className?: string }) {
+  const [idx, setIdx] = useState(0);
+  const sources = [logoUrl(slug), ...logoFallbacks(slug)];
+  return (
+    <img
+      src={sources[idx]}
+      alt={`${name} logo`}
+      loading="lazy"
+      width={size}
+      height={size}
+      className={className}
+      onError={() => setIdx((i) => (i + 1 < sources.length ? i + 1 : i))}
+    />
+  );
+}
+
 function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string; color: string; to: string; lang?: string }) {
   return (
     <Link
       to={lang ? `${to}?lang=${encodeURIComponent(lang)}` : to}
-      className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+      className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
       style={{ transformStyle: "preserve-3d" }}
       title={name}
     >
@@ -236,18 +262,11 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
         className="pointer-events-none absolute inset-0 -z-10 rounded-xl opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-70"
         style={{ background: `radial-gradient(closest-side, ${color}55, transparent 70%)` }}
       />
-      <img
-        src={logoUrl(slug)}
-        alt={`${name} logo`}
-        loading="lazy"
-        width={40}
-        height={40}
+      <SmartLogo
+        slug={slug}
+        name={name}
+        size={40}
         className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
-        style={{ transformStyle: "preserve-3d" }}
-        onError={(e) => {
-          const img = e.currentTarget;
-          if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(slug); }
-        }}
       />
       <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
         {name}
@@ -256,61 +275,182 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
   );
 }
 
-function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: string; lang?: string }[] }) {
-  const radius = 260; // px
+/* -------- Polyglot Orbit: 3D, interactive, touch-friendly -------- */
+
+function LogoOrbit({ items }: { items: { name: string; slug: string; color: string; to: string; lang?: string }[] }) {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const stateRef = useRef({
+    rotY: 0,
+    velocity: 0.15,        // deg/frame autoplay speed
+    tiltX: -8,             // base tilt
+    tiltY: 0,
+    targetTiltX: -8,
+    targetTiltY: 0,
+    paused: false,
+    dragging: false,
+    lastX: 0,
+    lastT: 0,
+  });
+
+  const [radius, setRadius] = useState(260);
+
+  // Responsive radius
+  useEffect(() => {
+    const compute = () => {
+      const w = wrapRef.current?.clientWidth ?? 640;
+      setRadius(Math.max(140, Math.min(280, w * 0.42)));
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
+
+  // Animation loop
+  useEffect(() => {
+    const tick = () => {
+      const s = stateRef.current;
+      if (!s.dragging && !s.paused) s.rotY += s.velocity;
+      // ease tilt toward target
+      s.tiltX += (s.targetTiltX - s.tiltX) * 0.08;
+      s.tiltY += (s.targetTiltY - s.tiltY) * 0.08;
+      if (ringRef.current) {
+        ringRef.current.style.transform =
+          `rotateX(${s.tiltX.toFixed(2)}deg) rotateY(${s.rotY.toFixed(2)}deg) rotateZ(${s.tiltY.toFixed(2)}deg)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
+  }, []);
+
+  // Respect reduced motion
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => { stateRef.current.velocity = mq.matches ? 0 : 0.15; };
+    apply();
+    mq.addEventListener("change", apply);
+    return () => mq.removeEventListener("change", apply);
+  }, []);
+
+  const onPointerMove = (e: React.PointerEvent) => {
+    const s = stateRef.current;
+    const rect = wrapRef.current?.getBoundingClientRect();
+    if (rect) {
+      const cx = (e.clientX - rect.left) / rect.width - 0.5;
+      const cy = (e.clientY - rect.top) / rect.height - 0.5;
+      s.targetTiltX = -8 + cy * 14;       // parallax pitch
+      s.targetTiltY = cx * 6;             // subtle roll
+    }
+    if (s.dragging) {
+      const now = performance.now();
+      const dx = e.clientX - s.lastX;
+      const dt = Math.max(1, now - s.lastT);
+      s.rotY += dx * 0.4;
+      s.velocity = (dx / dt) * 6;         // throw momentum (deg/frame approx)
+      s.lastX = e.clientX;
+      s.lastT = now;
+    }
+  };
+
+  const onPointerDown = (e: React.PointerEvent) => {
+    const s = stateRef.current;
+    s.dragging = true;
+    s.lastX = e.clientX;
+    s.lastT = performance.now();
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  };
+  const onPointerUp = (e: React.PointerEvent) => {
+    const s = stateRef.current;
+    s.dragging = false;
+    // Decay flung velocity back to baseline
+    const baseline = 0.15;
+    const decay = () => {
+      s.velocity = s.velocity * 0.94 + baseline * 0.06;
+      if (Math.abs(s.velocity - baseline) > 0.01) requestAnimationFrame(decay);
+      else s.velocity = baseline;
+    };
+    decay();
+    try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
+  };
+  const onEnter = () => { stateRef.current.paused = true; };
+  const onLeave = () => {
+    const s = stateRef.current;
+    s.paused = false;
+    s.targetTiltX = -8;
+    s.targetTiltY = 0;
+  };
+
   const step = 360 / items.length;
+
   return (
-    <div className="logo-ring-wrap relative mx-auto h-[340px] w-full max-w-[640px]" style={{ perspective: "1200px" }}>
-      <style>{`
-        @keyframes ring-spin { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
-        .logo-ring { animation: ring-spin 28s linear infinite; transform-style: preserve-3d; }
-        .logo-ring-wrap:hover .logo-ring { animation-play-state: paused; }
-        @media (prefers-reduced-motion: reduce) { .logo-ring { animation: none; } }
-      `}</style>
-      {/* Floor reflection */}
+    <div
+      ref={wrapRef}
+      onPointerMove={onPointerMove}
+      onPointerDown={onPointerDown}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onPointerEnter={onEnter}
+      onPointerLeave={onLeave}
+      className="relative mx-auto h-[360px] w-full max-w-[680px] touch-none select-none"
+      style={{ perspective: "1200px", cursor: "grab" }}
+      role="region"
+      aria-label="Polyglot Orbit — interactive 3D language carousel"
+    >
+      {/* Floor glow */}
       <div
         aria-hidden
-        className="absolute left-1/2 top-1/2 -z-10 h-[60px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-[50%] opacity-50 blur-2xl"
-        style={{ background: "radial-gradient(closest-side, hsl(var(--primary) / 0.4), transparent 70%)" }}
+        className="absolute left-1/2 top-[68%] -z-10 h-[80px] w-[460px] -translate-x-1/2 rounded-[50%] opacity-50 blur-2xl"
+        style={{ background: "radial-gradient(closest-side, hsl(var(--primary) / 0.45), transparent 70%)" }}
       />
-      <div className="logo-ring absolute left-1/2 top-1/2 h-0 w-0">
+      <div
+        ref={ringRef}
+        className="absolute left-1/2 top-1/2 h-0 w-0 will-change-transform"
+        style={{ transformStyle: "preserve-3d" }}
+      >
         {items.map((it, i) => {
           const angle = i * step;
           return (
             <Link
               key={it.slug}
               to={it.lang ? `${it.to}?lang=${encodeURIComponent(it.lang)}` : it.to}
+              draggable={false}
               title={`${it.name} — open playground`}
-              className="group absolute -left-7 -top-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-lg backdrop-blur transition-colors hover:border-primary"
+              className="group absolute -left-8 -top-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur transition-colors hover:border-primary"
               style={{
                 transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
                 transformStyle: "preserve-3d",
               }}
             >
+              {/* Brand-colored halo */}
               <div
                 aria-hidden
-                className="pointer-events-none absolute inset-0 -z-10 rounded-2xl opacity-40 blur-md"
-                style={{ background: `radial-gradient(closest-side, ${it.color}60, transparent 70%)` }}
+                className="pointer-events-none absolute inset-0 -z-10 rounded-2xl opacity-60 blur-md transition-opacity group-hover:opacity-100"
+                style={{ background: `radial-gradient(closest-side, ${it.color}66, transparent 70%)` }}
               />
-              <img
-                src={logoUrl(it.slug)}
-                alt={`${it.name} logo`}
-                loading="lazy"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-                /* Counter-rotate so logos always face the camera */
-                style={{ transform: `rotateY(${-angle}deg)` }}
-                onError={(e) => {
-                  const img = e.currentTarget;
-                  if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(it.slug); }
-                }}
+              {/* Glass highlight */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-2xl"
+                style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0) 55%)" }}
+              />
+              {/* Reflection pedestal */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -bottom-3 left-1/2 h-2 w-10 -translate-x-1/2 rounded-[50%] opacity-50 blur-md"
+                style={{ background: it.color }}
+              />
+              <SmartLogo
+                slug={it.slug}
+                name={it.name}
+                size={34}
+                className="h-9 w-9 transition-transform duration-300 group-hover:scale-110"
               />
             </Link>
           );
         })}
       </div>
     </div>
-
   );
 }

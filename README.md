@@ -26,18 +26,24 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
 
 ## ✨ Home Page Preview
 
-> Drop a GIF or short screen-capture into `docs/` and it renders here automatically.
-
 <div align="center">
 
-<!-- Replace with your own clip: docs/home.gif or docs/home.mp4 -->
-<img src="docs/home.gif" alt="Polyglot Orbit landing page in motion" width="860" />
+<a href="docs/home.mp4" title="Watch the full tour">
+  <img src="docs/home.gif" alt="Polyglot Orbit landing page in motion" width="860"
+       onerror="this.onerror=null;this.src='docs/home.png'" />
+</a>
 
-<sub>📽️ <a href="docs/home.mp4">Watch the 30-second tour →</a></sub>
+<br />
+
+<a href="docs/home.mp4">📽️ Watch the 30-second tour →</a>
+&nbsp;·&nbsp;
+<a href="https://github.com/">🚀 Live demo</a>
+
+<sub>Drop <code>docs/home.gif</code>, <code>docs/home.mp4</code>, and an optional <code>docs/home.png</code> poster — they render here automatically.</sub>
 
 </div>
 
-The landing page features the **Polyglot Orbit** — a premium interactive 3D carousel of real brand logos. **Drag** to spin, **hover** to pause, **click** any logo to jump straight into the matching playground.
+The landing page features **Polyglot Orbit** — a premium interactive 3D carousel of real brand logos. **Drag** to spin, **hover** to pause, **tap** any logo to jump straight into the matching playground.
 
 ---
 
