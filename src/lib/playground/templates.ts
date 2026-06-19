@@ -4,7 +4,7 @@
 import type { LangKey } from "@/lib/executors";
 
 export type TemplateKind = "web" | "code";
-export type Track = "code" | "web" | "mobile";
+export type Track = "code" | "web" | "mobile" | "backend" | "database";
 
 export interface WebTemplate {
   id: string;
