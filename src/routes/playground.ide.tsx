@@ -1326,9 +1326,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               </div>
             )}
             {smokeResults && !smokeRunning && (() => {
-              const mod = require("@/lib/playground/smoke-test") as typeof import("@/lib/playground/smoke-test");
-              const summary = mod.summarize(smokeResults, smokeRanAt);
-              const diff = mod.diffRuns(smokePrevResults, smokeResults);
+              const summary = summarizeSmoke(smokeResults, smokeRanAt);
+              const diff = diffSmokeRuns(smokePrevResults, smokeResults);
               const filtered = smokePlatformFilter === "all"
                 ? smokeResults
                 : smokeResults.filter((r) => r.platform === smokePlatformFilter);
