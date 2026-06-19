@@ -148,7 +148,7 @@ export function AiDebugPanel({
       </div>
       {reply && (
         <>
-          <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border/60 bg-background p-2 text-xs leading-relaxed">
+          <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border/60 bg-background p-2 text-xs leading-relaxed text-foreground">
             {reply}
           </pre>
           {fix && (
