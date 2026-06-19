@@ -234,9 +234,30 @@ function PhoneMock() {
   );
 }
 
-function SmartLogo({ slug, name, size = 32, className }: { slug: string; name: string; size?: number; className?: string }) {
-  const [idx, setIdx] = useState(0);
+function InitialsBadge({ name, color, size }: { name: string; color: string; size: number }) {
+  const initials = name.replace(/[^A-Za-z0-9+#]/g, "").slice(0, 2).toUpperCase() || "•";
+  return (
+    <span
+      aria-label={`${name} logo`}
+      role="img"
+      style={{
+        width: size, height: size, background: `linear-gradient(135deg, ${color}, ${color}AA)`,
+        color: "#fff", fontSize: Math.max(10, Math.floor(size * 0.4)),
+      }}
+      className="inline-flex select-none items-center justify-center rounded-md font-bold tracking-tight shadow-inner"
+    >
+      {initials}
+    </span>
+  );
+}
+
+function SmartLogo({ slug, name, size = 32, color = "#7e5bff", className }: { slug: string; name: string; size?: number; color?: string; className?: string }) {
   const sources = [logoUrl(slug), ...logoFallbacks(slug)];
+  const [idx, setIdx] = useState(0);
+  // exhausted all CDN options → render an SVG initials badge so a tile is NEVER blank
+  if (idx >= sources.length) {
+    return <span className={className} style={{ display: "inline-flex" }}><InitialsBadge name={name} color={color} size={size} /></span>;
+  }
   return (
     <img
       src={sources[idx]}
@@ -245,7 +266,8 @@ function SmartLogo({ slug, name, size = 32, className }: { slug: string; name: s
       width={size}
       height={size}
       className={className}
-      onError={() => setIdx((i) => (i + 1 < sources.length ? i + 1 : i))}
+      draggable={false}
+      onError={() => setIdx((i) => i + 1)}
     />
   );
 }
@@ -265,6 +287,7 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
       <SmartLogo
         slug={slug}
         name={name}
+        color={color}
         size={40}
         className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
       />
@@ -289,8 +312,9 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     targetTiltX: -8,
     targetTiltY: 0,
     paused: false,
-    dragging: false,        // true once movement passes threshold
-    pointerDown: false,     // pointer is pressed but maybe just a click
+    pointerDown: false,
+    dragging: false,
+    isTouch: false,
     startX: 0,
     startY: 0,
     lastX: 0,
@@ -300,7 +324,6 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
 
   const [radius, setRadius] = useState(260);
 
-  // Responsive radius
   useEffect(() => {
     const compute = () => {
       const w = wrapRef.current?.clientWidth ?? 640;
@@ -311,12 +334,11 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => window.removeEventListener("resize", compute);
   }, []);
 
-  // Animation loop
+  // Animation loop with snap-when-close so logos stay clickable
   useEffect(() => {
     const tick = () => {
       const s = stateRef.current;
       if (!s.dragging && !s.paused) s.rotY += s.velocity;
-      // ease tilt toward target, snap when close enough so logos are stable to click
       const ex = s.targetTiltX - s.tiltX;
       const ey = s.targetTiltY - s.tiltY;
       s.tiltX = Math.abs(ex) < 0.05 ? s.targetTiltX : s.tiltX + ex * 0.12;
@@ -331,7 +353,6 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Respect reduced motion
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
     const apply = () => { stateRef.current.velocity = mq.matches ? 0 : 0.15; };
@@ -340,23 +361,27 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => mq.removeEventListener("change", apply);
   }, []);
 
-  const DRAG_THRESHOLD = 6; // px before we hijack the gesture as a drag
+  // Touch needs a much larger threshold than mouse so a fingertip tap is never
+  // mis-classified as a drag. Mouse can be tighter for responsive flicks.
+  const dragThreshold = (isTouch: boolean) => (isTouch ? 14 : 6);
 
   const onPointerMove = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    const rect = wrapRef.current?.getBoundingClientRect();
-    if (rect) {
-      const cx = (e.clientX - rect.left) / rect.width - 0.5;
-      const cy = (e.clientY - rect.top) / rect.height - 0.5;
-      s.targetTiltX = -8 + cy * 14;
-      s.targetTiltY = cx * 6;
+    // Parallax tilt only for fine pointers (mouse). Touch would jitter logos.
+    if (e.pointerType === "mouse") {
+      const rect = wrapRef.current?.getBoundingClientRect();
+      if (rect) {
+        const cx = (e.clientX - rect.left) / rect.width - 0.5;
+        const cy = (e.clientY - rect.top) / rect.height - 0.5;
+        s.targetTiltX = -8 + cy * 10;
+        s.targetTiltY = cx * 4;
+      }
     }
     if (s.pointerDown) {
-      // promote to drag once movement exceeds threshold
       if (!s.dragging) {
         const dx0 = e.clientX - s.startX;
         const dy0 = e.clientY - s.startY;
-        if (Math.hypot(dx0, dy0) > DRAG_THRESHOLD) {
+        if (Math.hypot(dx0, dy0) > dragThreshold(s.isTouch)) {
           s.dragging = true;
           try { (e.currentTarget as HTMLElement).setPointerCapture(s.pointerId); } catch {}
         }
@@ -376,7 +401,8 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
   const onPointerDown = (e: React.PointerEvent) => {
     const s = stateRef.current;
     s.pointerDown = true;
-    s.dragging = false;       // wait for movement before treating as drag
+    s.dragging = false;
+    s.isTouch = e.pointerType !== "mouse";
     s.startX = s.lastX = e.clientX;
     s.startY = e.clientY;
     s.lastT = performance.now();
@@ -387,10 +413,7 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     const wasDragging = s.dragging;
     s.pointerDown = false;
     s.dragging = false;
-    if (wasDragging) {
-      // Suppress the synthetic click after a drag so the Link doesn't fire.
-      e.preventDefault();
-    }
+    if (wasDragging) e.preventDefault();   // suppress synthetic click after a real drag
     const baseline = 0.15;
     const decay = () => {
       s.velocity = s.velocity * 0.94 + baseline * 0.06;
@@ -400,10 +423,12 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     decay();
     try { (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId); } catch {}
   };
-  const onEnter = () => { stateRef.current.paused = true; };
-  const onLeave = () => {
+  const onEnter = (e: React.PointerEvent) => {
+    if (e.pointerType === "mouse") stateRef.current.paused = true;
+  };
+  const onLeave = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    s.paused = false;
+    if (e.pointerType === "mouse") s.paused = false;
     s.targetTiltX = -8;
     s.targetTiltY = 0;
   };
@@ -419,9 +444,10 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
       onPointerCancel={onPointerUp}
       onPointerEnter={onEnter}
       onPointerLeave={onLeave}
-      className="relative mx-auto h-[360px] w-full max-w-[680px] touch-none select-none"
+      className="relative mx-auto h-[360px] w-full max-w-[680px] touch-pan-y select-none"
       style={{ perspective: "1200px", cursor: "grab" }}
       role="region"
+      data-testid="polyglot-orbit"
       aria-label="Polyglot Orbit — interactive 3D language carousel"
     >
       {/* Floor glow */}
@@ -442,6 +468,8 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
               key={it.slug}
               to={it.lang ? `${it.to}?lang=${encodeURIComponent(it.lang)}` : it.to}
               draggable={false}
+              data-testid={`orbit-logo-${it.slug}`}
+              data-orbit-link="true"
               title={`${it.name} — open playground`}
               className="group absolute -left-8 -top-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur transition-colors hover:border-primary"
               style={{
@@ -470,6 +498,7 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
               <SmartLogo
                 slug={it.slug}
                 name={it.name}
+                color={it.color}
                 size={34}
                 className="h-9 w-9 transition-transform duration-300 group-hover:scale-110"
               />

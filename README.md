@@ -89,8 +89,41 @@ The landing page features **Polyglot Orbit** — a premium interactive 3D carous
   <img title="React"      src="https://cdn.simpleicons.org/react"      width="36" />&nbsp;
   <img title="Android"    src="https://cdn.simpleicons.org/android"    width="36" />&nbsp;
   <img title="iOS"        src="https://cdn.simpleicons.org/apple"      width="36" />&nbsp;
-  <img title="Flutter"    src="https://cdn.simpleicons.org/flutter"    width="36" />
+  <br /><sub>Missing a brand asset? Tiles automatically fall back across 3 CDNs and finally to a colored initials badge — no language tile is ever blank.</sub>
 </p>
+
+---
+
+## 🎬 Playground Tour
+
+<div align="center">
+
+<a href="./docs/playground.mp4" title="Watch the playground tour (MP4)">
+  <picture>
+    <source srcset="./docs/playground.gif" type="image/gif" />
+    <img src="./docs/playground.png" alt="Code playground in action — click to play" width="860" />
+  </picture>
+</a>
+
+<sub>📽️ <a href="./docs/playground.mp4">Watch the playground tour →</a></sub>
+
+</div>
+
+---
+
+## 🧑‍💻 How to Use the Playground
+
+1. **Pick a language.** From the home page, tap any logo in the **Polyglot Orbit** — or use the language picker in the playground header to switch on the fly.
+2. **Write code in the Monaco editor.** Multi-file projects, autosave to this device, format-on-save, and a Command Palette (`⌘K` / `Ctrl+K`).
+3. **Run it.** Hit **Run** (top-right) — output streams into the console panel below. For web projects you get a live preview iframe; for mobile you get a Flutter / Android / iOS scaffold.
+4. **Debug with AI.** Open the **AI Assistant** (sparkles icon) — it sees your files and runtime errors and proposes fixes.
+5. **Share.** Click **Share** to copy a URL that encodes your code and the persisted preview state — open it anywhere and the playground rehydrates exactly.
+6. **Export.**
+   - **Code / Web** → download as ZIP.
+   - **Mobile** → export to a ready-to-run **Android Studio**, **Xcode**, or **Flutter** project.
+7. **Smoke-test everything.** Open **Smoke Test** to run every bundled template and see a side-by-side diff vs the previous run.
+
+> 💡 Tip: a deep link like `/playground?lang=rust` jumps straight into Rust — Polyglot Orbit logos use these under the hood.
 
 ---
 
