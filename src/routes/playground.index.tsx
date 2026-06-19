@@ -82,10 +82,11 @@ function CodePlayground() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    <div className="flex min-h-[calc(100vh-3.5rem)] flex-col lg:h-[calc(100vh-3.5rem)]">
+      <h1 className="sr-only">Code Playground</h1>
       <div className="flex flex-wrap items-center gap-2 border-b border-border/60 bg-card/40 p-2">
         <Select value={lang} onValueChange={(v) => setLanguage(v as LangKey)}>
-          <SelectTrigger className="h-9 w-36">
+          <SelectTrigger className="h-9 w-32 sm:w-36">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -97,7 +98,7 @@ function CodePlayground() {
           </SelectContent>
         </Select>
         <Select value={provider} onValueChange={(v) => setProvider(v as ProviderKey)}>
-          <SelectTrigger className="h-9 w-40" title="Code execution provider">
+          <SelectTrigger className="h-9 w-32 sm:w-40" title="Code execution provider">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -121,7 +122,7 @@ function CodePlayground() {
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <div className="min-h-[40vh] flex-1 border-b border-border/60 lg:border-b-0 lg:border-r">
+        <div className="h-[50vh] shrink-0 border-b border-border/60 lg:h-auto lg:flex-1 lg:border-b-0 lg:border-r">
           <Editor
             height="100%"
             language={LANGUAGES[lang].monaco}
@@ -141,7 +142,7 @@ function CodePlayground() {
           />
         </div>
 
-        <div className="flex min-h-[35vh] w-full flex-col lg:w-[40%]">
+        <div className="flex w-full min-w-0 flex-col lg:w-[40%]">
           <div className="border-b border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             stdin
           </div>
@@ -149,7 +150,7 @@ function CodePlayground() {
             value={stdin}
             onChange={(e) => setStdin(e.target.value)}
             placeholder="Optional input passed to your program…"
-            className="min-h-[60px] resize-none bg-background p-3 font-mono text-xs outline-none"
+            className="h-20 shrink-0 resize-none bg-background p-3 font-mono text-xs outline-none"
           />
           <div className="flex items-center justify-between border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <span>Terminal</span>
@@ -159,7 +160,7 @@ function CodePlayground() {
               </span>
             )}
           </div>
-          <pre className="flex-1 overflow-auto bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
+          <pre className="min-h-[180px] flex-1 overflow-auto whitespace-pre-wrap break-words bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
             {output || "Run your code to see output here."}
           </pre>
           <AiDebugPanel
