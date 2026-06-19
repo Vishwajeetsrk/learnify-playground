@@ -9,38 +9,95 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PlaygroundRouteImport } from './routes/playground'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
+import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
 
+const PlaygroundRoute = PlaygroundRouteImport.update({
+  id: '/playground',
+  path: '/playground',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlaygroundIndexRoute = PlaygroundIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
+const PlaygroundWebRoute = PlaygroundWebRouteImport.update({
+  id: '/web',
+  path: '/web',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/playground': typeof PlaygroundRouteWithChildren
+  '/playground/web': typeof PlaygroundWebRoute
+  '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/playground/web': typeof PlaygroundWebRoute
+  '/playground': typeof PlaygroundIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/playground': typeof PlaygroundRouteWithChildren
+  '/playground/web': typeof PlaygroundWebRoute
+  '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/auth' | '/playground' | '/playground/web' | '/playground/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/auth' | '/playground/web' | '/playground'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/playground'
+    | '/playground/web'
+    | '/playground/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  PlaygroundRoute: typeof PlaygroundRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/playground': {
+      id: '/playground'
+      path: '/playground'
+      fullPath: '/playground'
+      preLoaderRoute: typeof PlaygroundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +105,42 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/playground/': {
+      id: '/playground/'
+      path: '/'
+      fullPath: '/playground/'
+      preLoaderRoute: typeof PlaygroundIndexRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
+    '/playground/web': {
+      id: '/playground/web'
+      path: '/web'
+      fullPath: '/playground/web'
+      preLoaderRoute: typeof PlaygroundWebRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
   }
 }
 
+interface PlaygroundRouteChildren {
+  PlaygroundWebRoute: typeof PlaygroundWebRoute
+  PlaygroundIndexRoute: typeof PlaygroundIndexRoute
+}
+
+const PlaygroundRouteChildren: PlaygroundRouteChildren = {
+  PlaygroundWebRoute: PlaygroundWebRoute,
+  PlaygroundIndexRoute: PlaygroundIndexRoute,
+}
+
+const PlaygroundRouteWithChildren = PlaygroundRoute._addFileChildren(
+  PlaygroundRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  PlaygroundRoute: PlaygroundRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
