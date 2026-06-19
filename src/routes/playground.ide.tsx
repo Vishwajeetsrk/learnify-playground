@@ -838,28 +838,6 @@ function FileIcon({ name }: { name: string }) {
 
 
 
-function AddFileButton({ onAdd, palette }: { onAdd: (name: string) => void; palette: typeof APP_THEMES[AppThemeKey] }) {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
-  if (!open) {
-    return (
-      <Button size="sm" className="flex-1" onClick={() => setOpen(true)}
-        style={{ background: "linear-gradient(160deg,#4f8cff,#7e5bff)", color: "#fff" }}>
-        <FilePlus2 size={14} className="mr-1" /> New file
-      </Button>
-    );
-  }
-  return (
-    <form className="flex flex-1 gap-1" onSubmit={(e) => {
-      e.preventDefault();
-      const n = name.trim(); if (!n) return;
-      onAdd(n); setName(""); setOpen(false);
-    }}>
-      <Input autoFocus value={name} onChange={(e) => setName(e.target.value)} placeholder="filename.ext" className="h-8 text-sm" />
-      <Button type="submit" size="sm" style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>Add</Button>
-    </form>
-  );
-}
 
 function PreviewFrame({ doc, viewport, bg }: { doc: string; viewport: ViewportKey; bg: string }) {
   const v = PREVIEW_VIEWPORTS[viewport];
