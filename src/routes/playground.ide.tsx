@@ -198,7 +198,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
   const [viewport, setViewport] = useState<ViewportKey>("mobile");
-  const [bottomTab, setBottomTab] = useState<"preview" | "console" | "output">("preview");
+  const [bottomTab, setBottomTab] = useState<"preview" | "console" | "errors" | "output">("preview");
   const [fullscreen, setFullscreen] = useState(false);
   const [previewMax, setPreviewMax] = useState(false);
   const [layoutMode, setLayoutMode] = useState<"stacked" | "split">("stacked");
@@ -963,6 +963,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <TabBtn active={bottomTab === "console"} onClick={() => setBottomTab("console")} palette={palette}>
               <Terminal size={12} className="mr-1" /> Console {consoleMsgs.length > 0 && <span className="ml-1 text-[10px] opacity-70">{consoleMsgs.length}</span>}
             </TabBtn>
+            {(() => {
+              const errCount = consoleMsgs.filter((m) => m.level === "error" || m.level === "warn").length;
+              return (
+                <TabBtn active={bottomTab === "errors"} onClick={() => setBottomTab("errors")} palette={palette}>
+                  <Terminal size={12} className="mr-1" /> Errors {errCount > 0 && <span className="ml-1 rounded px-1 text-[10px]" style={{ background: "#ff6f8a22", color: "#ff6f8a" }}>{errCount}</span>}
+                </TabBtn>
+              );
+            })()}
             {state.kind === "code" && (
               <TabBtn active={bottomTab === "output"} onClick={() => setBottomTab("output")} palette={palette}>
                 <Terminal size={12} className="mr-1" /> Output {exitCode !== null && <span className="ml-1 text-[10px] opacity-70">exit {exitCode}</span>}
@@ -980,11 +988,31 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                     </button>
                   ))}
                   <button onClick={() => setState((s) => ({ ...s }))}
-                    className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload">
+                    className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload preview">
                     <RefreshCw size={12} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLayoutMode("split");
+                      setViewport("fit");
+                      setPreviewMax(false);
+                      setPanelHeight(320);
+                      setSplitWidth(50);
+                      toast.success("Preview layout reset");
+                    }}
+                    className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                    title="Reset to default split + Fit layout">
+                    Reset
                   </button>
                 </>
               )}
+              {bottomTab === "errors" && (
+                <button onClick={() => setConsoleMsgs((p) => p.filter((m) => m.level !== "error" && m.level !== "warn"))}
+                  className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
+                  <Eraser size={12} className="mr-1" /> Clear errors
+                </button>
+              )}
+              
               {bottomTab === "preview" && canPreview && (
                 <button onClick={() => setPreviewMax((v) => !v)}
                   className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10"
@@ -1025,6 +1053,13 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             )}
             {bottomTab === "console" && (
               <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
+            )}
+            {bottomTab === "errors" && (
+              <ConsolePanel
+                msgs={consoleMsgs.filter((m) => m.level === "error" || m.level === "warn")}
+                subtle={palette.subtle}
+                emptyText="No runtime errors or warnings from the Live Preview. 🎉"
+              />
             )}
             {bottomTab === "output" && (
               <div className="flex h-full flex-col">
@@ -1600,10 +1635,10 @@ function DragHandle({
 }
 
 
-function ConsolePanel({ msgs, subtle }: { msgs: ConsoleEntry[]; subtle: string }) {
+function ConsolePanel({ msgs, subtle, emptyText }: { msgs: ConsoleEntry[]; subtle: string; emptyText?: string }) {
   if (msgs.length === 0) return (
     <div className="grid h-full place-items-center p-4 text-center text-xs" style={{ color: subtle }}>
-      Console output from your preview will appear here.
+      {emptyText ?? "Console output from your preview will appear here."}
     </div>
   );
   const color: Record<string, string> = { error: "#ff6f8a", warn: "#ffb86c", info: "#7eb2ff", debug: "#9aa3cf", log: "#e8ecff" };
