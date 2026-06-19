@@ -433,8 +433,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         zip.file(f.path, b64, { base64: true });
       } else {
         zip.file(f.path, f.content);
-      }
     }
+    // project.json manifest + relations summary
+    const manifest = buildManifest({
+      name: state.projectName, kind: state.kind, language: state.language,
+      files: state.files.map((f) => ({ path: f.path, content: f.content, isAsset: !!f.asset })),
+      folders: state.folders ?? [],
+    });
+    zip.file("project.json", JSON.stringify(manifest, null, 2));
+    const relLines = ["# Project relations", "", `Total references: ${projectGraph.edges.length}`, `Broken: ${projectGraph.broken.length}`, ""];
+    for (const e of projectGraph.edges) {
+      relLines.push(`- ${e.from} → ${e.to} (${e.kind})${e.resolved ? "" : "  **broken**"}`);
+    }
+    zip.file("RELATIONS.md", relLines.join("\n"));
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
