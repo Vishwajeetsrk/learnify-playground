@@ -13,35 +13,43 @@ export const Route = createFileRoute("/")({
 });
 
 // Real brand logos via simple-icons CDN (SVG, color, cached).
-const LANGS: { name: string; slug: string; color: string }[] = [
-  { name: "Python",      slug: "python",      color: "#3776AB" },
-  { name: "JavaScript",  slug: "javascript",  color: "#F7DF1E" },
-  { name: "TypeScript",  slug: "typescript",  color: "#3178C6" },
-  { name: "Java",        slug: "openjdk",     color: "#ED8B00" },
-  { name: "C",           slug: "c",           color: "#A8B9CC" },
-  { name: "C++",         slug: "cplusplus",   color: "#00599C" },
-  { name: "C#",          slug: "dotnet",      color: "#512BD4" },
-  { name: "PHP",         slug: "php",         color: "#777BB4" },
-  { name: "Go",          slug: "go",          color: "#00ADD8" },
-  { name: "Rust",        slug: "rust",        color: "#CE422B" },
-  { name: "Ruby",        slug: "ruby",        color: "#CC342D" },
-  { name: "Bash",        slug: "gnubash",     color: "#4EAA25" },
-  { name: "Kotlin",      slug: "kotlin",      color: "#7F52FF" },
-  { name: "Swift",       slug: "swift",       color: "#F05138" },
-  { name: "Scala",       slug: "scala",       color: "#DC322F" },
-  { name: "Dart",        slug: "dart",        color: "#0175C2" },
-  { name: "SQL",         slug: "sqlite",      color: "#003B57" },
-  { name: "HTML",        slug: "html5",       color: "#E34F26" },
-  { name: "CSS",         slug: "css3",        color: "#1572B6" },
-  { name: "React",       slug: "react",       color: "#61DAFB" },
-  { name: "Android",     slug: "android",     color: "#3DDC84" },
-  { name: "iOS",         slug: "apple",       color: "#A8A8A8" },
-  { name: "Flutter",     slug: "flutter",     color: "#02569B" },
+// `to` routes each logo to the matching playground track.
+type Track = "/playground" | "/playground/web" | "/playground/mobile";
+const LANGS: { name: string; slug: string; color: string; to: Track }[] = [
+  { name: "Python",      slug: "python",      color: "#3776AB", to: "/playground" },
+  { name: "JavaScript",  slug: "javascript",  color: "#F7DF1E", to: "/playground" },
+  { name: "TypeScript",  slug: "typescript",  color: "#3178C6", to: "/playground" },
+  { name: "Java",        slug: "openjdk",     color: "#ED8B00", to: "/playground" },
+  { name: "C",           slug: "c",           color: "#A8B9CC", to: "/playground" },
+  { name: "C++",         slug: "cplusplus",   color: "#00599C", to: "/playground" },
+  { name: "C#",          slug: "dotnet",      color: "#512BD4", to: "/playground" },
+  { name: "PHP",         slug: "php",         color: "#777BB4", to: "/playground" },
+  { name: "Go",          slug: "go",          color: "#00ADD8", to: "/playground" },
+  { name: "Rust",        slug: "rust",        color: "#CE422B", to: "/playground" },
+  { name: "Ruby",        slug: "ruby",        color: "#CC342D", to: "/playground" },
+  { name: "Bash",        slug: "gnubash",     color: "#4EAA25", to: "/playground" },
+  { name: "Kotlin",      slug: "kotlin",      color: "#7F52FF", to: "/playground/mobile" },
+  { name: "Swift",       slug: "swift",       color: "#F05138", to: "/playground/mobile" },
+  { name: "Scala",       slug: "scala",       color: "#DC322F", to: "/playground" },
+  { name: "Dart",        slug: "dart",        color: "#0175C2", to: "/playground/mobile" },
+  { name: "SQL",         slug: "sqlite",      color: "#003B57", to: "/playground" },
+  { name: "HTML",        slug: "html5",       color: "#E34F26", to: "/playground/web" },
+  { name: "CSS",         slug: "css3",        color: "#1572B6", to: "/playground/web" },
+  { name: "React",       slug: "react",       color: "#61DAFB", to: "/playground/web" },
+  { name: "Android",     slug: "android",     color: "#3DDC84", to: "/playground/mobile" },
+  { name: "iOS",         slug: "apple",       color: "#A8A8A8", to: "/playground/mobile" },
+  { name: "Flutter",     slug: "flutter",     color: "#02569B", to: "/playground/mobile" },
 ];
 
 function logoUrl(slug: string) {
+  // Simple Icons CDN, color variant. Falls back to devicon if blocked.
   return `https://cdn.simpleicons.org/${slug}`;
 }
+
+function logoFallback(slug: string) {
+  return `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}/${slug}-original.svg`;
+}
+
 
 function Landing() {
   return (
@@ -148,8 +156,9 @@ print(fib(20))  → 6765`}
               Hover to pause. Click any logo to jump into the matching playground.
             </p>
           </div>
-          <Link to="/playground" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+          <Link to="/tools" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
             See all tools <ArrowRight className="h-3.5 w-3.5" />
+
           </Link>
         </div>
 
@@ -158,7 +167,7 @@ print(fib(20))  → 6765`}
         {/* Static grid below for full discoverability */}
         <div className="mt-12 grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
           {LANGS.map((l) => (
-            <LogoTile key={l.slug} name={l.name} slug={l.slug} color={l.color} />
+            <LogoTile key={l.slug} name={l.name} slug={l.slug} color={l.color} to={l.to} />
           ))}
         </div>
       </section>
@@ -215,10 +224,10 @@ function PhoneMock() {
   );
 }
 
-function LogoTile({ name, slug, color }: { name: string; slug: string; color: string }) {
+function LogoTile({ name, slug, color, to }: { name: string; slug: string; color: string; to: Track }) {
   return (
     <Link
-      to="/playground"
+      to={to}
       className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       style={{ transformStyle: "preserve-3d" }}
       title={name}
@@ -235,6 +244,10 @@ function LogoTile({ name, slug, color }: { name: string; slug: string; color: st
         height={40}
         className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
         style={{ transformStyle: "preserve-3d" }}
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(slug); }
+        }}
       />
       <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
         {name}
@@ -243,7 +256,7 @@ function LogoTile({ name, slug, color }: { name: string; slug: string; color: st
   );
 }
 
-function LogoRing({ items }: { items: { name: string; slug: string; color: string }[] }) {
+function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: Track }[] }) {
   const radius = 260; // px
   const step = 360 / items.length;
   return (
@@ -266,8 +279,8 @@ function LogoRing({ items }: { items: { name: string; slug: string; color: strin
           return (
             <Link
               key={it.slug}
-              to="/playground"
-              title={it.name}
+              to={it.to}
+              title={`${it.name} — open playground`}
               className="group absolute -left-7 -top-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-lg backdrop-blur transition-colors hover:border-primary"
               style={{
                 transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
@@ -288,11 +301,16 @@ function LogoRing({ items }: { items: { name: string; slug: string; color: strin
                 className="h-8 w-8"
                 /* Counter-rotate so logos always face the camera */
                 style={{ transform: `rotateY(${-angle}deg)` }}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(it.slug); }
+                }}
               />
             </Link>
           );
         })}
       </div>
     </div>
+
   );
 }
