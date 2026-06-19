@@ -209,7 +209,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   useEffect(() => {
     const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName, effectiveTrack);
     setState(s);
-    setBottomTab(s.kind === "web" ? "preview" : "output");
+    setBottomTab(s.kind === "web" || effectiveTrack === "mobile" ? "preview" : "output");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Autosave to localStorage (debounced)
