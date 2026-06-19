@@ -224,10 +224,10 @@ function PhoneMock() {
   );
 }
 
-function LogoTile({ name, slug, color }: { name: string; slug: string; color: string }) {
+function LogoTile({ name, slug, color, to }: { name: string; slug: string; color: string; to: Track }) {
   return (
     <Link
-      to="/playground"
+      to={to}
       className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       style={{ transformStyle: "preserve-3d" }}
       title={name}
@@ -244,6 +244,10 @@ function LogoTile({ name, slug, color }: { name: string; slug: string; color: st
         height={40}
         className="h-10 w-10 transition-transform duration-500 group-hover:[transform:rotateY(360deg)_scale(1.1)]"
         style={{ transformStyle: "preserve-3d" }}
+        onError={(e) => {
+          const img = e.currentTarget;
+          if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(slug); }
+        }}
       />
       <span className="absolute bottom-1 left-0 right-0 text-center text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
         {name}
@@ -252,7 +256,7 @@ function LogoTile({ name, slug, color }: { name: string; slug: string; color: st
   );
 }
 
-function LogoRing({ items }: { items: { name: string; slug: string; color: string }[] }) {
+function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: Track }[] }) {
   const radius = 260; // px
   const step = 360 / items.length;
   return (
@@ -275,8 +279,8 @@ function LogoRing({ items }: { items: { name: string; slug: string; color: strin
           return (
             <Link
               key={it.slug}
-              to="/playground"
-              title={it.name}
+              to={it.to}
+              title={`${it.name} — open playground`}
               className="group absolute -left-7 -top-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-lg backdrop-blur transition-colors hover:border-primary"
               style={{
                 transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
@@ -297,11 +301,16 @@ function LogoRing({ items }: { items: { name: string; slug: string; color: strin
                 className="h-8 w-8"
                 /* Counter-rotate so logos always face the camera */
                 style={{ transform: `rotateY(${-angle}deg)` }}
+                onError={(e) => {
+                  const img = e.currentTarget;
+                  if (!img.dataset.fb) { img.dataset.fb = "1"; img.src = logoFallback(it.slug); }
+                }}
               />
             </Link>
           );
         })}
       </div>
     </div>
+
   );
 }
