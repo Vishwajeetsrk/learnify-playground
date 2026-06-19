@@ -4,6 +4,7 @@
 import type { LangKey } from "@/lib/executors";
 
 export type TemplateKind = "web" | "code";
+export type Track = "code" | "web" | "mobile";
 
 export interface WebTemplate {
   id: string;
@@ -11,6 +12,7 @@ export interface WebTemplate {
   name: string;
   emoji: string;
   description: string;
+  tracks: Track[];
   files: { html: string; css: string; js: string };
 }
 
@@ -20,6 +22,7 @@ export interface CodeTemplate {
   name: string;
   emoji: string;
   description: string;
+  tracks: Track[];
   language: LangKey;
   source: string;
 }
