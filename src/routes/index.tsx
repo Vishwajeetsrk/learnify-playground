@@ -257,7 +257,7 @@ function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string;
   );
 }
 
-function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: Track }[] }) {
+function LogoRing({ items }: { items: { name: string; slug: string; color: string; to: Track; lang?: string }[] }) {
   const radius = 260; // px
   const step = 360 / items.length;
   return (
@@ -281,6 +281,7 @@ function LogoRing({ items }: { items: { name: string; slug: string; color: strin
             <Link
               key={it.slug}
               to={it.to}
+              search={it.lang ? { lang: it.lang } : undefined}
               title={`${it.name} — open playground`}
               className="group absolute -left-7 -top-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-lg backdrop-blur transition-colors hover:border-primary"
               style={{
