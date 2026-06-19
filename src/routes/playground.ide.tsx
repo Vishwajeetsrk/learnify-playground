@@ -161,8 +161,26 @@ function extForLang(l: LangKey): string {
   return map[l];
 }
 
-function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string, track?: Track): IdeState {
+function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string, track?: Track, initialLanguage?: LangKey): IdeState {
   if (typeof window === "undefined") return ensureActive(blankWeb());
+  // If explicit initial language is requested, bypass saved state.
+  if (initialLanguage && initialLanguage in LANGUAGES) {
+    if (track === "mobile") {
+      const mobileMap: Record<string, string> = {
+        kotlin: "android-kotlin-app",
+        swift: "ios-swift-app",
+        dart: "flutter-app",
+        java: "android-java-app",
+      };
+      const templateId = mobileMap[initialLanguage] || "android-kotlin-app";
+      const m = MULTI_TEMPLATES.find((t) => t.id === templateId);
+      if (m) return ensureActive({ ...fromMultiTemplate(m), projectName: defaultProjectName ?? m.name });
+    }
+    if (defaultKind === "code") {
+      const f = mkFile(`main.${extForLang(initialLanguage)}`, LANGUAGES[initialLanguage].starter, LANGUAGES[initialLanguage].monaco);
+      return { kind: "code", language: initialLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], folders: ["assets"], activeFileId: f.id };
+    }
+  }
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
