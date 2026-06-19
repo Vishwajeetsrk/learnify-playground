@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Save, Share2, Sparkles, Settings as SettingsIcon, Loader2, Copy,
   Plus, FilePlus2, Trash2, Smartphone, Tablet, Monitor, Maximize2, Minimize2,
-  Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid,
+  Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ import {
   buildPreviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
 import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
+import { ApiTester } from "@/components/playground/ApiTester";
+import { DbConsole } from "@/components/playground/DbConsole";
 
 export const Route = createFileRoute("/playground/ide")({
   ssr: false,
@@ -155,6 +157,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [filesOpen, setFilesOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [apiOpen, setApiOpen] = useState(false);
+  const [dbOpen, setDbOpen] = useState(false);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
@@ -336,6 +340,12 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Button size="icon" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates" className="h-9 w-9">
               <LayoutGrid size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setApiOpen(true)} title="API Tester" className="h-9 w-9">
+              <Globe size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setDbOpen(true)} title="Database" className="h-9 w-9">
+              <DbIcon size={16} />
             </Button>
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
