@@ -928,3 +928,217 @@ function monacoLangFromName(name: string): string {
   };
   return map[ext ?? ""] ?? "plaintext";
 }
+
+// --------------------------------------------------------------------------
+// Asset preview (image / pdf / generic download)
+
+function AssetPreview({ file, palette }: { file: IdeFile; palette: typeof APP_THEMES[AppThemeKey] }) {
+  const asset = file.asset!;
+  const sizeKb = (asset.size / 1024).toFixed(1);
+  const isImage = asset.mime.startsWith("image/");
+  const isPdf = asset.mime === "application/pdf";
+  return (
+    <div className="grid h-full grid-rows-[auto_1fr] overflow-hidden">
+      <div className="flex items-center gap-2 border-b px-3 py-2 text-xs" style={{ borderColor: palette.border, color: palette.subtle }}>
+        {isImage ? <ImageIcon size={12} /> : <FileText size={12} />}
+        <span className="truncate" style={{ color: palette.text }}>{file.path}</span>
+        <span className="ml-auto opacity-70">{asset.mime} · {sizeKb} KB</span>
+        <a href={asset.dataUrl} download={file.name}
+          className="rounded-md border px-2 py-1 text-[11px] hover:bg-white/5"
+          style={{ borderColor: palette.border, color: palette.text }}>Download</a>
+      </div>
+      <div className="overflow-auto p-4" style={{ background: palette.bg }}>
+        {isImage && (
+          <div className="grid h-full place-items-center">
+            <img src={asset.dataUrl} alt={file.name} className="max-h-full max-w-full rounded-lg shadow-lg" />
+          </div>
+        )}
+        {isPdf && (
+          <iframe title={file.name} src={asset.dataUrl} className="h-full min-h-[400px] w-full rounded-lg border-0" />
+        )}
+        {!isImage && !isPdf && (
+          <div className="grid h-full place-items-center text-center text-xs" style={{ color: palette.subtle }}>
+            Binary asset — use Download to save it.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --------------------------------------------------------------------------
+// Files tree (folders + files + asset upload)
+
+interface FilesTreeProps {
+  files: IdeFile[];
+  folders: string[];
+  activeFileId: string;
+  palette: typeof APP_THEMES[AppThemeKey];
+  onOpen: (id: string) => void;
+  onAddFile: (name: string, folder?: string) => void;
+  onAddFolder: (path: string) => void;
+  onDeleteFile: (id: string) => void;
+  onDeleteFolder: (path: string) => void;
+  onRenameFile: (id: string, newPath: string) => void;
+  onUploadAssets: (files: FileList, folder?: string) => void;
+  onOpenTemplates: () => void;
+}
+
+function FilesTree(p: FilesTreeProps) {
+  const allFolders = useMemo(() => {
+    const set = new Set<string>(p.folders);
+    p.files.forEach((f) => {
+      const d = dirname(f.path);
+      if (!d) return;
+      // include every ancestor path
+      const parts = d.split("/");
+      for (let i = 1; i <= parts.length; i++) set.add(parts.slice(0, i).join("/"));
+    });
+    return Array.from(set).sort();
+  }, [p.files, p.folders]);
+
+  const rootFiles = p.files.filter((f) => !dirname(f.path)).sort((a, b) => a.name.localeCompare(b.name));
+  const filesByFolder = new Map<string, IdeFile[]>();
+  p.files.forEach((f) => {
+    const d = dirname(f.path);
+    if (!d) return;
+    const arr = filesByFolder.get(d) ?? [];
+    arr.push(f);
+    filesByFolder.set(d, arr);
+  });
+  filesByFolder.forEach((arr) => arr.sort((a, b) => a.name.localeCompare(b.name)));
+
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const toggle = (path: string) => setCollapsed((c) => {
+    const n = new Set(c);
+    if (n.has(path)) n.delete(path); else n.add(path);
+    return n;
+  });
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [targetFolder, setTargetFolder] = useState<string>("assets");
+
+  function promptNewFile(folder = "") {
+    const name = prompt(`New file name${folder ? ` (in ${folder}/)` : ""}`, "");
+    if (!name) return;
+    p.onAddFile(name.trim(), folder);
+  }
+  function promptNewFolder() {
+    const path = prompt("Folder path (e.g. src or src/utils)", "");
+    if (!path) return;
+    p.onAddFolder(path);
+  }
+  function triggerUpload(folder: string) {
+    setTargetFolder(folder);
+    fileInputRef.current?.click();
+  }
+
+  return (
+    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+      <div className="grid grid-cols-3 gap-1 border-b p-2" style={{ borderColor: p.palette.border }}>
+        <Button size="sm" onClick={() => promptNewFile("")}
+          style={{ background: "linear-gradient(160deg,#4f8cff,#7e5bff)", color: "#fff" }}>
+          <FilePlus2 size={13} className="mr-1" /> File
+        </Button>
+        <Button size="sm" variant="outline" onClick={promptNewFolder}>
+          <FolderPlus size={13} className="mr-1" /> Folder
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => triggerUpload("assets")}>
+          <Upload size={13} className="mr-1" /> Asset
+        </Button>
+      </div>
+      <Button size="sm" variant="ghost" className="mx-2 mt-2 justify-start" onClick={p.onOpenTemplates}>
+        <LayoutGrid size={13} className="mr-1" /> Browse templates
+      </Button>
+      <input ref={fileInputRef} type="file" accept="image/*,application/pdf"
+        multiple style={{ display: "none" }}
+        onChange={(e) => { if (e.target.files) { p.onUploadAssets(e.target.files, targetFolder); e.target.value = ""; } }} />
+
+      <div className="min-h-0 flex-1 overflow-auto px-2 pb-4 pt-2">
+        <ul className="grid gap-0.5">
+          {rootFiles.map((f) => (
+            <FileRow key={f.id} file={f} active={f.id === p.activeFileId} palette={p.palette}
+              canDelete={p.files.length > 1}
+              onOpen={() => p.onOpen(f.id)}
+              onDelete={() => p.onDeleteFile(f.id)}
+              onRename={() => {
+                const next = prompt("Rename file (path)", f.path);
+                if (next && next !== f.path) p.onRenameFile(f.id, next);
+              }} />
+          ))}
+          {allFolders.map((folder) => {
+            const isCol = collapsed.has(folder);
+            const isAssets = folder === "assets" || folder.startsWith("assets/");
+            const inside = filesByFolder.get(folder) ?? [];
+            const depth = folder.split("/").length - 1;
+            return (
+              <li key={folder} style={{ marginLeft: depth * 12 }}>
+                <div className="flex items-center gap-1 rounded-md px-1 py-1 text-sm hover:bg-white/5">
+                  <button onClick={() => toggle(folder)} className="grid h-5 w-5 place-items-center">
+                    {isCol ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
+                  </button>
+                  {isCol ? <Folder size={13} className="opacity-80" /> : <FolderOpenIcon size={13} className="opacity-80" />}
+                  <span className="flex-1 truncate font-medium">{folder.split("/").pop()}</span>
+                  {isAssets ? (
+                    <button onClick={() => triggerUpload(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Upload asset">
+                      <Upload size={12} />
+                    </button>
+                  ) : (
+                    <button onClick={() => promptNewFile(folder)} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Add file">
+                      <Plus size={12} />
+                    </button>
+                  )}
+                  <button onClick={() => {
+                    if (confirm(`Delete folder "${folder}" and its files?`)) p.onDeleteFolder(folder);
+                  }} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete folder">
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+                {!isCol && (
+                  <ul className="ml-5 grid gap-0.5 border-l pl-2" style={{ borderColor: p.palette.border }}>
+                    {inside.length === 0 && (
+                      <li className="px-2 py-1 text-[11px] italic" style={{ color: p.palette.subtle }}>empty</li>
+                    )}
+                    {inside.map((f) => (
+                      <FileRow key={f.id} file={f} active={f.id === p.activeFileId} palette={p.palette}
+                        canDelete={p.files.length > 1}
+                        onOpen={() => p.onOpen(f.id)}
+                        onDelete={() => p.onDeleteFile(f.id)}
+                        onRename={() => {
+                          const next = prompt("Rename file (path)", f.path);
+                          if (next && next !== f.path) p.onRenameFile(f.id, next);
+                        }} />
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename }: {
+  file: IdeFile; active: boolean; palette: typeof APP_THEMES[AppThemeKey]; canDelete: boolean;
+  onOpen: () => void; onDelete: () => void; onRename: () => void;
+}) {
+  return (
+    <li className="group flex items-center gap-2 rounded-md px-2 py-1"
+      style={{ background: active ? palette.bg : "transparent" }}>
+      {file.asset
+        ? (file.asset.mime.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />)
+        : <FileIcon name={file.name} />}
+      <button className="flex-1 truncate text-left text-sm" onClick={onOpen} title={file.path}>
+        {file.name}
+      </button>
+      <button onClick={onRename} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Rename">✎</button>
+      {canDelete && (
+        <button onClick={onDelete} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Delete">
+          <Trash2 size={12} />
+        </button>
+      )}
+    </li>
+  );
+}
+
