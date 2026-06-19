@@ -292,32 +292,41 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     addFolder(folder);
     const arr = Array.from(fileList);
     if (!arr.length) return;
-    const toastId = toast.loading(`Uploading 0 / ${arr.length}…`);
-    let done = 0, skipped = 0;
-    for (const file of arr) {
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error(`${file.name} is over 2MB — skipped`);
-        skipped++;
-        continue;
+    const items: UploadItem[] = arr.map((f) => ({ id: uid(), name: f.name, size: f.size, status: "pending" }));
+    setUploads((u) => [...u, ...items]);
+    let done = 0, errors = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const file = arr[i];
+      const item = items[i];
+      try {
+        if (file.size > 2 * 1024 * 1024) throw new Error("Over 2MB limit");
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const r = new FileReader();
+          r.onload = () => resolve(String(r.result));
+          r.onerror = () => reject(new Error("Read failed"));
+          r.readAsDataURL(file);
+        });
+        const path = `${folder}/${file.name}`;
+        const asset = { mime: file.type || "application/octet-stream", dataUrl, size: file.size };
+        const f: IdeFile = { id: uid(), path, name: file.name, language: "plaintext", content: "", asset };
+        setState((s) => {
+          const without = s.files.filter((x) => x.path !== path);
+          return { ...s, files: [...without, f], activeFileId: f.id };
+        });
+        setUploads((u) => u.map((x) => x.id === item.id ? { ...x, status: "done" } : x));
+        done++;
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : "Upload failed";
+        setUploads((u) => u.map((x) => x.id === item.id ? { ...x, status: "error", error: msg } : x));
+        errors++;
       }
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
-        r.onerror = reject;
-        r.readAsDataURL(file);
-      });
-      const path = `${folder}/${file.name}`;
-      const asset = { mime: file.type || "application/octet-stream", dataUrl, size: file.size };
-      const f: IdeFile = { id: uid(), path, name: file.name, language: "plaintext", content: "", asset };
-      setState((s) => {
-        const without = s.files.filter((x) => x.path !== path);
-        return { ...s, files: [...without, f], activeFileId: f.id };
-      });
-      done++;
-      toast.loading(`Uploading ${done} / ${arr.length}…`, { id: toastId });
     }
-    toast.success(`Uploaded ${done} asset${done === 1 ? "" : "s"}${skipped ? ` (${skipped} skipped)` : ""}`, { id: toastId });
+    toast.success(`Uploaded ${done} asset${done === 1 ? "" : "s"}${errors ? ` · ${errors} failed` : ""}`);
+    // Auto-clear completed entries after a short delay
+    setTimeout(() => setUploads((u) => u.filter((x) => x.status === "pending")), 4000);
   }
+  function clearUploads() { setUploads([]); }
+
 
   async function exportZip() {
     const zip = new JSZip();
