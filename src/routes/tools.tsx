@@ -67,7 +67,8 @@ function ToolsPage() {
         <WordCounter />
         <LoremIpsum />
         <TextDiff />
-        <QrGenerator />
+        <NumberBase />
+
       </div>
     </div>
   );
