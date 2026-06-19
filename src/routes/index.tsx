@@ -316,9 +316,11 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     const tick = () => {
       const s = stateRef.current;
       if (!s.dragging && !s.paused) s.rotY += s.velocity;
-      // ease tilt toward target
-      s.tiltX += (s.targetTiltX - s.tiltX) * 0.08;
-      s.tiltY += (s.targetTiltY - s.tiltY) * 0.08;
+      // ease tilt toward target, snap when close enough so logos are stable to click
+      const ex = s.targetTiltX - s.tiltX;
+      const ey = s.targetTiltY - s.tiltY;
+      s.tiltX = Math.abs(ex) < 0.05 ? s.targetTiltX : s.tiltX + ex * 0.12;
+      s.tiltY = Math.abs(ey) < 0.05 ? s.targetTiltY : s.tiltY + ey * 0.12;
       if (ringRef.current) {
         ringRef.current.style.transform =
           `rotateX(${s.tiltX.toFixed(2)}deg) rotateY(${s.rotY.toFixed(2)}deg) rotateZ(${s.tiltY.toFixed(2)}deg)`;
