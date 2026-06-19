@@ -1535,10 +1535,12 @@ function FilesTree(p: FilesTreeProps) {
           style={{ background: "linear-gradient(160deg,#4f8cff,#7e5bff)", color: "#fff" }}>
           <FilePlus2 size={13} className="mr-1" /> File
         </Button>
-        <Button size="sm" variant="outline" onClick={promptNewFolder}>
+        <Button size="sm" variant="outline" onClick={promptNewFolder}
+          className="border-border/60 bg-background text-foreground hover:bg-muted hover:text-foreground">
           <FolderPlus size={13} className="mr-1" /> Folder
         </Button>
-        <Button size="sm" variant="outline" onClick={() => triggerUpload("assets")}>
+        <Button size="sm" variant="outline" onClick={() => triggerUpload("assets")}
+          className="border-border/60 bg-background text-foreground hover:bg-muted hover:text-foreground">
           <Upload size={13} className="mr-1" /> Asset
         </Button>
       </div>
