@@ -84,31 +84,51 @@ const QUICK_KEYS = ["Tab", "{", "}", "(", ")", "[", "]", ";", "=", "<", ">", "\"
 
 function uid(): string { return Math.random().toString(36).slice(2, 10); }
 
+function basename(p: string): string { return p.split("/").pop() || p; }
+function dirname(p: string): string { const i = p.lastIndexOf("/"); return i < 0 ? "" : p.slice(0, i); }
+
+function mkFile(path: string, content: string, language?: string): IdeFile {
+  const name = basename(path);
+  return { id: uid(), path, name, language: language ?? monacoLangFromName(name), content };
+}
+
 function blankWeb(): IdeState {
   const t = WEB_TEMPLATES.find((w) => w.id === "blank-web")!;
   return {
     kind: "web", language: "javascript", projectName: t.name,
     files: [
-      { id: uid(), name: "index.html", language: "html", content: t.files.html },
-      { id: uid(), name: "style.css",  language: "css",  content: t.files.css },
-      { id: uid(), name: "script.js",  language: "javascript", content: t.files.js },
+      mkFile("index.html", t.files.html, "html"),
+      mkFile("style.css", t.files.css, "css"),
+      mkFile("script.js", t.files.js, "javascript"),
     ],
+    folders: ["assets"],
     activeFileId: "",
+  };
+}
+
+function fromMultiTemplate(t: MultiTemplate): IdeState {
+  const files = t.files.map((f) => mkFile(f.path, f.content));
+  const active = files.find((f) => f.path === t.activePath) ?? files[0];
+  const kind: Kind = t.tracks.includes("web") ? "web" : "code";
+  return {
+    kind, language: t.language, projectName: t.name,
+    files, folders: [...t.folders, "assets"].filter((v, i, a) => a.indexOf(v) === i),
+    activeFileId: active.id,
   };
 }
 
 function fromTemplate(t: Template): IdeState {
   if (t.kind === "web") {
     const files = [
-      { id: uid(), name: "index.html", language: "html", content: t.files.html },
-      { id: uid(), name: "style.css",  language: "css",  content: t.files.css },
-      { id: uid(), name: "script.js",  language: "javascript", content: t.files.js },
+      mkFile("index.html", t.files.html, "html"),
+      mkFile("style.css", t.files.css, "css"),
+      mkFile("script.js", t.files.js, "javascript"),
     ];
-    return { kind: "web", language: "javascript", projectName: t.name, files, activeFileId: files[0].id };
+    return { kind: "web", language: "javascript", projectName: t.name, files, folders: ["assets"], activeFileId: files[0].id };
   }
   const ext = extForLang(t.language);
-  const f: IdeFile = { id: uid(), name: `main.${ext}`, language: LANGUAGES[t.language].monaco, content: t.source };
-  return { kind: "code", language: t.language, projectName: t.name, files: [f], activeFileId: f.id };
+  const f = mkFile(`main.${ext}`, t.source, LANGUAGES[t.language].monaco);
+  return { kind: "code", language: t.language, projectName: t.name, files: [f], folders: ["assets"], activeFileId: f.id };
 }
 
 function extForLang(l: LangKey): string {
@@ -121,18 +141,27 @@ function extForLang(l: LangKey): string {
   return map[l];
 }
 
-function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string): IdeState {
+function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string, track?: Track): IdeState {
   if (typeof window === "undefined") return ensureActive(blankWeb());
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw) as IdeState;
-      if (parsed.files?.length) return ensureActive(parsed);
+      if (parsed.files?.length) {
+        // Back-compat: ensure every file has a `path`.
+        const files = parsed.files.map((f) => ({ ...f, path: f.path ?? f.name, name: basename(f.path ?? f.name) }));
+        return ensureActive({ ...parsed, files, folders: parsed.folders ?? ["assets"] });
+      }
     }
   } catch { /* ignore */ }
+  // Mobile track defaults to the Kotlin Android starter; other tracks keep their previous default.
+  if (track === "mobile") {
+    const m = MULTI_TEMPLATES.find((t) => t.id === "android-kotlin-app")!;
+    return ensureActive({ ...fromMultiTemplate(m), projectName: defaultProjectName ?? m.name });
+  }
   if (defaultKind === "code") {
-    const f: IdeFile = { id: uid(), name: `main.${extForLang(defaultLanguage)}`, language: LANGUAGES[defaultLanguage].monaco, content: LANGUAGES[defaultLanguage].starter };
-    return { kind: "code", language: defaultLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], activeFileId: f.id };
+    const f = mkFile(`main.${extForLang(defaultLanguage)}`, LANGUAGES[defaultLanguage].starter, LANGUAGES[defaultLanguage].monaco);
+    return { kind: "code", language: defaultLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], folders: ["assets"], activeFileId: f.id };
   }
   const base = fromTemplate(TEMPLATES[1]); // Calculator web template
   return ensureActive(defaultProjectName ? { ...base, projectName: defaultProjectName } : base);
