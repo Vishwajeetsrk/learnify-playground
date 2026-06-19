@@ -71,7 +71,7 @@ function CodePlayground() {
     setRunning(true);
     setOutput("Running…");
     try {
-      const r = await runCode(lang, code, stdin);
+      const r = await runCode(lang, code, stdin, provider);
       setOutput(r.output || "(no output)");
       if (user) {
         await supabase.from("playground_runs").insert({
