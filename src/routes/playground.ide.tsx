@@ -768,6 +768,44 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
               <Download size={16} />
             </Button>
+            {effectiveTrack === "mobile" && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" title="Export native project (Android / iOS / Flutter)" className="h-9 w-9">
+                    <Smartphone size={16} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  <DropdownMenuLabel className="text-xs">Export to local IDE</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onSelect={() => exportNative("android")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Android (Gradle · Kotlin)</span>
+                      <span className="text-[10px] opacity-70">Open in Android Studio</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => exportNative("ios")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">iOS (Xcode · SwiftUI)</span>
+                      <span className="text-[10px] opacity-70">Open in Xcode on macOS</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => exportNative("flutter")}>
+                    <Smartphone size={14} className="mr-2" />
+                    <div className="flex flex-col">
+                      <span className="text-sm">Flutter (Dart)</span>
+                      <span className="text-[10px] opacity-70">flutter run on any device</span>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled className="opacity-60">
+                    <span className="text-[10px]">Browser sandboxes can't run real emulators.</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
             </Button>
