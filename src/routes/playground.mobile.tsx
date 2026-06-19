@@ -533,6 +533,7 @@ function MobilePlayground() {
             disabled={running}
             data-testid="run-button"
             title="Build & run on the selected device"
+            className="shrink-0"
           >
             {running ? (
               <Loader2 className="mr-1 h-4 w-4 animate-spin" />
@@ -541,7 +542,40 @@ function MobilePlayground() {
             )}
             Run
           </Button>
-          <Button size="sm" variant="outline" onClick={handleClear} title="Clear logcat">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={async () => {
+              const text = logs.map((l) => l.text).join("\n");
+              if (!text) {
+                toast.message("Nothing to copy");
+                return;
+              }
+              try {
+                await navigator.clipboard.writeText(text);
+                toast.success("Output copied");
+              } catch (e) {
+                toast.error("Copy failed", { description: e instanceof Error ? e.message : String(e) });
+              }
+            }}
+            title="Copy logcat output"
+            className="shrink-0"
+            data-testid="copy-output"
+          >
+            <Copy className="mr-1 h-4 w-4" /> Copy
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleSave(false)}
+            disabled={busy}
+            title={projectId ? "Save project" : "Save as new project"}
+            className="shrink-0"
+            data-testid="save-project"
+          >
+            <Save className="mr-1 h-4 w-4" /> Save
+          </Button>
+          <Button size="sm" variant="outline" onClick={handleClear} title="Clear logcat" className="shrink-0">
             <Square className="mr-1 h-4 w-4" /> Clear
           </Button>
           <Button
@@ -550,9 +584,11 @@ function MobilePlayground() {
             onClick={handleRun}
             disabled={running}
             title="Rebuild & rerun"
+            className="shrink-0"
           >
             <RefreshCw className="mr-1 h-4 w-4" /> Rerun
           </Button>
+
         </div>
       </div>
 
