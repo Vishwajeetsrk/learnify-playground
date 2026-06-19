@@ -58,7 +58,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
     monaco: "java",
     wandbox: { compiler: "openjdk-jdk-22+36" },
     piston: { language: "java", version: "15.0.2", filename: "Main.java" },
-    starter: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}\n`,
+    starter: `class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}\n`,
   },
   c: {
     label: "C",
