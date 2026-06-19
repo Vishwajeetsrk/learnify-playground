@@ -860,22 +860,28 @@ function PhoneFrame({
               logs.map((l, i) => {
                 const palette =
                   l.stream === "err"
-                    ? { dot: "#ef4444", label: "E", text: "#fecaca" }
+                    ? { bg: "rgba(239,68,68,0.18)", fg: "#fecaca", label: "E", text: "#fecaca" }
                     : l.stream === "sys"
-                      ? { dot: "#a78bfa", label: "S", text: "#ddd6fe" }
-                      : { dot: "#34d399", label: "I", text: "#d1fae5" };
+                      ? { bg: "rgba(167,139,250,0.18)", fg: "#ddd6fe", label: "S", text: "#ddd6fe" }
+                      : { bg: "rgba(52,211,153,0.18)", fg: "#a7f3d0", label: "I", text: "#d1fae5" };
                 return (
                   <div
                     key={i}
-                    style={{ display: "flex", gap: 8, alignItems: "baseline" }}
+                    style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 2 }}
                   >
                     <span
                       style={{
                         fontSize: 9,
                         fontWeight: 800,
-                        color: palette.dot,
-                        width: 10,
+                        color: palette.fg,
+                        background: palette.bg,
+                        padding: "1px 0",
+                        borderRadius: 4,
                         flexShrink: 0,
+                        minWidth: 16,
+                        textAlign: "center",
+                        lineHeight: "14px",
+                        marginTop: 2,
                       }}
                     >
                       {palette.label}
