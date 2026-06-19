@@ -248,7 +248,7 @@ export function ApiTester() {
             <textarea
               value={state.body}
               onChange={(e) => setState((s) => ({ ...s, body: e.target.value }))}
-              placeholder='{"name":"Lovable"}'
+              placeholder='{"name":"Orbit"}'
               className="h-full w-full resize-none rounded-md border border-white/10 bg-black/40 p-2 font-mono text-xs outline-none"
               spellCheck={false}
             />

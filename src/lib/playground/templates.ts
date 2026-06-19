@@ -490,7 +490,7 @@ const pyFizzBuzz: CodeTemplate = {
 const nodeHello: CodeTemplate = {
   id: "node-hello", kind: "code", name: "Node · Hello", icon: "nodejs",
   description: "Hello World in Node.js.", language: "javascript",
-  source: `const greet = (n = 'world') => \`Hello, \${n}!\`;\nconsole.log(greet('Lovable'));\n`,
+  source: `const greet = (n = 'world') => \`Hello, \${n}!\`;\nconsole.log(greet('Orbit'));\n`,
 };
 const tsDemo: CodeTemplate = {
   id: "ts-demo", kind: "code", name: "TypeScript · Types", icon: "typescript",

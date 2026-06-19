@@ -13,7 +13,7 @@ Run 18+ languages, prototype HTML/CSS/JS live, and scaffold Android / iOS / Flut
   <img alt="Vite 7" src="https://img.shields.io/badge/Vite_7-646CFF?style=for-the-badge&logo=vite&logoColor=white" />
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
   <img alt="Tailwind v4" src="https://img.shields.io/badge/Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
-  <img alt="Lovable Cloud" src="https://img.shields.io/badge/Lovable_Cloud-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" />
   <img alt="License" src="https://img.shields.io/badge/License-MIT-A855F7?style=for-the-badge" />
 </p>
 
@@ -164,7 +164,7 @@ The **Share** link encodes:
 | Styling | <img src="https://cdn.simpleicons.org/tailwindcss" width="14" /> Tailwind v4 · shadcn/ui · semantic design tokens |
 | Editor | <img src="https://cdn.simpleicons.org/typescript" width="14" /> Monaco Editor (VS Code engine) |
 | Runtime | <img src="https://cdn.simpleicons.org/docker" width="14" /> Piston execution API |
-| Backend | <img src="https://cdn.simpleicons.org/supabase" width="14" /> Lovable Cloud (Postgres · Auth · Storage · Edge) |
+| Backend | <img src="https://cdn.simpleicons.org/supabase" width="14" /> Supabase (Postgres · Auth · Storage · Edge Functions) |
 | Deploy | <img src="https://cdn.simpleicons.org/cloudflare" width="14" /> Cloudflare Workers |
 
 ---
