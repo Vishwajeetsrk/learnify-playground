@@ -632,7 +632,18 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       toast.message(`${spec.label} is snippet-only`, { description: "See the output panel for details." });
       return;
     }
-    setRunning(true); setOutput("Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
+    const isMobileNative = effectiveTrack === "mobile" && (state.language === "kotlin" || state.language === "swift" || state.language === "dart");
+    const mobileNotice = isMobileNative
+      ? `⚠️  Real Android emulator / iOS Simulator / Flutter device CANNOT run inside the browser.\n` +
+        `    They require Android Studio, Xcode (macOS), or the Flutter SDK on your machine.\n\n` +
+        `What the Mobile Playground does instead for ${spec.label}:\n` +
+        `  • Compiles & runs your code as a console snippet via a free public runner (Judge0 / Piston).\n` +
+        `  • Validates syntax, shows stdout/stderr, runtime and memory.\n` +
+        `  • AI assistant: Explain, Convert, Generate tests, Document.\n` +
+        `  • Export → packages a ready-to-open Android Gradle / Xcode / Flutter project ZIP.\n\n` +
+        `Attempting snippet execution…\n` + `─────────────────────────────────\n`
+      : "";
+    setRunning(true); setOutput(mobileNotice + "Running…"); setStdout(""); setStderr(""); setExitCode(null); setLastRun(null);
     setBottomTab("output");
     try {
       const r = await runCode(state.language, activeFile.content, "", "judge0", {
