@@ -124,6 +124,15 @@ export interface RunResult {
   provider: ProviderKey;
 }
 
+class ProviderError extends Error {
+  constructor(public provider: ProviderKey, public status: number | null, message: string) {
+    super(message);
+  }
+  get isTransient() {
+    return this.status === 429 || (this.status !== null && this.status >= 500);
+  }
+}
+
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
   const res = await fetch("https://emkc.org/api/v2/piston/execute", {
@@ -136,7 +145,7 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
       files: [{ name: spec.filename, content: source }],
     }),
   });
-  if (!res.ok) throw new Error(`Piston ${res.status}: ${await res.text()}`);
+  if (!res.ok) throw new ProviderError("piston", res.status, `Piston ${res.status}: ${await res.text()}`);
   const data = await res.json();
   const run = data.run ?? {};
   const compile = data.compile ?? {};
@@ -151,6 +160,7 @@ async function runPiston(lang: LangKey, source: string, stdin: string): Promise<
     provider: "piston",
   };
 }
+
 
 async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const wb = LANGUAGES[lang].wandbox;
