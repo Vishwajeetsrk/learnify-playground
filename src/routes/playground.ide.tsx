@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import Editor, { type OnMount } from "@monaco-editor/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Play, Save, Share2, Sparkles, Settings as SettingsIcon, Loader2, Copy,
+  Play, Share2, Sparkles, Settings as SettingsIcon, Loader2, Copy,
   Plus, FilePlus2, Trash2, Smartphone, Tablet, Monitor, Maximize2, Minimize2,
   Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
+  FolderPlus, Folder, FolderOpen as FolderOpenIcon, Upload, ChevronRight, ChevronDown, Image as ImageIcon, FileText,
 } from "lucide-react";
+import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
