@@ -27,7 +27,7 @@ import {
 } from "@/lib/playground/themes";
 import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track } from "@/lib/playground/templates";
 import {
-  buildPreviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
+  buildPreviewDoc, buildProjectOverviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
 import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 import { ApiTester } from "@/components/playground/ApiTester";
@@ -209,7 +209,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   useEffect(() => {
     const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName, effectiveTrack);
     setState(s);
-    setBottomTab(s.kind === "web" ? "preview" : "output");
+    setBottomTab(s.kind === "web" || effectiveTrack === "mobile" ? "preview" : "output");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Autosave to localStorage (debounced)
@@ -235,31 +235,39 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
 
-  // Build preview doc for web projects.
-  // Aggregates ALL .html/.css/.js files, plus any uploaded assets, so multi-file
-  // projects "just work" — index.html (or the first .html) is the body, every
-  // .css is concatenated, every .js is concatenated in order, and references to
-  // asset filenames (img src="logo.png", url(bg.jpg), etc.) are rewritten to the
-  // uploaded asset's data URL so images/PDFs in the assets/ folder render.
+  // Build preview doc.
+  // - Web projects: live HTML/CSS/JS sandbox with all files connected and assets inlined.
+  // - Mobile / other multi-file code projects: a project-overview preview that shows
+  //   every source file and every uploaded asset wired together (Kotlin/Swift/Dart
+  //   have no public live runtime, so this gives users the same "everything is
+  //   connected" feedback as the web preview).
   const previewDoc = useMemo(() => {
-    if (state.kind !== "web") return "";
-    const byExt = (ext: string) =>
-      state.files.filter((f) => !f.asset && f.path.toLowerCase().endsWith(ext));
-    const htmlFile =
-      state.files.find((f) => f.path === "index.html") ??
-      byExt(".html")[0];
-    const html = htmlFile?.content ?? "";
-    const css = byExt(".css").map((f) => `/* ${f.path} */\n${f.content}`).join("\n\n");
-    const js = byExt(".js").map((f) => `// ${f.path}\n${f.content}`).join("\n;\n");
-    const assets: Record<string, string> = {};
-    for (const f of state.files) {
-      if (f.asset?.dataUrl) {
-        assets[f.path] = f.asset.dataUrl;
-        assets[basename(f.path)] = f.asset.dataUrl;
+    if (state.kind === "web") {
+      const byExt = (ext: string) =>
+        state.files.filter((f) => !f.asset && f.path.toLowerCase().endsWith(ext));
+      const htmlFile =
+        state.files.find((f) => f.path === "index.html") ?? byExt(".html")[0];
+      const html = htmlFile?.content ?? "";
+      const css = byExt(".css").map((f) => `/* ${f.path} */\n${f.content}`).join("\n\n");
+      const js = byExt(".js").map((f) => `// ${f.path}\n${f.content}`).join("\n;\n");
+      const assets: Record<string, string> = {};
+      for (const f of state.files) {
+        if (f.asset?.dataUrl) {
+          assets[f.path] = f.asset.dataUrl;
+          assets[basename(f.path)] = f.asset.dataUrl;
+        }
       }
+      return buildPreviewDoc({ html, css, js, assets });
     }
-    return buildPreviewDoc({ html, css, js, assets });
-  }, [state]);
+    return buildProjectOverviewDoc({
+      projectName: state.projectName,
+      track: effectiveTrack === "mobile" ? "mobile" : "code",
+      files: state.files.map((f) => ({
+        path: f.path, language: f.language, content: f.content, asset: f.asset,
+      })),
+    });
+  }, [state, effectiveTrack]);
+
 
 
   // --------- File ops ---------
@@ -618,7 +626,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         {!fullscreen && (
           <div className="flex shrink-0 flex-col border-t" style={{ borderColor: palette.border, background: palette.panel, height: "clamp(180px, 38vh, 360px)" }}>
             <div className="flex items-center gap-1 border-b px-2 py-1" style={{ borderColor: palette.border }}>
-              {state.kind === "web" && (
+              {(state.kind === "web" || effectiveTrack === "mobile") && (
                 <TabBtn active={bottomTab === "preview"} onClick={() => setBottomTab("preview")} palette={palette}>
                   <Smartphone size={12} className="mr-1" /> Preview
                 </TabBtn>
@@ -664,7 +672,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </div>
 
             <div className="min-h-0 flex-1 overflow-auto">
-              {bottomTab === "preview" && state.kind === "web" && (
+              {bottomTab === "preview" && (state.kind === "web" || effectiveTrack === "mobile") && (
                 <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
               )}
               {bottomTab === "console" && (

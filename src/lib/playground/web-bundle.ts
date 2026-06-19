@@ -82,3 +82,153 @@ export function parseConsoleMessage(data: unknown): ConsoleMsg | null {
     at: Date.now(),
   };
 }
+
+// --------------------------------------------------------------------------
+// Mobile / multi-file project overview preview.
+// Renders a phone-frame "project overview" doc so users can see every source
+// file and every asset wired together — the equivalent of the web preview
+// for tracks that have no live runtime (Kotlin/Swift/Dart/etc.).
+
+export interface ProjectFile {
+  path: string;
+  language?: string;
+  content: string;
+  asset?: { mime: string; dataUrl: string; size: number };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) =>
+    c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : c === '"' ? "&quot;" : "&#39;",
+  );
+}
+
+function fmtBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+export function buildProjectOverviewDoc(opts: {
+  projectName: string;
+  track: "mobile" | "code" | "web";
+  files: ProjectFile[];
+}): string {
+  const { projectName, track, files } = opts;
+  const sources = files.filter((f) => !f.asset);
+  const assets = files.filter((f) => f.asset);
+  const images = assets.filter((f) => f.asset!.mime.startsWith("image/"));
+  const others = assets.filter((f) => !f.asset!.mime.startsWith("image/"));
+
+  const entryGuess =
+    sources.find((f) => /main\.(kt|swift|dart|js|ts|py)$/i.test(f.path)) ??
+    sources.find((f) => /ContentView\.swift$|MainActivity\.kt$/i.test(f.path)) ??
+    sources[0];
+
+  const sourceBlocks = sources
+    .map((f) => {
+      const isEntry = f === entryGuess;
+      const preview = f.content.split("\n").slice(0, 40).join("\n");
+      const truncated = f.content.split("\n").length > 40;
+      return `
+        <details ${isEntry ? "open" : ""} class="file">
+          <summary>
+            <span class="path">${escapeHtml(f.path)}</span>
+            <span class="meta">${f.content.split("\n").length} lines${isEntry ? " · entry" : ""}</span>
+          </summary>
+          <pre><code>${escapeHtml(preview)}${truncated ? "\n…" : ""}</code></pre>
+        </details>`;
+    })
+    .join("");
+
+  const imageGrid = images.length
+    ? `<div class="grid">${images
+        .map(
+          (f) => `
+        <figure>
+          <img src="${f.asset!.dataUrl}" alt="${escapeHtml(f.path)}" loading="lazy" />
+          <figcaption>
+            <span class="name">${escapeHtml(f.path.split("/").pop()!)}</span>
+            <span class="size">${fmtBytes(f.asset!.size)}</span>
+          </figcaption>
+        </figure>`,
+        )
+        .join("")}</div>`
+    : `<p class="empty">No images uploaded yet — add files in the assets folder.</p>`;
+
+  const otherList = others.length
+    ? `<ul class="files">${others
+        .map(
+          (f) =>
+            `<li><a href="${f.asset!.dataUrl}" download="${escapeHtml(f.path.split("/").pop()!)}">${escapeHtml(f.path)}</a><span>${fmtBytes(f.asset!.size)} · ${escapeHtml(f.asset!.mime)}</span></li>`,
+        )
+        .join("")}</ul>`
+    : "";
+
+  const trackLabel = track === "mobile" ? "Mobile project" : track === "code" ? "Code project" : "Web project";
+
+  return `<!doctype html><html lang="en"><head>
+<meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>${escapeHtml(projectName)}</title>
+${BRIDGE}
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: #0b1020; color: #e8ecff;
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { padding: 16px 14px 40px; max-width: 480px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .badge { font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+    color: #9aa4d8; background: #161b35; padding: 4px 8px; border-radius: 999px; border: 1px solid #232a55; }
+  h1 { font-size: 18px; margin: 0; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: #9aa4d8; margin: 22px 0 8px; }
+  .phone { border: 1px solid #2a3170; border-radius: 28px; background: #0e1430;
+    padding: 18px 14px; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+  .stat { background: #11183a; border: 1px solid #232a55; border-radius: 12px;
+    padding: 10px; text-align: center; }
+  .stat b { display: block; font-size: 18px; color: #fff; }
+  .stat span { font-size: 10px; color: #9aa4d8; text-transform: uppercase; letter-spacing: .06em; }
+  .file { background: #0f1638; border: 1px solid #232a55; border-radius: 12px;
+    padding: 8px 10px; margin-bottom: 8px; }
+  .file summary { cursor: pointer; display: flex; justify-content: space-between;
+    align-items: center; gap: 8px; font-size: 12px; }
+  .file .path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: #e8ecff; }
+  .file .meta { color: #9aa4d8; font-size: 10px; }
+  .file pre { margin: 8px 0 0; padding: 10px; background: #060a1d; border-radius: 8px;
+    overflow: auto; max-height: 240px; font-size: 11px; line-height: 1.5; color: #cdd6ff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  figure { margin: 0; background: #11183a; border: 1px solid #232a55; border-radius: 10px;
+    overflow: hidden; }
+  figure img { display: block; width: 100%; height: 100px; object-fit: cover; background: #060a1d; }
+  figcaption { padding: 6px 8px; font-size: 10px; display: flex; justify-content: space-between;
+    color: #9aa4d8; }
+  figcaption .name { color: #e8ecff; max-width: 70%; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; }
+  ul.files { list-style: none; padding: 0; margin: 0; }
+  ul.files li { background: #11183a; border: 1px solid #232a55; border-radius: 10px;
+    padding: 8px 10px; margin-bottom: 6px; display: flex; justify-content: space-between;
+    align-items: center; gap: 8px; font-size: 12px; }
+  ul.files a { color: #8ab4ff; text-decoration: none; }
+  ul.files span { font-size: 10px; color: #9aa4d8; }
+  .empty { color: #9aa4d8; font-size: 12px; text-align: center; padding: 16px; }
+</style>
+</head><body>
+  <header>
+    <span class="badge">${escapeHtml(trackLabel)}</span>
+    <h1>${escapeHtml(projectName)}</h1>
+  </header>
+  <div class="phone">
+    <div class="stats">
+      <div class="stat"><b>${sources.length}</b><span>source files</span></div>
+      <div class="stat"><b>${images.length}</b><span>images</span></div>
+      <div class="stat"><b>${others.length}</b><span>docs</span></div>
+    </div>
+    <h2>Source files</h2>
+    ${sourceBlocks || `<p class="empty">No source files yet.</p>`}
+    <h2>Assets · images</h2>
+    ${imageGrid}
+    ${others.length ? `<h2>Assets · documents</h2>${otherList}` : ""}
+  </div>
+</body></html>`;
+}
