@@ -118,7 +118,7 @@ export function buildPreviewDoc({ html, css, js, assets, storageSeed }: WebFiles
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Preview</title>
-${BRIDGE}
+${bridge}
 <style>${cssOut}</style>
 </head>
 <body>
@@ -229,7 +229,7 @@ export function buildProjectOverviewDoc(opts: {
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(projectName)}</title>
-${BRIDGE}
+${bridge}
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
