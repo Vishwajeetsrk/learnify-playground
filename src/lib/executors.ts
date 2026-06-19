@@ -328,6 +328,9 @@ export async function runCode(
   provider: ProviderKey = "wandbox",
   options: RunOptions = {},
 ): Promise<RunResult> {
+  if (LANGUAGES[lang].runnable === false) {
+    throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
+  }
   try {
     return await runWithProvider(provider, lang, source, stdin);
   } catch (err) {
