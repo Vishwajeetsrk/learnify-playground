@@ -34,7 +34,7 @@ const LANGS: { name: string; slug: string; color: string; to: Track }[] = [
   { name: "Dart",        slug: "dart",        color: "#0175C2", to: "/playground/mobile" },
   { name: "SQL",         slug: "sqlite",      color: "#003B57", to: "/playground" },
   { name: "HTML",        slug: "html5",       color: "#E34F26", to: "/playground/web" },
-  { name: "CSS",         slug: "css3",        color: "#1572B6", to: "/playground/web" },
+  { name: "CSS",         slug: "css",         color: "#1572B6", to: "/playground/web" },
   { name: "React",       slug: "react",       color: "#61DAFB", to: "/playground/web" },
   { name: "Android",     slug: "android",     color: "#3DDC84", to: "/playground/mobile" },
   { name: "iOS",         slug: "apple",       color: "#A8A8A8", to: "/playground/mobile" },
