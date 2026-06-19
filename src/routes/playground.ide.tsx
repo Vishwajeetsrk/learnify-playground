@@ -1138,7 +1138,7 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
   onOpen: () => void; onDelete: () => void; onRename: () => void;
 }) {
   return (
-    <li className="group flex items-center gap-2 rounded-md px-2 py-1"
+    <li className="flex items-center gap-2 rounded-md px-2 py-1"
       style={{ background: active ? palette.bg : "transparent" }}>
       {file.asset
         ? (file.asset.mime.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />)
@@ -1146,9 +1146,11 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
       <button className="flex-1 truncate text-left text-sm" onClick={onOpen} title={file.path}>
         {file.name}
       </button>
-      <button onClick={onRename} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Rename">✎</button>
+      <button onClick={onRename} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Rename">
+        <Pencil size={12} />
+      </button>
       {canDelete && (
-        <button onClick={onDelete} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Delete">
+        <button onClick={onDelete} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete">
           <Trash2 size={12} />
         </button>
       )}
