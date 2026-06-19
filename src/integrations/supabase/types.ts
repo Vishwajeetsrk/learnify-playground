@@ -65,6 +65,7 @@ export type Database = {
           project_id: string | null
           source: string
           stderr: string | null
+          stdin: string | null
           stdout: string | null
           user_id: string
         }
@@ -76,6 +77,7 @@ export type Database = {
           project_id?: string | null
           source: string
           stderr?: string | null
+          stdin?: string | null
           stdout?: string | null
           user_id: string
         }
@@ -87,6 +89,7 @@ export type Database = {
           project_id?: string | null
           source?: string
           stderr?: string | null
+          stdin?: string | null
           stdout?: string | null
           user_id?: string
         }
