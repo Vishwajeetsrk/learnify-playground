@@ -9,12 +9,18 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ToolsRouteImport } from './routes/tools'
 import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
 
+const ToolsRoute = ToolsRouteImport.update({
+  id: '/tools',
+  path: '/tools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaygroundRoute = PlaygroundRouteImport.update({
   id: '/playground',
   path: '/playground',
@@ -45,12 +51,14 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/playground': typeof PlaygroundRouteWithChildren
+  '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground': typeof PlaygroundIndexRoute
 }
@@ -59,19 +67,27 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/playground': typeof PlaygroundRouteWithChildren
+  '/tools': typeof ToolsRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/playground' | '/playground/web' | '/playground/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/playground'
+    | '/tools'
+    | '/playground/web'
+    | '/playground/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/playground/web' | '/playground'
+  to: '/' | '/auth' | '/tools' | '/playground/web' | '/playground'
   id:
     | '__root__'
     | '/'
     | '/auth'
     | '/playground'
+    | '/tools'
     | '/playground/web'
     | '/playground/'
   fileRoutesById: FileRoutesById
@@ -80,10 +96,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthRoute: typeof AuthRoute
   PlaygroundRoute: typeof PlaygroundRouteWithChildren
+  ToolsRoute: typeof ToolsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tools': {
+      id: '/tools'
+      path: '/tools'
+      fullPath: '/tools'
+      preLoaderRoute: typeof ToolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/playground': {
       id: '/playground'
       path: '/playground'
@@ -140,6 +164,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthRoute: AuthRoute,
   PlaygroundRoute: PlaygroundRouteWithChildren,
+  ToolsRoute: ToolsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
