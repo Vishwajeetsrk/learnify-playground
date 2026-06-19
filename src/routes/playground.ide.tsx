@@ -234,6 +234,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     try { return localStorage.getItem("playground:persist-preview-storage:v1") !== "0"; } catch { return true; }
   });
   const [previewStorage, setPreviewStorage] = useState<{ local: Record<string, string>; session: Record<string, string> }>({ local: {}, session: {} });
+  const [smokeRunning, setSmokeRunning] = useState(false);
+  const [smokeProgress, setSmokeProgress] = useState<{ done: number; total: number; current: string }>({ done: 0, total: 0, current: "" });
+  const [smokeResults, setSmokeResults] = useState<import("@/lib/playground/smoke-test").SmokeResult[] | null>(null);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
