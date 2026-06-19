@@ -176,11 +176,36 @@ export function ApiTester() {
         <Button onClick={saveCurrent} variant="ghost" className="h-9 shrink-0 px-2" title="Save request">
           <BookmarkPlus size={14} />
         </Button>
+        <Button onClick={() => setSnippetOpen((v) => !v)} variant="ghost" className="h-9 shrink-0 px-2" title="Generate client snippet">
+          <Code2 size={14} />
+        </Button>
         <Button onClick={send} disabled={sending} className="h-9 shrink-0">
           {sending ? <Loader2 className="mr-1 animate-spin" size={14} /> : <Send className="mr-1" size={14} />}
           Send
         </Button>
       </div>
+
+      {snippetOpen && (
+        <div className="flex shrink-0 flex-col gap-1 border-b border-white/10 bg-black/30 p-2">
+          <div className="flex items-center gap-2">
+            <Select value={snippetLang} onValueChange={(v) => setSnippetLang(v as SnippetLang)}>
+              <SelectTrigger className="h-8 w-48 text-[11px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {SNIPPET_LANGS.map((l) => <SelectItem key={l.id} value={l.id}>{l.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="ghost" className="h-8 text-[11px]"
+              onClick={async () => {
+                try { await navigator.clipboard.writeText(buildSnippet(snippetLang, reqFromState())); toast.success("Snippet copied"); }
+                catch { toast.error("Clipboard unavailable"); }
+              }}>Copy</Button>
+            <button className="ml-auto text-[11px] opacity-60 hover:opacity-100" onClick={() => setSnippetOpen(false)}>Close</button>
+          </div>
+          <pre className="max-h-32 overflow-auto rounded-md border border-white/10 bg-black/40 p-2 font-mono text-[11px] leading-relaxed">
+            {buildSnippet(snippetLang, reqFromState())}
+          </pre>
+        </div>
+      )}
 
       <div className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 pt-2">
         <TabBtn active={state.tab === "headers"} onClick={() => setState((s) => ({ ...s, tab: "headers" }))}>
