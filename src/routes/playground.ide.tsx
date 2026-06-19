@@ -46,6 +46,7 @@ import {
 import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 import { ApiTester } from "@/components/playground/ApiTester";
 import { DbConsole } from "@/components/playground/DbConsole";
+import { summarize as summarizeSmoke, diffRuns as diffSmokeRuns } from "@/lib/playground/smoke-test";
 
 export const Route = createFileRoute("/playground/ide")({
   ssr: false,
