@@ -6,7 +6,9 @@ import {
   Plus, FilePlus2, Trash2, Smartphone, Tablet, Monitor, Maximize2, Minimize2,
   Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
   FolderPlus, Folder, FolderOpen as FolderOpenIcon, Upload, ChevronRight, ChevronDown, Image as ImageIcon, FileText,
+  Download, Pencil,
 } from "lucide-react";
+import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -282,8 +284,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   async function uploadAssets(fileList: FileList, folder = "assets") {
     addFolder(folder);
     const arr = Array.from(fileList);
+    if (!arr.length) return;
+    const toastId = toast.loading(`Uploading 0 / ${arr.length}…`);
+    let done = 0, skipped = 0;
     for (const file of arr) {
-      if (file.size > 2 * 1024 * 1024) { toast.error(`${file.name} is over 2MB — skipped`); continue; }
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error(`${file.name} is over 2MB — skipped`);
+        skipped++;
+        continue;
+      }
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result));
@@ -297,9 +306,33 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         const without = s.files.filter((x) => x.path !== path);
         return { ...s, files: [...without, f], activeFileId: f.id };
       });
+      done++;
+      toast.loading(`Uploading ${done} / ${arr.length}…`, { id: toastId });
     }
-    if (arr.length) toast.success(`Uploaded ${arr.length} asset${arr.length > 1 ? "s" : ""}`);
+    toast.success(`Uploaded ${done} asset${done === 1 ? "" : "s"}${skipped ? ` (${skipped} skipped)` : ""}`, { id: toastId });
   }
+
+  async function exportZip() {
+    const zip = new JSZip();
+    (state.folders ?? []).forEach((p) => zip.folder(p));
+    for (const f of state.files) {
+      if (f.asset) {
+        const b64 = f.asset.dataUrl.split(",")[1] ?? "";
+        zip.file(f.path, b64, { base64: true });
+      } else {
+        zip.file(f.path, f.content);
+      }
+    }
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeName = state.projectName.replace(/[^a-z0-9._-]+/gi, "_") || "project";
+    a.href = url; a.download = `${safeName}.zip`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast.success("Project exported as ZIP");
+  }
+
   function loadTemplate(t: Template) {
     setState(ensureActive(fromTemplate(t)));
     setTemplatesOpen(false);
@@ -432,6 +465,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </Button>
             <Button size="icon" variant="ghost" onClick={() => setDbOpen(true)} title="Database" className="h-9 w-9">
               <DbIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
+              <Download size={16} />
             </Button>
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
@@ -1102,7 +1138,7 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
   onOpen: () => void; onDelete: () => void; onRename: () => void;
 }) {
   return (
-    <li className="group flex items-center gap-2 rounded-md px-2 py-1"
+    <li className="flex items-center gap-2 rounded-md px-2 py-1"
       style={{ background: active ? palette.bg : "transparent" }}>
       {file.asset
         ? (file.asset.mime.startsWith("image/") ? <ImageIcon size={12} /> : <FileText size={12} />)
@@ -1110,9 +1146,11 @@ function FileRow({ file, active, palette, canDelete, onOpen, onDelete, onRename 
       <button className="flex-1 truncate text-left text-sm" onClick={onOpen} title={file.path}>
         {file.name}
       </button>
-      <button onClick={onRename} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Rename">✎</button>
+      <button onClick={onRename} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Rename">
+        <Pencil size={12} />
+      </button>
       {canDelete && (
-        <button onClick={onDelete} className="opacity-0 group-hover:opacity-70 hover:opacity-100" title="Delete">
+        <button onClick={onDelete} className="rounded p-1 opacity-60 hover:bg-white/10 hover:opacity-100" title="Delete">
           <Trash2 size={12} />
         </button>
       )}
