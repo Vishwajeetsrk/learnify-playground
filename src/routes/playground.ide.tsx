@@ -234,9 +234,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   // Build preview doc for web projects (debounced via key change)
   const previewDoc = useMemo(() => {
     if (state.kind !== "web") return "";
-    const html = state.files.find((f) => f.name === "index.html")?.content ?? "";
-    const css  = state.files.find((f) => f.name === "style.css")?.content  ?? "";
-    const js   = state.files.find((f) => f.name === "script.js")?.content  ?? "";
+    const html = state.files.find((f) => f.path === "index.html")?.content ?? "";
+    const css  = state.files.find((f) => f.path === "style.css")?.content  ?? "";
+    const js   = state.files.find((f) => f.path === "script.js")?.content  ?? "";
     return buildPreviewDoc({ html, css, js });
   }, [state]);
 
@@ -244,10 +244,30 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   function updateActive(content: string) {
     setState((s) => ({ ...s, files: s.files.map((f) => f.id === s.activeFileId ? { ...f, content } : f) }));
   }
-  function addFile(name: string) {
-    const language = monacoLangFromName(name);
-    const f: IdeFile = { id: uid(), name, language, content: "" };
+  function addFile(path: string, folder = "") {
+    const fullPath = folder ? `${folder.replace(/\/$/, "")}/${path}` : path;
+    if (state.files.some((f) => f.path === fullPath)) { toast.error(`${fullPath} already exists`); return; }
+    const f = mkFile(fullPath, "");
     setState((s) => ({ ...s, files: [...s.files, f], activeFileId: f.id }));
+  }
+  function addFolder(path: string) {
+    const clean = path.replace(/^\/+|\/+$/g, "");
+    if (!clean) return;
+    setState((s) => {
+      const folders = s.folders ?? [];
+      if (folders.includes(clean)) { toast.error("Folder exists"); return s; }
+      return { ...s, folders: [...folders, clean] };
+    });
+  }
+  function deleteFolder(path: string) {
+    const clean = path.replace(/^\/+|\/+$/g, "");
+    setState((s) => {
+      const remaining = s.files.filter((f) => f.path !== clean && !f.path.startsWith(clean + "/"));
+      if (remaining.length === 0) { toast.error("Project must have at least one file"); return s; }
+      const folders = (s.folders ?? []).filter((p) => p !== clean && !p.startsWith(clean + "/"));
+      const activeStillThere = remaining.find((f) => f.id === s.activeFileId);
+      return { ...s, files: remaining, folders, activeFileId: activeStillThere ? s.activeFileId : remaining[0].id };
+    });
   }
   function deleteFile(id: string) {
     setState((s) => {
@@ -256,8 +276,29 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       return { ...s, files, activeFileId: id === s.activeFileId ? files[0].id : s.activeFileId };
     });
   }
-  function renameFile(id: string, name: string) {
-    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, name, language: monacoLangFromName(name) } : f) }));
+  function renameFile(id: string, newPath: string) {
+    setState((s) => ({ ...s, files: s.files.map((f) => f.id === id ? { ...f, path: newPath, name: basename(newPath), language: monacoLangFromName(newPath) } : f) }));
+  }
+  async function uploadAssets(fileList: FileList, folder = "assets") {
+    addFolder(folder);
+    const arr = Array.from(fileList);
+    for (const file of arr) {
+      if (file.size > 2 * 1024 * 1024) { toast.error(`${file.name} is over 2MB — skipped`); continue; }
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = () => resolve(String(r.result));
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const path = `${folder}/${file.name}`;
+      const asset = { mime: file.type || "application/octet-stream", dataUrl, size: file.size };
+      const f: IdeFile = { id: uid(), path, name: file.name, language: "plaintext", content: "", asset };
+      setState((s) => {
+        const without = s.files.filter((x) => x.path !== path);
+        return { ...s, files: [...without, f], activeFileId: f.id };
+      });
+    }
+    if (arr.length) toast.success(`Uploaded ${arr.length} asset${arr.length > 1 ? "s" : ""}`);
   }
   function loadTemplate(t: Template) {
     setState(ensureActive(fromTemplate(t)));
@@ -267,12 +308,20 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     setBottomTab(t.kind === "web" ? "preview" : "output");
     toast.success(`Loaded ${t.name}`);
   }
+  function loadMultiTemplate(t: MultiTemplate) {
+    setState(ensureActive(fromMultiTemplate(t)));
+    setTemplatesOpen(false);
+    setConsoleMsgs([]);
+    setOutput(""); setStdout(""); setStderr(""); setExitCode(null);
+    setBottomTab(t.tracks.includes("web") ? "preview" : "output");
+    toast.success(`Loaded ${t.name}`);
+  }
   function newBlank(kind: Kind) {
     if (kind === "web") setState(ensureActive(fromTemplate(TEMPLATES.find((t) => t.id === "blank-web")!)));
     else {
       const lang: LangKey = "python";
-      const f: IdeFile = { id: uid(), name: `main.${extForLang(lang)}`, language: LANGUAGES[lang].monaco, content: LANGUAGES[lang].starter };
-      setState({ kind: "code", language: lang, projectName: "Untitled", files: [f], activeFileId: f.id });
+      const f = mkFile(`main.${extForLang(lang)}`, LANGUAGES[lang].starter, LANGUAGES[lang].monaco);
+      setState({ kind: "code", language: lang, projectName: "Untitled", files: [f], folders: ["assets"], activeFileId: f.id });
     }
     setTemplatesOpen(false);
   }
