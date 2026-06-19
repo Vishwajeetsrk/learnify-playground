@@ -213,8 +213,11 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName, track }: IdePlaygroundProps = {}) {
+export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName, track, initialLanguage }: IdePlaygroundProps = {}) {
   const effectiveTrack: Track = track ?? (defaultKind === "code" ? "code" : "web");
+  const urlParams = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const urlLang = urlParams?.get("lang");
+  const resolvedInitialLang: LangKey | undefined = urlLang && urlLang in LANGUAGES ? (urlLang as LangKey) : initialLanguage;
   const trackTemplates = useMemo(() => templatesForTrack(effectiveTrack), [effectiveTrack]);
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
