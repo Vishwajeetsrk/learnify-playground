@@ -162,6 +162,7 @@ class ProviderError extends Error {
 
 async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const wb = LANGUAGES[lang].wandbox;
+  if (!wb) throw new ProviderError("wandbox", null, `${LANGUAGES[lang].label} has no Wandbox compiler configured. Use the AI assistant or run locally.`);
   const res = await fetch("https://wandbox.org/api/compile.json", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
