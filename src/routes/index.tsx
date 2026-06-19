@@ -13,35 +13,43 @@ export const Route = createFileRoute("/")({
 });
 
 // Real brand logos via simple-icons CDN (SVG, color, cached).
-const LANGS: { name: string; slug: string; color: string }[] = [
-  { name: "Python",      slug: "python",      color: "#3776AB" },
-  { name: "JavaScript",  slug: "javascript",  color: "#F7DF1E" },
-  { name: "TypeScript",  slug: "typescript",  color: "#3178C6" },
-  { name: "Java",        slug: "openjdk",     color: "#ED8B00" },
-  { name: "C",           slug: "c",           color: "#A8B9CC" },
-  { name: "C++",         slug: "cplusplus",   color: "#00599C" },
-  { name: "C#",          slug: "dotnet",      color: "#512BD4" },
-  { name: "PHP",         slug: "php",         color: "#777BB4" },
-  { name: "Go",          slug: "go",          color: "#00ADD8" },
-  { name: "Rust",        slug: "rust",        color: "#CE422B" },
-  { name: "Ruby",        slug: "ruby",        color: "#CC342D" },
-  { name: "Bash",        slug: "gnubash",     color: "#4EAA25" },
-  { name: "Kotlin",      slug: "kotlin",      color: "#7F52FF" },
-  { name: "Swift",       slug: "swift",       color: "#F05138" },
-  { name: "Scala",       slug: "scala",       color: "#DC322F" },
-  { name: "Dart",        slug: "dart",        color: "#0175C2" },
-  { name: "SQL",         slug: "sqlite",      color: "#003B57" },
-  { name: "HTML",        slug: "html5",       color: "#E34F26" },
-  { name: "CSS",         slug: "css3",        color: "#1572B6" },
-  { name: "React",       slug: "react",       color: "#61DAFB" },
-  { name: "Android",     slug: "android",     color: "#3DDC84" },
-  { name: "iOS",         slug: "apple",       color: "#A8A8A8" },
-  { name: "Flutter",     slug: "flutter",     color: "#02569B" },
+// `to` routes each logo to the matching playground track.
+type Track = "/playground" | "/playground/web" | "/playground/mobile";
+const LANGS: { name: string; slug: string; color: string; to: Track }[] = [
+  { name: "Python",      slug: "python",      color: "#3776AB", to: "/playground" },
+  { name: "JavaScript",  slug: "javascript",  color: "#F7DF1E", to: "/playground" },
+  { name: "TypeScript",  slug: "typescript",  color: "#3178C6", to: "/playground" },
+  { name: "Java",        slug: "openjdk",     color: "#ED8B00", to: "/playground" },
+  { name: "C",           slug: "c",           color: "#A8B9CC", to: "/playground" },
+  { name: "C++",         slug: "cplusplus",   color: "#00599C", to: "/playground" },
+  { name: "C#",          slug: "dotnet",      color: "#512BD4", to: "/playground" },
+  { name: "PHP",         slug: "php",         color: "#777BB4", to: "/playground" },
+  { name: "Go",          slug: "go",          color: "#00ADD8", to: "/playground" },
+  { name: "Rust",        slug: "rust",        color: "#CE422B", to: "/playground" },
+  { name: "Ruby",        slug: "ruby",        color: "#CC342D", to: "/playground" },
+  { name: "Bash",        slug: "gnubash",     color: "#4EAA25", to: "/playground" },
+  { name: "Kotlin",      slug: "kotlin",      color: "#7F52FF", to: "/playground/mobile" },
+  { name: "Swift",       slug: "swift",       color: "#F05138", to: "/playground/mobile" },
+  { name: "Scala",       slug: "scala",       color: "#DC322F", to: "/playground" },
+  { name: "Dart",        slug: "dart",        color: "#0175C2", to: "/playground/mobile" },
+  { name: "SQL",         slug: "sqlite",      color: "#003B57", to: "/playground" },
+  { name: "HTML",        slug: "html5",       color: "#E34F26", to: "/playground/web" },
+  { name: "CSS",         slug: "css3",        color: "#1572B6", to: "/playground/web" },
+  { name: "React",       slug: "react",       color: "#61DAFB", to: "/playground/web" },
+  { name: "Android",     slug: "android",     color: "#3DDC84", to: "/playground/mobile" },
+  { name: "iOS",         slug: "apple",       color: "#A8A8A8", to: "/playground/mobile" },
+  { name: "Flutter",     slug: "flutter",     color: "#02569B", to: "/playground/mobile" },
 ];
 
 function logoUrl(slug: string) {
+  // Simple Icons CDN, color variant. Falls back to devicon if blocked.
   return `https://cdn.simpleicons.org/${slug}`;
 }
+
+function logoFallback(slug: string) {
+  return `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/${slug}/${slug}-original.svg`;
+}
+
 
 function Landing() {
   return (
