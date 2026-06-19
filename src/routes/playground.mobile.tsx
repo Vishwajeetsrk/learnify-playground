@@ -139,6 +139,38 @@ function parseLogcat(stdout: string, stderr: string): LogLine[] {
   return out;
 }
 
+// Derive a tiny "rendered app" view from logcat output. The playground compiles
+// Java via Wandbox (no Android emulator), so we simulate the UI a beginner
+// would expect by reading the Log.i/Log.d statements they wrote.
+interface AppModel {
+  title: string;
+  items: string[];
+  taps: number;
+  banner: string | null;
+  hasOnCreate: boolean;
+}
+function deriveAppModel(logs: LogLine[]): AppModel {
+  const items: string[] = [];
+  let title = "MainActivity";
+  let banner: string | null = null;
+  let taps = 0;
+  let hasOnCreate = false;
+  for (const l of logs) {
+    if (l.stream === "sys") continue;
+    const m = l.text.match(/^([\w.$]+)\s+([DIEW]):\s*(.*)$/);
+    if (!m) continue;
+    const tag = m[1];
+    const msg = m[3];
+    if (/^onCreate/i.test(msg)) { hasOnCreate = true; if (tag) title = tag; continue; }
+    const item = msg.match(/^item\s+\d+\s*[:\-]\s*(.+)$/i);
+    if (item) { items.push(item[1].trim()); continue; }
+    const tap = msg.match(/Tapped\s+(\d+)\s+times?/i);
+    if (tap) { taps = Math.max(taps, parseInt(tap[1], 10)); continue; }
+    if (msg.length > 2) banner = msg;
+  }
+  return { title, items, taps, banner, hasOnCreate };
+}
+
 function MobilePlayground() {
   const [code, setCode] = useState(STARTER_JAVA);
   const [device, setDevice] = useState<DeviceKey>("pixel8");
@@ -805,133 +837,13 @@ function PhoneFrame({
             </div>
           </div>
 
-          {/* App bar (Material 3) */}
-          <div
-            style={{
-              padding: "6px 16px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                background: "linear-gradient(135deg,#22c55e,#06b6d4)",
-                display: "grid",
-                placeItems: "center",
-                color: "white",
-                fontWeight: 800,
-                fontSize: 14,
-              }}
-            >
-              A
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>
-                MainActivity
-              </div>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "ui-monospace, monospace" }}>
-                {device.label} · logcat
-              </div>
-            </div>
-          </div>
+          <PhoneContent
+            device={device}
+            logs={logs}
+            running={running}
+            screenRef={screenRef}
+          />
 
-          {/* Logcat surface (Material card) */}
-          <div
-            ref={screenRef}
-            data-testid="logcat"
-            style={{
-              flex: 1,
-              margin: "0 12px 12px",
-              padding: 12,
-              borderRadius: 18,
-              background: "rgba(15, 23, 42, 0.65)",
-              border: "1px solid rgba(148,163,184,0.12)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset",
-              overflow: "auto",
-              fontFamily:
-                'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-              fontSize: 12,
-              lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {logs.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  color: "#94a3b8",
-                  textAlign: "center",
-                  gap: 14,
-                  padding: 16,
-                }}
-              >
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg,#22c55e,#06b6d4)",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "white",
-                    fontWeight: 800,
-                    fontSize: 24,
-                  }}
-                >
-                  ▶
-                </div>
-                <div style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 14 }}>
-                  Your Android app
-                </div>
-                <div style={{ fontSize: 12, maxWidth: 220 }}>
-                  Tap the green button below to build &amp; launch your Java code.
-                </div>
-              </div>
-            ) : (
-              logs.map((l, i) => {
-                const palette =
-                  l.stream === "err"
-                    ? { bg: "rgba(239,68,68,0.18)", fg: "#fecaca", label: "E", text: "#fecaca" }
-                    : l.stream === "sys"
-                      ? { bg: "rgba(167,139,250,0.18)", fg: "#ddd6fe", label: "S", text: "#ddd6fe" }
-                      : { bg: "rgba(52,211,153,0.18)", fg: "#a7f3d0", label: "I", text: "#d1fae5" };
-                return (
-                  <div
-                    key={i}
-                    style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 2 }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 800,
-                        color: palette.fg,
-                        background: palette.bg,
-                        padding: "1px 0",
-                        borderRadius: 4,
-                        flexShrink: 0,
-                        minWidth: 16,
-                        textAlign: "center",
-                        lineHeight: "14px",
-                        marginTop: 2,
-                      }}
-                    >
-                      {palette.label}
-                    </span>
-                    <span style={{ color: palette.text, flex: 1 }}>{l.text}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
 
           {/* Floating Action Button */}
           <button
@@ -1050,5 +962,227 @@ function NavBtn({
     >
       {children}
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// PhoneContent — the interactive surface inside the phone screen.
+// Renders a real "app" view derived from logcat, with a tab to switch to
+// the raw logcat terminal. This is what makes the preview feel like a
+// running mobile app (Uber-style list + tap counter + snackbar) rather
+// than just a console.
+// ---------------------------------------------------------------------------
+function PhoneContent({
+  device,
+  logs,
+  running,
+  screenRef,
+}: {
+  device: { label: string };
+  logs: LogLine[];
+  running: boolean;
+  screenRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [view, setView] = useState<"app" | "logcat">("app");
+  const [localTaps, setLocalTaps] = useState(0);
+  const [snackbar, setSnackbar] = useState<string | null>(null);
+  const model = useMemo(() => deriveAppModel(logs), [logs]);
+
+  // When a new run lands, surface the banner as a Material snackbar.
+  useEffect(() => {
+    if (!model.banner) return;
+    setSnackbar(model.banner);
+    const t = setTimeout(() => setSnackbar(null), 2600);
+    return () => clearTimeout(t);
+  }, [model.banner, logs.length]);
+
+  return (
+    <>
+      {/* App bar (Material 3) */}
+      <div style={{ padding: "6px 16px 8px", display: "flex", alignItems: "center", gap: 10 }}>
+        <div
+          style={{
+            width: 32, height: 32, borderRadius: 999,
+            background: "linear-gradient(135deg,#22c55e,#06b6d4)",
+            display: "grid", placeItems: "center", color: "white",
+            fontWeight: 800, fontSize: 14,
+          }}
+        >A</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>{model.title}</div>
+          <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "ui-monospace, monospace" }}>
+            {device.label} · {view === "app" ? "running" : "logcat"}
+          </div>
+        </div>
+      </div>
+
+      {/* Tab switcher */}
+      <div style={{ display: "flex", gap: 6, padding: "0 12px 8px" }}>
+        {(["app", "logcat"] as const).map((k) => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => setView(k)}
+            data-testid={`tab-${k}`}
+            style={{
+              flex: 1, padding: "6px 10px", borderRadius: 999,
+              border: "1px solid rgba(148,163,184,0.18)",
+              background: view === k ? "linear-gradient(135deg,#22c55e,#16a34a)" : "rgba(15,23,42,0.55)",
+              color: view === k ? "white" : "#cbd5e1",
+              fontSize: 11, fontWeight: 700, letterSpacing: 0.3,
+              textTransform: "uppercase", cursor: "pointer",
+            }}
+          >
+            {k === "app" ? "App" : "Logcat"}
+          </button>
+        ))}
+      </div>
+
+      {view === "app" ? (
+        <div
+          data-testid="app-surface"
+          style={{
+            flex: 1, margin: "0 12px 12px", padding: 12, borderRadius: 18,
+            background: "linear-gradient(180deg, rgba(15,23,42,0.55), rgba(2,6,23,0.75))",
+            border: "1px solid rgba(148,163,184,0.12)",
+            overflow: "auto", display: "flex", flexDirection: "column", gap: 10,
+            position: "relative",
+          }}
+        >
+          {!model.hasOnCreate && logs.length === 0 && (
+            <EmptyAppState running={running} />
+          )}
+
+          {model.hasOnCreate && (
+            <div style={{ fontSize: 11, color: "#94a3b8", textTransform: "uppercase", letterSpacing: 0.8, padding: "2px 4px" }}>
+              Inbox
+            </div>
+          )}
+
+          {model.items.map((label, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setSnackbar(`Opened: ${label}`)}
+              style={{
+                textAlign: "left", padding: "12px 14px", borderRadius: 14,
+                border: "1px solid rgba(148,163,184,0.12)",
+                background: "rgba(30,41,59,0.7)", color: "#e2e8f0",
+                display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+              }}
+            >
+              <div style={{
+                width: 32, height: 32, borderRadius: 10,
+                background: `hsl(${(i * 67) % 360} 70% 45%)`,
+                display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 13,
+              }}>{label.slice(0, 1).toUpperCase()}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{label}</div>
+                <div style={{ fontSize: 10, color: "#94a3b8" }}>Tap to open</div>
+              </div>
+              <span style={{ color: "#64748b" }}>›</span>
+            </button>
+          ))}
+
+          {(model.taps > 0 || model.hasOnCreate) && (
+            <div style={{ marginTop: 4, padding: 12, borderRadius: 14, background: "rgba(15,23,42,0.7)", border: "1px solid rgba(148,163,184,0.12)" }}>
+              <div style={{ fontSize: 11, color: "#94a3b8", marginBottom: 8 }}>Counter</div>
+              <button
+                type="button"
+                onClick={() => setLocalTaps((n) => n + 1)}
+                style={{
+                  width: "100%", padding: "10px 12px", borderRadius: 10, border: 0,
+                  background: "linear-gradient(135deg,#22c55e,#16a34a)",
+                  color: "white", fontWeight: 700, cursor: "pointer", fontSize: 13,
+                }}
+              >Tapped {model.taps + localTaps} times</button>
+            </div>
+          )}
+
+          {snackbar && (
+            <div
+              role="status"
+              style={{
+                position: "absolute", left: 12, right: 12, bottom: 12,
+                background: "#1f2937", color: "#f1f5f9",
+                padding: "10px 14px", borderRadius: 10, fontSize: 12,
+                boxShadow: "0 10px 25px -8px rgba(0,0,0,0.6)",
+              }}
+            >{snackbar}</div>
+          )}
+        </div>
+      ) : (
+        <LogcatView logs={logs} screenRef={screenRef} />
+      )}
+    </>
+  );
+}
+
+function EmptyAppState({ running }: { running: boolean }) {
+  return (
+    <div style={{
+      flex: 1, display: "flex", flexDirection: "column", alignItems: "center",
+      justifyContent: "center", color: "#94a3b8", textAlign: "center", gap: 14, padding: 16,
+    }}>
+      <div style={{
+        width: 56, height: 56, borderRadius: 16,
+        background: "linear-gradient(135deg,#22c55e,#06b6d4)",
+        display: "grid", placeItems: "center", color: "white", fontWeight: 800, fontSize: 24,
+      }}>▶</div>
+      <div style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 14 }}>
+        {running ? "Building APK…" : "Your Android app"}
+      </div>
+      <div style={{ fontSize: 12, maxWidth: 220 }}>
+        Tap the green button to launch your Java code. The app UI is rendered from your Log statements.
+      </div>
+    </div>
+  );
+}
+
+function LogcatView({
+  logs,
+  screenRef,
+}: {
+  logs: LogLine[];
+  screenRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <div
+      ref={screenRef}
+      data-testid="logcat"
+      style={{
+        flex: 1, margin: "0 12px 12px", padding: 12, borderRadius: 18,
+        background: "rgba(15, 23, 42, 0.65)",
+        border: "1px solid rgba(148,163,184,0.12)",
+        overflow: "auto",
+        fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+        fontSize: 12, lineHeight: 1.55, whiteSpace: "pre-wrap", wordBreak: "break-word",
+      }}
+    >
+      {logs.length === 0 ? (
+        <div style={{ color: "#94a3b8", textAlign: "center", paddingTop: 24, fontSize: 12 }}>
+          No output yet.
+        </div>
+      ) : (
+        logs.map((l, i) => {
+          const palette =
+            l.stream === "err"
+              ? { bg: "rgba(239,68,68,0.18)", fg: "#fecaca", label: "E", text: "#fecaca" }
+              : l.stream === "sys"
+                ? { bg: "rgba(167,139,250,0.18)", fg: "#ddd6fe", label: "S", text: "#ddd6fe" }
+                : { bg: "rgba(52,211,153,0.18)", fg: "#a7f3d0", label: "I", text: "#d1fae5" };
+          return (
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 2 }}>
+              <span style={{
+                fontSize: 9, fontWeight: 800, color: palette.fg, background: palette.bg,
+                padding: "1px 0", borderRadius: 4, flexShrink: 0, minWidth: 16,
+                textAlign: "center", lineHeight: "14px", marginTop: 2,
+              }}>{palette.label}</span>
+              <span style={{ color: palette.text, flex: 1 }}>{l.text}</span>
+            </div>
+          );
+        })
+      )}
+    </div>
   );
 }
