@@ -29,12 +29,13 @@ async def main() -> None:
         await page.goto("http://localhost:8080/playground/mobile", wait_until="domcontentloaded")
         await page.wait_for_selector("text=Build APK", timeout=15000) if False else None
 
-        # Replace editor contents by focusing the Monaco view.
+        # Set Monaco model value directly (avoids autoclose duplicating braces).
         await page.wait_for_selector(".monaco-editor", timeout=20000)
-        await page.locator(".view-lines").first.click()
-        await page.keyboard.press("Control+A")
-        await page.keyboard.press("Delete")
-        await page.keyboard.insert_text(JAVA_SRC)
+        await page.wait_for_function("() => !!(window).monaco && monaco.editor.getModels().length", timeout=20000)
+        await page.evaluate(
+            "(src) => { for (const m of monaco.editor.getModels()) m.setValue(src); }",
+            JAVA_SRC,
+        )
         await page.screenshot(path=str(SCREENSHOTS / "java_public_1_pasted.png"))
 
         # Click Run.
