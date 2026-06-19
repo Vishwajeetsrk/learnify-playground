@@ -1012,8 +1012,6 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                   <Eraser size={12} className="mr-1" /> Clear errors
                 </button>
               )}
-              {false && (
-                <></>
               
               {bottomTab === "preview" && canPreview && (
                 <button onClick={() => setPreviewMax((v) => !v)}
