@@ -342,7 +342,7 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
       className="relative mx-auto h-[380px] w-full max-w-[720px] touch-none select-none"
       style={{ perspective: "1400px" }}
       onMouseEnter={() => setPaused(true)}
-      onMouseLeave={(e) => { setPaused(false); setTilt({ x: -14, y: 0 }); endDrag(e); }}
+      onMouseLeave={() => { setPaused(false); setTilt({ x: -14, y: 0 }); dragState.current = null; }}
       onPointerMove={onPointerMove}
       onPointerDown={onPointerDown}
       onPointerUp={endDrag}
