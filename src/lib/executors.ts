@@ -455,37 +455,47 @@ function friendlyError(err: unknown, provider: ProviderKey): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+function providerSupports(provider: ProviderKey, lang: LangKey): boolean {
+  const spec = LANGUAGES[lang];
+  return provider === "judge0" ? !!spec.judge0 : provider === "piston" ? !!spec.piston : !!spec.wandbox;
+}
+
 export async function runCode(
   lang: LangKey,
   source: string,
   stdin = "",
-  provider: ProviderKey = "wandbox",
+  provider: ProviderKey = "judge0",
   options: RunOptions = {},
 ): Promise<RunResult> {
   if (LANGUAGES[lang].runnable === false) {
     throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
   }
-  // If the selected provider doesn't support this language but the other one
-  // does, transparently route to the one that does (Kotlin/Dart → Piston,
-  // Ruby/Bash → Wandbox, etc.).
-  const spec = LANGUAGES[lang];
-  if (provider === "wandbox" && !spec.wandbox && spec.piston) provider = "piston";
-  else if (provider === "piston" && !spec.piston && spec.wandbox) provider = "wandbox";
-  try {
-    return await runWithProvider(provider, lang, source, stdin);
-  } catch (err) {
-    const transient = err instanceof ProviderError && err.isTransient;
-    const alt: ProviderKey = provider === "wandbox" ? "piston" : "wandbox";
-    const altSupports = alt === "wandbox" ? true : Boolean(LANGUAGES[lang].piston);
-    if (options.fallback && transient && altSupports) {
-      const reason = friendlyError(err, provider);
-      options.onFallback?.({ from: provider, to: alt, reason });
-      try {
-        return await runWithProvider(alt, lang, source, stdin);
-      } catch (err2) {
-        throw new Error(`Both providers failed.\n${reason}\n${friendlyError(err2, alt)}`);
-      }
-    }
-    throw new Error(friendlyError(err, provider));
+  // If the selected provider doesn't support this language, transparently
+  // route to the first one that does. Preferred order: Judge0 → Piston → Wandbox.
+  const order: ProviderKey[] = ["judge0", "piston", "wandbox"];
+  if (!providerSupports(provider, lang)) {
+    const fallbackProvider = order.find((p) => providerSupports(p, lang));
+    if (!fallbackProvider) throw new Error(`${LANGUAGES[lang].label} has no configured executor.`);
+    provider = fallbackProvider;
   }
+  // Build the chain: chosen first, then the remaining supported providers.
+  const chain = [provider, ...order.filter((p) => p !== provider && providerSupports(p, lang))];
+  let lastErr: unknown = null;
+  for (let i = 0; i < chain.length; i++) {
+    const p = chain[i];
+    try {
+      return await runWithProvider(p, lang, source, stdin);
+    } catch (err) {
+      lastErr = err;
+      const transient = err instanceof ProviderError && err.isTransient;
+      const canFallback = options.fallback && transient && i + 1 < chain.length;
+      if (!canFallback) {
+        if (i === 0) throw new Error(friendlyError(err, p));
+        throw new Error(`All providers failed.\n${friendlyError(err, p)}`);
+      }
+      options.onFallback?.({ from: p, to: chain[i + 1], reason: friendlyError(err, p) });
+    }
+  }
+  throw new Error(friendlyError(lastErr, chain[chain.length - 1] ?? provider));
 }
+
