@@ -19,6 +19,26 @@ export type ViewportKey = keyof typeof PREVIEW_VIEWPORTS;
 
 const BRIDGE = `<script>
 (function(){
+  // Shim localStorage/sessionStorage: the preview iframe runs without
+  // 'allow-same-origin', so the real Storage APIs throw SecurityError.
+  // Provide an in-memory implementation so templates that persist state
+  // (todo lists, expense trackers, etc.) keep working inside the preview.
+  function makeStorage(){
+    var map = Object.create(null);
+    return {
+      get length(){ return Object.keys(map).length; },
+      key: function(i){ return Object.keys(map)[i] || null; },
+      getItem: function(k){ return Object.prototype.hasOwnProperty.call(map, k) ? map[k] : null; },
+      setItem: function(k, v){ map[String(k)] = String(v); },
+      removeItem: function(k){ delete map[k]; },
+      clear: function(){ map = Object.create(null); },
+    };
+  }
+  try {
+    Object.defineProperty(window, 'localStorage',   { value: makeStorage(), configurable: true });
+    Object.defineProperty(window, 'sessionStorage', { value: makeStorage(), configurable: true });
+  } catch(e){}
+
   function send(level, args){
     try { parent.postMessage({ __pgConsole:true, level, args: args.map(a => {
       try { return typeof a === 'string' ? a : JSON.stringify(a); }
