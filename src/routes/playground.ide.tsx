@@ -959,6 +959,64 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </SheetContent>
       </Sheet>
 
+      {/* Asset Manager sheet */}
+      <Sheet open={assetsOpen} onOpenChange={setAssetsOpen}>
+        <SheetContent side="bottom" className="h-[85vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><Images size={14} className="mr-1 inline" /> Assets</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(85vh-3.5rem)]">
+            <AssetManager
+              files={state.files}
+              palette={palette}
+              onUpload={(fl) => uploadAssets(fl)}
+              onDelete={(id) => deleteFile(id)}
+              onInsertPath={(p) => {
+                const ed = editorRef.current;
+                if (!ed) { navigator.clipboard.writeText(p).catch(() => {}); return; }
+                ed.focus();
+                const sel = ed.getSelection();
+                if (!sel) return;
+                ed.executeEdits("insert-asset", [{ range: sel, text: p, forceMoveMarkers: true }]);
+                setAssetsOpen(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Dependency Graph sheet */}
+      <Sheet open={graphOpen} onOpenChange={setGraphOpen}>
+        <SheetContent side="bottom" className="h-[70vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><GitFork size={14} className="mr-1 inline" /> Project dependency graph</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(70vh-3.5rem)]">
+            <DepGraph graph={projectGraph} palette={palette}
+              onSelect={(p) => {
+                const hit = state.files.find((f) => f.path === p);
+                if (hit) { setState((s) => ({ ...s, activeFileId: hit.id })); setGraphOpen(false); }
+              }} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Validation report sheet */}
+      <Sheet open={validateOpen} onOpenChange={setValidateOpen}>
+        <SheetContent side="right" className="w-full max-w-md p-0 sm:w-[420px]" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><ShieldCheck size={14} className="mr-1 inline" /> Project validation</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100vh-3.5rem)]">
+            <ValidationReport graph={projectGraph} palette={palette}
+              onOpenFile={(p) => {
+                const hit = state.files.find((f) => f.path === p);
+                if (hit) { setState((s) => ({ ...s, activeFileId: hit.id })); setValidateOpen(false); }
+              }} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Command palette */}
       <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
         <CommandInput placeholder="Type a command or search files..." />
