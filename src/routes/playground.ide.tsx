@@ -626,7 +626,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         {!fullscreen && (
           <div className="flex shrink-0 flex-col border-t" style={{ borderColor: palette.border, background: palette.panel, height: "clamp(180px, 38vh, 360px)" }}>
             <div className="flex items-center gap-1 border-b px-2 py-1" style={{ borderColor: palette.border }}>
-              {state.kind === "web" && (
+              {(state.kind === "web" || effectiveTrack === "mobile") && (
                 <TabBtn active={bottomTab === "preview"} onClick={() => setBottomTab("preview")} palette={palette}>
                   <Smartphone size={12} className="mr-1" /> Preview
                 </TabBtn>
