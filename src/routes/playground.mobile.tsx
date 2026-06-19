@@ -647,6 +647,8 @@ interface PhoneFrameProps {
   logs: LogLine[];
   screenRef: React.RefObject<HTMLDivElement | null>;
   onRun: () => void;
+  onClear: () => void;
+  onRerun: () => void;
 }
 
 function PhoneFrame({
@@ -659,6 +661,8 @@ function PhoneFrame({
   logs,
   screenRef,
   onRun,
+  onClear,
+  onRerun,
 }: PhoneFrameProps) {
   const bezel = 14; // physical bezel thickness around the screen, in device px
   const outerW = (baseW + bezel * 2) * scale;
