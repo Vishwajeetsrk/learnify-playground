@@ -466,6 +466,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <Button size="icon" variant="ghost" onClick={() => setDbOpen(true)} title="Database" className="h-9 w-9">
               <DbIcon size={16} />
             </Button>
+            <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
+              <Download size={16} />
+            </Button>
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
             </Button>
