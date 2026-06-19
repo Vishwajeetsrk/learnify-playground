@@ -107,16 +107,21 @@ function extForLang(l: LangKey): string {
   return map[l];
 }
 
-function loadState(): IdeState {
+function loadState(storageKey: string, defaultKind: "web" | "code", defaultLanguage: LangKey, defaultProjectName?: string): IdeState {
   if (typeof window === "undefined") return ensureActive(blankWeb());
   try {
-    const raw = localStorage.getItem(LS_KEY);
+    const raw = localStorage.getItem(storageKey);
     if (raw) {
       const parsed = JSON.parse(raw) as IdeState;
       if (parsed.files?.length) return ensureActive(parsed);
     }
   } catch { /* ignore */ }
-  return ensureActive(fromTemplate(TEMPLATES[1])); // start with Calculator
+  if (defaultKind === "code") {
+    const f: IdeFile = { id: uid(), name: `main.${extForLang(defaultLanguage)}`, language: LANGUAGES[defaultLanguage].monaco, content: LANGUAGES[defaultLanguage].starter };
+    return { kind: "code", language: defaultLanguage, projectName: defaultProjectName ?? "Untitled", files: [f], activeFileId: f.id };
+  }
+  const base = fromTemplate(TEMPLATES[1]); // Calculator web template
+  return ensureActive(defaultProjectName ? { ...base, projectName: defaultProjectName } : base);
 }
 
 function ensureActive(s: IdeState): IdeState {
