@@ -224,11 +224,10 @@ function PhoneMock() {
   );
 }
 
-function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string; color: string; to: Track; lang?: string }) {
+function LogoTile({ name, slug, color, to, lang }: { name: string; slug: string; color: string; to: string; lang?: string }) {
   return (
     <Link
-      to={to}
-      search={lang ? { lang } : undefined}
+      to={lang ? `${to}?lang=${encodeURIComponent(lang)}` : to}
       className="group relative flex aspect-square items-center justify-center rounded-xl border border-border bg-card/70 p-3 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
       style={{ transformStyle: "preserve-3d" }}
       title={name}
