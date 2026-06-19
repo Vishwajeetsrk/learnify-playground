@@ -89,8 +89,8 @@ export function LanguageIcon({ language, size = 14, className }: { language: Lan
 const EXT_ICONS: Record<string, IconSpec> = {
   html:  { Cmp: SiHtml5,        color: "#E34F26" },
   htm:   { Cmp: SiHtml5,        color: "#E34F26" },
-  css:   { Cmp: SiCss3,         color: "#1572B6" },
-  scss:  { Cmp: SiCss3,         color: "#CC6699" },
+  css:   { Cmp: SiCss,         color: "#1572B6" },
+  scss:  { Cmp: SiCss,         color: "#CC6699" },
   js:    { Cmp: SiJavascript,   color: "#F7DF1E" },
   mjs:   { Cmp: SiJavascript,   color: "#F7DF1E" },
   cjs:   { Cmp: SiJavascript,   color: "#F7DF1E" },
