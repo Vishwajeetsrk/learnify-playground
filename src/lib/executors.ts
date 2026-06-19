@@ -253,7 +253,8 @@ async function runWandbox(lang: LangKey, source: string, stdin: string): Promise
 async function runPiston(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const spec = LANGUAGES[lang].piston;
   if (!spec) throw new ProviderError("piston", null, `Piston does not have a config for ${LANGUAGES[lang].label}. Switch to Wandbox.`);
-  const res = await fetch("https://emkc.org/api/v2/piston/execute", {
+  const base = getPistonBaseUrl();
+  const res = await fetch(`${base}/execute`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
