@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   SiPython, SiJavascript, SiTypescript, SiOpenjdk, SiCplusplus, SiC,
-  SiGo, SiRust, SiRuby, SiPhp, SiNodedotjs, SiGnubash, SiHtml5, SiCss3,
+  SiGo, SiRust, SiRuby, SiPhp, SiNodedotjs, SiGnubash, SiHtml5, SiCss,
   SiReact, SiSharp,
 } from "react-icons/si";
 import type { LangKey } from "@/lib/executors";
