@@ -170,11 +170,37 @@ export const PROVIDERS: Record<ProviderKey, { label: string; description: string
     dailyFreeLimit: 300,
   },
   piston: {
-    label: "Piston (legacy)",
-    description: "Public Piston API is whitelist-only since Feb 2026 — usually returns 403. Kept for completeness.",
+    label: "Piston",
+    description: "Engineer-Man Piston runner · public emkc.org by default, or point at a self-hosted instance via Settings.",
     dailyFreeLimit: 500,
   },
 };
+
+const PISTON_URL_KEY = "playground:piston-url";
+const DEFAULT_PISTON_URL = "https://emkc.org/api/v2/piston";
+
+export function getPistonBaseUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_PISTON_URL;
+  try {
+    return localStorage.getItem(PISTON_URL_KEY)?.trim() || DEFAULT_PISTON_URL;
+  } catch {
+    return DEFAULT_PISTON_URL;
+  }
+}
+
+export function setPistonBaseUrl(url: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const clean = url.trim().replace(/\/+$/, "");
+    if (clean && clean !== DEFAULT_PISTON_URL) {
+      localStorage.setItem(PISTON_URL_KEY, clean);
+    } else {
+      localStorage.removeItem(PISTON_URL_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
 
 export interface RunResult {
   stdout: string;
