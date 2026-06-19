@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Code2 } from "lucide-react";
+import { Code2, Github, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
@@ -23,6 +23,16 @@ export function SiteNav() {
               <Link to={n.to}>{n.label}</Link>
             </Button>
           ))}
+          <a
+            href="https://github.com/Vishwajeetsrk/learnify-playground"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-card/70 px-2.5 py-1.5 text-xs font-medium text-foreground backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-[0_8px_30px_hsl(var(--primary)/0.18)] sm:px-3"
+          >
+            <Github className="h-3.5 w-3.5" />
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            <span className="hidden sm:inline">Star</span>
+          </a>
         </nav>
       </div>
     </header>
