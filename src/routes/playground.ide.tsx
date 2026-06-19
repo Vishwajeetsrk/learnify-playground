@@ -1284,6 +1284,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 <Maximize2 size={14} className="mr-1" /> Fullscreen
               </button>
             </SettingRow>
+            <SettingRow label="Format on save">
+              <button onClick={async () => {
+                const next = !formatOnSave;
+                setFormatOnSaveState(next);
+                const { setFormatOnSave } = await import("@/lib/playground/format");
+                setFormatOnSave(next);
+                toast.success(next ? "Format on save: ON" : "Format on save: OFF");
+              }}
+                className="inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm"
+                style={{ borderColor: palette.border }}>
+                <Wand2 size={14} className="mr-1" /> {formatOnSave ? "Enabled" : "Disabled"}
+              </button>
+            </SettingRow>
             <div className="rounded-md border p-3 text-xs" style={{ borderColor: palette.border, color: palette.subtle }}>
               Projects autosave to this device. Use Share to copy a link you can open anywhere.
             </div>
