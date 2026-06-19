@@ -30,8 +30,8 @@ async def main() -> None:
         await page.wait_for_selector("text=Build APK", timeout=15000) if False else None
 
         # Replace editor contents by focusing the Monaco textarea.
-        await page.wait_for_selector(".monaco-editor textarea", timeout=20000)
-        await page.click(".monaco-editor textarea")
+        await page.wait_for_selector(".monaco-editor textarea.inputarea", timeout=20000)
+        await page.click(".monaco-editor textarea.inputarea")
         await page.keyboard.press("Control+A")
         await page.keyboard.press("Delete")
         await page.keyboard.insert_text(JAVA_SRC)
