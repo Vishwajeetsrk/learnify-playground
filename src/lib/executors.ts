@@ -44,6 +44,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   python: {
     label: "Python",
     monaco: "python",
+    judge0: { id: 71 },
     wandbox: { compiler: "cpython-3.14.0" },
     piston: { language: "python", version: "3.10.0", filename: "main.py" },
     starter: `print("Hello from Python")\n`,
@@ -51,6 +52,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   javascript: {
     label: "JavaScript",
     monaco: "javascript",
+    judge0: { id: 63 },
     wandbox: { compiler: "nodejs-20.17.0" },
     piston: { language: "javascript", version: "18.15.0", filename: "main.js" },
     starter: `console.log("Hello from JavaScript");\n`,
@@ -58,6 +60,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   typescript: {
     label: "TypeScript",
     monaco: "typescript",
+    judge0: { id: 74 },
     wandbox: { compiler: "typescript-5.6.2" },
     piston: { language: "typescript", version: "5.0.3", filename: "main.ts" },
     starter: `const msg: string = "Hello from TypeScript";\nconsole.log(msg);\n`,
@@ -65,6 +68,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   java: {
     label: "Java",
     monaco: "java",
+    judge0: { id: 62 },
     wandbox: { compiler: "openjdk-jdk-22+36" },
     piston: { language: "java", version: "15.0.2", filename: "Main.java" },
     starter: `class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from Java");\n  }\n}\n`,
@@ -72,6 +76,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   c: {
     label: "C",
     monaco: "c",
+    judge0: { id: 50 },
     wandbox: { compiler: "gcc-13.2.0-c" },
     piston: { language: "c", version: "10.2.0", filename: "main.c" },
     starter: `#include <stdio.h>\nint main(){ printf("Hello from C\\n"); return 0; }\n`,
@@ -79,6 +84,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   cpp: {
     label: "C++",
     monaco: "cpp",
+    judge0: { id: 54 },
     wandbox: { compiler: "gcc-13.2.0" },
     piston: { language: "c++", version: "10.2.0", filename: "main.cpp" },
     starter: `#include <iostream>\nint main(){ std::cout << "Hello from C++" << std::endl; return 0; }\n`,
@@ -86,6 +92,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   csharp: {
     label: "C#",
     monaco: "csharp",
+    judge0: { id: 51 },
     wandbox: { compiler: "mono-6.12.0.199" },
     piston: { language: "csharp", version: "6.12.0", filename: "Main.cs" },
     starter: `using System;\nclass Program { static void Main(){ Console.WriteLine("Hello from C#"); } }\n`,
@@ -93,6 +100,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   php: {
     label: "PHP",
     monaco: "php",
+    judge0: { id: 68 },
     wandbox: { compiler: "php-8.3.12" },
     piston: { language: "php", version: "8.2.3", filename: "main.php" },
     starter: `<?php\necho "Hello from PHP\\n";\n`,
@@ -100,6 +108,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   go: {
     label: "Go",
     monaco: "go",
+    judge0: { id: 60 },
     wandbox: { compiler: "go-1.23.2" },
     piston: { language: "go", version: "1.16.2", filename: "main.go" },
     starter: `package main\nimport "fmt"\nfunc main(){ fmt.Println("Hello from Go") }\n`,
@@ -107,6 +116,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   rust: {
     label: "Rust",
     monaco: "rust",
+    judge0: { id: 73 },
     wandbox: { compiler: "rust-1.82.0" },
     piston: { language: "rust", version: "1.68.2", filename: "main.rs" },
     starter: `fn main(){ println!("Hello from Rust"); }\n`,
@@ -114,18 +124,21 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   ruby: {
     label: "Ruby",
     monaco: "ruby",
+    judge0: { id: 72 },
     wandbox: { compiler: "ruby-3.4.9" },
     starter: `puts "Hello from Ruby"\n`,
   },
   bash: {
     label: "Bash",
     monaco: "shell",
+    judge0: { id: 46 },
     wandbox: { compiler: "bash" },
     starter: `echo "Hello from Bash"\n`,
   },
   kotlin: {
     label: "Kotlin",
     monaco: "kotlin",
+    judge0: { id: 78 },
     piston: { language: "kotlin", version: "1.8.20", filename: "main.kt" },
     starter: `fun main() {\n  println("Hello from Kotlin")\n}\n`,
   },
