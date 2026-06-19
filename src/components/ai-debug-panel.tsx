@@ -107,9 +107,9 @@ export function AiDebugPanel({
 
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 bg-card/30 p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-foreground">
         <Sparkles className="h-3.5 w-3.5 text-primary" /> AI assistant
-        <span className="ml-auto text-[10px] font-normal normal-case text-muted-foreground/70">
+        <span className="ml-auto rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-foreground">
           {language}
         </span>
       </div>
@@ -120,7 +120,9 @@ export function AiDebugPanel({
           return (
             <button key={a.key} onClick={() => setAction(a.key)}
               className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-[11px] transition ${
-                active ? "border-primary/50 bg-primary/10 text-foreground" : "border-border/50 text-muted-foreground hover:text-foreground"
+                active
+                  ? "border-primary/60 bg-primary/15 text-foreground"
+                  : "border-border bg-background text-foreground/80 hover:bg-muted hover:text-foreground"
               }`}>
               <Icon className="h-3 w-3" /> {a.label}
             </button>
