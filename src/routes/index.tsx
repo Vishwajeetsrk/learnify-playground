@@ -147,22 +147,26 @@ print(fib(20))  → 6765`}
         </div>
       </section>
 
-      {/* 3D rotating ring of language logos */}
+      {/* Polyglot Orbit — premium interactive 3D logo carousel */}
       <section className="mx-auto max-w-6xl px-4 pb-20">
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Every language, real logos</h2>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2.5 py-0.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              <Sparkles className="h-3 w-3" /> Polyglot Orbit
+            </span>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">
+              The <span className="bg-gradient-to-r from-primary via-fuchsia-500 to-cyan-400 bg-clip-text text-transparent">Polyglot Orbit</span>
+            </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Hover to pause. Click any logo to jump into the matching playground.
+              Drag to spin · hover to pause · click any logo to launch its playground.
             </p>
           </div>
           <Link to="/tools" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
             See all tools <ArrowRight className="h-3.5 w-3.5" />
-
           </Link>
         </div>
 
-        <LogoRing items={LANGS} />
+        <LogoOrbit items={LANGS} />
 
         {/* Static grid below for full discoverability */}
         <div className="mt-12 grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
