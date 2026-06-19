@@ -155,7 +155,7 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
   sql: {
     label: "SQL",
     monaco: "sql",
-    runnable: false,
+    wandbox: { compiler: "sqlite-3.46.1" },
     starter: `SELECT 'Hello from SQL' AS greeting;\n`,
   },
 };
