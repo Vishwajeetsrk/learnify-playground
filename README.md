@@ -221,10 +221,6 @@ PRs welcome! Please:
 
 <div align="center">
 
-Made with ⚡ on Vishwajeet
-
-
-OpenRouter=
-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
+Made with ⚡ by Vishwajeet
 
 </div>
