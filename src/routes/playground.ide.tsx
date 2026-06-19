@@ -286,12 +286,30 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     ed.focus();
     ed.getAction("editor.action.startFindReplaceAction")?.run();
   }
-  async function formatDocument() {
+  async function formatDocument(silent = false) {
     const ed = editorRef.current; if (!ed) return;
-    ed.focus();
+    if (!silent) ed.focus();
+    const model = ed.getModel();
+    const file = activeFile;
+    if (model && file && !file.asset) {
+      try {
+        const { formatSource, languageFromPath } = await import("@/lib/playground/format");
+        const lang = languageFromPath(file.path);
+        if (lang) {
+          const out = await formatSource(lang, model.getValue());
+          if (out != null && out !== model.getValue()) {
+            const full = model.getFullModelRange();
+            ed.executeEdits("format", [{ range: full, text: out, forceMoveMarkers: true }]);
+            ed.pushUndoStop();
+            if (!silent) toast.success("Formatted");
+            return;
+          }
+        }
+      } catch { /* fall back to Monaco */ }
+    }
     const act = ed.getAction("editor.action.formatDocument");
-    try { await act?.run(); toast.success("Formatted"); }
-    catch { toast.error("Formatter not available for this language"); }
+    try { await act?.run(); if (!silent) toast.success("Formatted"); }
+    catch { if (!silent) toast.error("Formatter not available for this language"); }
   }
 
   async function copyAsMarkdown() {
