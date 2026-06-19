@@ -572,11 +572,14 @@ function MobilePlayground() {
         </div>
 
         <div className="flex w-full min-w-0 flex-col lg:w-[55%]">
-          <div className="flex items-center justify-between border-b border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            <span>Phone preview · logcat</span>
-            <div className="flex items-center gap-1.5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 bg-card/40 px-3 py-2">
+            <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              <Smartphone className="h-3.5 w-3.5" />
+              Phone preview
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
               <span
-                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] normal-case tracking-normal ${
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] tracking-normal ${
                   fallbackInfo
                     ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
                     : "border-primary/40 bg-primary/10 text-primary"
@@ -592,7 +595,7 @@ function MobilePlayground() {
                 {fallbackInfo && <span className="opacity-70">· fallback</span>}
               </span>
               <span
-                className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80"
+                className="rounded-md border border-border/40 bg-background/60 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/80"
                 data-testid="device-info"
               >
                 {d.label} · {baseW}×{baseH}
@@ -600,155 +603,18 @@ function MobilePlayground() {
             </div>
           </div>
 
-          <div className="flex flex-1 items-center justify-center overflow-auto bg-gradient-to-br from-muted/40 to-background p-4">
-            <div
-              className="relative shrink-0 bg-black shadow-2xl"
-              data-testid="device-frame"
-              style={{
-                width: baseW * scale + 24,
-                height: baseH * scale + 24,
-                borderRadius: (d.radius + 6) * scale,
-                padding: 12 * scale,
-              }}
-            >
-              {d.notch && !landscape && (
-                <div
-                  className="absolute left-1/2 top-2 z-10 -translate-x-1/2 rounded-full bg-black"
-                  style={{ width: 110 * scale, height: 26 * scale }}
-                  aria-hidden
-                />
-              )}
-              <div
-                data-testid="mobile-preview"
-                style={{
-                  width: baseW,
-                  height: baseH,
-                  borderRadius: d.radius,
-                  transform: `scale(${scale})`,
-                  transformOrigin: "top left",
-                  background: "#0b0b10",
-                  color: "#e5e7eb",
-                  display: "flex",
-                  flexDirection: "column",
-                  overflow: "hidden",
-                  position: "relative",
-                }}
-              >
-                {/* Status bar */}
-                <div
-                  style={{
-                    height: 28,
-                    background: "linear-gradient(135deg,#16a34a,#059669)",
-                    color: "white",
-                    fontFamily: "system-ui, sans-serif",
-                    fontSize: 12,
-                    fontWeight: 600,
-                    padding: "6px 16px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                  }}
-                >
-                  <span>{d.label.split(" ")[0]}</span>
-                  <span>● ● ●</span>
-                  <span>100%</span>
-                </div>
-
-                {/* Logcat */}
-                <div
-                  ref={screenRef}
-                  data-testid="logcat"
-                  style={{
-                    flex: 1,
-                    overflow: "auto",
-                    padding: 12,
-                    fontFamily:
-                      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-                    fontSize: 12,
-                    lineHeight: 1.5,
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-word",
-                  }}
-                >
-                  {logs.length === 0 ? (
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        height: "100%",
-                        color: "#9ca3af",
-                        textAlign: "center",
-                        gap: 16,
-                        padding: 24,
-                      }}
-                    >
-                      <div style={{ fontSize: 48 }}>📱</div>
-                      <div style={{ fontWeight: 600, color: "#e5e7eb", fontSize: 14 }}>
-                        Your Android app
-                      </div>
-                      <div style={{ fontSize: 12 }}>
-                        Tap the button below to build &amp; launch your Java code.
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRun}
-                        disabled={running}
-                        data-testid="screen-run"
-                        style={{
-                          marginTop: 8,
-                          padding: "10px 24px",
-                          borderRadius: 999,
-                          border: 0,
-                          background: running ? "#374151" : "#22c55e",
-                          color: "white",
-                          fontWeight: 700,
-                          fontSize: 13,
-                          cursor: running ? "wait" : "pointer",
-                        }}
-                      >
-                        {running ? "Building…" : "▶ Run app"}
-                      </button>
-                    </div>
-                  ) : (
-                    logs.map((l, i) => (
-                      <div
-                        key={i}
-                        style={{
-                          color:
-                            l.stream === "err"
-                              ? "#f87171"
-                              : l.stream === "sys"
-                                ? "#a78bfa"
-                                : "#34d399",
-                        }}
-                      >
-                        {l.text}
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                {/* Bottom nav */}
-                <div
-                  style={{
-                    height: 40,
-                    background: "#1f2937",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-around",
-                    color: "#9ca3af",
-                    fontSize: 18,
-                    borderTop: "1px solid rgba(255,255,255,0.05)",
-                  }}
-                >
-                  <span>◁</span>
-                  <span>○</span>
-                  <span>▢</span>
-                </div>
-              </div>
-            </div>
+          <div className="flex flex-1 items-center justify-center overflow-auto bg-gradient-to-br from-slate-900 via-zinc-900 to-slate-950 p-6">
+            <PhoneFrame
+              device={d}
+              baseW={baseW}
+              baseH={baseH}
+              landscape={landscape}
+              scale={scale}
+              running={running}
+              logs={logs}
+              screenRef={screenRef}
+              onRun={handleRun}
+            />
           </div>
 
           <AiDebugPanel
@@ -761,6 +627,312 @@ function MobilePlayground() {
             stdin=""
             onApplyFix={(next) => setCode(next)}
           />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Realistic Android phone frame ---------------------------------------
+
+interface PhoneFrameProps {
+  device: { label: string; w: number; h: number; radius: number; notch: boolean };
+  baseW: number;
+  baseH: number;
+  landscape: boolean;
+  scale: number;
+  running: boolean;
+  logs: LogLine[];
+  screenRef: React.RefObject<HTMLDivElement | null>;
+  onRun: () => void;
+}
+
+function PhoneFrame({
+  device,
+  baseW,
+  baseH,
+  landscape,
+  scale,
+  running,
+  logs,
+  screenRef,
+  onRun,
+}: PhoneFrameProps) {
+  const bezel = 14; // physical bezel thickness around the screen, in device px
+  const outerW = (baseW + bezel * 2) * scale;
+  const outerH = (baseH + bezel * 2) * scale;
+  const radius = (device.radius + bezel) * scale;
+  const now = useMemo(() => {
+    const t = new Date();
+    return `${t.getHours().toString().padStart(2, "0")}:${t.getMinutes().toString().padStart(2, "0")}`;
+  }, [logs.length]);
+
+  return (
+    <div
+      className="relative shrink-0"
+      data-testid="device-frame"
+      style={{ width: outerW, height: outerH }}
+    >
+      {/* Side buttons (right edge) */}
+      <div
+        aria-hidden
+        className="absolute right-[-3px] rounded-r-sm bg-zinc-700"
+        style={{ top: outerH * 0.18, width: 3, height: outerH * 0.06 }}
+      />
+      <div
+        aria-hidden
+        className="absolute right-[-3px] rounded-r-sm bg-zinc-700"
+        style={{ top: outerH * 0.28, width: 3, height: outerH * 0.12 }}
+      />
+      {/* Volume rocker (left edge) */}
+      <div
+        aria-hidden
+        className="absolute left-[-3px] rounded-l-sm bg-zinc-700"
+        style={{ top: outerH * 0.22, width: 3, height: outerH * 0.16 }}
+      />
+
+      {/* Bezel / chassis */}
+      <div
+        className="relative h-full w-full bg-gradient-to-b from-zinc-900 to-black shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_0_2px_rgba(255,255,255,0.04)_inset]"
+        style={{
+          borderRadius: radius,
+          padding: bezel * scale,
+        }}
+      >
+        {/* Screen */}
+        <div
+          data-testid="mobile-preview"
+          style={{
+            width: baseW,
+            height: baseH,
+            borderRadius: device.radius * scale,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
+            background:
+              "radial-gradient(120% 80% at 50% 0%, #1e293b 0%, #0b1020 60%, #050814 100%)",
+            color: "#e5e7eb",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+            position: "relative",
+          }}
+        >
+          {/* Punch-hole / pill camera */}
+          {device.notch && !landscape && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                top: 8,
+                left: "50%",
+                transform: "translateX(-50%)",
+                width: 14,
+                height: 14,
+                borderRadius: 999,
+                background: "#000",
+                boxShadow: "0 0 0 2px #0f172a inset, 0 0 1px 1px rgba(255,255,255,0.06)",
+                zIndex: 5,
+              }}
+            />
+          )}
+
+          {/* Android status bar */}
+          <div
+            style={{
+              height: 30,
+              padding: "0 18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontFamily: "'Google Sans', system-ui, sans-serif",
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#e5e7eb",
+              background: "transparent",
+            }}
+          >
+            <span>{now}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <Signal size={13} />
+              <Wifi size={13} />
+              <BatteryFull size={15} />
+            </div>
+          </div>
+
+          {/* App bar (Material 3) */}
+          <div
+            style={{
+              padding: "6px 16px 12px",
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 999,
+                background: "linear-gradient(135deg,#22c55e,#06b6d4)",
+                display: "grid",
+                placeItems: "center",
+                color: "white",
+                fontWeight: 800,
+                fontSize: 14,
+              }}
+            >
+              A
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>
+                MainActivity
+              </div>
+              <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "ui-monospace, monospace" }}>
+                {device.label} · logcat
+              </div>
+            </div>
+          </div>
+
+          {/* Logcat surface (Material card) */}
+          <div
+            ref={screenRef}
+            data-testid="logcat"
+            style={{
+              flex: 1,
+              margin: "0 12px 12px",
+              padding: 12,
+              borderRadius: 18,
+              background: "rgba(15, 23, 42, 0.65)",
+              border: "1px solid rgba(148,163,184,0.12)",
+              boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset",
+              overflow: "auto",
+              fontFamily:
+                'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
+              fontSize: 12,
+              lineHeight: 1.55,
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+            }}
+          >
+            {logs.length === 0 ? (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: "#94a3b8",
+                  textAlign: "center",
+                  gap: 14,
+                  padding: 16,
+                }}
+              >
+                <div
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: 16,
+                    background: "linear-gradient(135deg,#22c55e,#06b6d4)",
+                    display: "grid",
+                    placeItems: "center",
+                    color: "white",
+                    fontWeight: 800,
+                    fontSize: 24,
+                  }}
+                >
+                  ▶
+                </div>
+                <div style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 14 }}>
+                  Your Android app
+                </div>
+                <div style={{ fontSize: 12, maxWidth: 220 }}>
+                  Tap the green button below to build &amp; launch your Java code.
+                </div>
+              </div>
+            ) : (
+              logs.map((l, i) => {
+                const palette =
+                  l.stream === "err"
+                    ? { dot: "#ef4444", label: "E", text: "#fecaca" }
+                    : l.stream === "sys"
+                      ? { dot: "#a78bfa", label: "S", text: "#ddd6fe" }
+                      : { dot: "#34d399", label: "I", text: "#d1fae5" };
+                return (
+                  <div
+                    key={i}
+                    style={{ display: "flex", gap: 8, alignItems: "baseline" }}
+                  >
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 800,
+                        color: palette.dot,
+                        width: 10,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {palette.label}
+                    </span>
+                    <span style={{ color: palette.text, flex: 1 }}>{l.text}</span>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Floating Action Button */}
+          <button
+            type="button"
+            onClick={onRun}
+            disabled={running}
+            data-testid="screen-run"
+            aria-label={running ? "Building" : "Run app"}
+            style={{
+              position: "absolute",
+              right: 18,
+              bottom: 70,
+              width: 56,
+              height: 56,
+              borderRadius: 18,
+              border: 0,
+              background: running
+                ? "#475569"
+                : "linear-gradient(135deg,#22c55e,#16a34a)",
+              color: "white",
+              boxShadow: "0 10px 25px -8px rgba(34,197,94,0.6)",
+              cursor: running ? "wait" : "pointer",
+              display: "grid",
+              placeItems: "center",
+              fontSize: 22,
+            }}
+          >
+            {running ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : (
+              <Play className="h-5 w-5" style={{ marginLeft: 2 }} />
+            )}
+          </button>
+
+          {/* Android 14 gesture pill */}
+          <div
+            style={{
+              height: 44,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "transparent",
+            }}
+          >
+            <div
+              style={{
+                width: "30%",
+                height: 4,
+                borderRadius: 999,
+                background: "rgba(226,232,240,0.85)",
+              }}
+            />
+          </div>
         </div>
       </div>
     </div>
