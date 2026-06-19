@@ -15,6 +15,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
 import { Route as PlaygroundMobileRouteImport } from './routes/playground.mobile'
+import { Route as PlaygroundIdeRouteImport } from './routes/playground.ide'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -46,11 +47,17 @@ const PlaygroundMobileRoute = PlaygroundMobileRouteImport.update({
   path: '/mobile',
   getParentRoute: () => PlaygroundRoute,
 } as any)
+const PlaygroundIdeRoute = PlaygroundIdeRouteImport.update({
+  id: '/ide',
+  path: '/ide',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tools': typeof ToolsRoute
+  '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground': typeof PlaygroundIndexRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/ide': typeof PlaygroundIdeRoute
   '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
@@ -77,16 +86,24 @@ export interface FileRouteTypes {
     | '/'
     | '/playground'
     | '/tools'
+    | '/playground/ide'
     | '/playground/mobile'
     | '/playground/web'
     | '/playground/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tools' | '/playground/mobile' | '/playground/web' | '/playground'
+  to:
+    | '/'
+    | '/tools'
+    | '/playground/ide'
+    | '/playground/mobile'
+    | '/playground/web'
+    | '/playground'
   id:
     | '__root__'
     | '/'
     | '/playground'
     | '/tools'
+    | '/playground/ide'
     | '/playground/mobile'
     | '/playground/web'
     | '/playground/'
@@ -142,16 +159,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundMobileRouteImport
       parentRoute: typeof PlaygroundRoute
     }
+    '/playground/ide': {
+      id: '/playground/ide'
+      path: '/ide'
+      fullPath: '/playground/ide'
+      preLoaderRoute: typeof PlaygroundIdeRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
   }
 }
 
 interface PlaygroundRouteChildren {
+  PlaygroundIdeRoute: typeof PlaygroundIdeRoute
   PlaygroundMobileRoute: typeof PlaygroundMobileRoute
   PlaygroundWebRoute: typeof PlaygroundWebRoute
   PlaygroundIndexRoute: typeof PlaygroundIndexRoute
 }
 
 const PlaygroundRouteChildren: PlaygroundRouteChildren = {
+  PlaygroundIdeRoute: PlaygroundIdeRoute,
   PlaygroundMobileRoute: PlaygroundMobileRoute,
   PlaygroundWebRoute: PlaygroundWebRoute,
   PlaygroundIndexRoute: PlaygroundIndexRoute,
