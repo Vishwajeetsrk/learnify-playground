@@ -283,15 +283,19 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
   const rafRef = useRef<number | null>(null);
   const stateRef = useRef({
     rotY: 0,
-    velocity: 0.15,        // deg/frame autoplay speed
-    tiltX: -8,             // base tilt
+    velocity: 0.15,
+    tiltX: -8,
     tiltY: 0,
     targetTiltX: -8,
     targetTiltY: 0,
     paused: false,
-    dragging: false,
+    dragging: false,        // true once movement passes threshold
+    pointerDown: false,     // pointer is pressed but maybe just a click
+    startX: 0,
+    startY: 0,
     lastX: 0,
     lastT: 0,
+    pointerId: -1,
   });
 
   const [radius, setRadius] = useState(260);
