@@ -13,6 +13,9 @@ import {
   Loader2,
   Play,
   Square,
+  Wifi,
+  Signal,
+  BatteryFull,
 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
