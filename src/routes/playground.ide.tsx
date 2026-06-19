@@ -40,7 +40,8 @@ import {
 } from "@/lib/playground/themes";
 import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track } from "@/lib/playground/templates";
 import {
-  buildPreviewDoc, buildProjectOverviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
+  buildPreviewDoc, buildProjectOverviewDoc, parseConsoleMessage, parseStorageMessage,
+  PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
 import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 import { ApiTester } from "@/components/playground/ApiTester";
@@ -228,9 +229,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [persistPreviewStorage, setPersistPreviewStorage] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try { return localStorage.getItem("playground:persist-preview-storage:v1") !== "0"; } catch { return true; }
+  });
+  const [previewStorage, setPreviewStorage] = useState<{ local: Record<string, string>; session: Record<string, string> }>({ local: {}, session: {} });
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
+  const storageStorageKey = `${storageKey}::preview-storage`;
 
   // Hydrate
   useEffect(() => {
@@ -264,17 +271,41 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   }, [state.activeFileId, state.files, recentKey]);
 
 
-  // Preview console capture
+  // Preview console + storage capture
   useEffect(() => {
     function onMsg(e: MessageEvent) {
       const m = parseConsoleMessage(e.data);
-      if (!m) return;
-      consoleIdRef.current += 1;
-      setConsoleMsgs((p) => [...p, { id: consoleIdRef.current, level: m.level, text: m.text }].slice(-200));
+      if (m) {
+        consoleIdRef.current += 1;
+        setConsoleMsgs((p) => [...p, { id: consoleIdRef.current, level: m.level, text: m.text }].slice(-200));
+        return;
+      }
+      const s = parseStorageMessage(e.data);
+      if (s) setPreviewStorage((prev) => ({ ...prev, [s.kind]: s.snapshot }));
     }
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
   }, []);
+
+  // Load + persist preview storage snapshot per project.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!persistPreviewStorage) { setPreviewStorage({ local: {}, session: {} }); return; }
+    try {
+      const raw = localStorage.getItem(storageStorageKey);
+      if (raw) setPreviewStorage(JSON.parse(raw));
+      else setPreviewStorage({ local: {}, session: {} });
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageStorageKey, persistPreviewStorage]);
+  useEffect(() => {
+    if (typeof window === "undefined" || !persistPreviewStorage) return;
+    try { localStorage.setItem(storageStorageKey, JSON.stringify(previewStorage)); } catch {}
+  }, [previewStorage, storageStorageKey, persistPreviewStorage]);
+  useEffect(() => {
+    try { localStorage.setItem("playground:persist-preview-storage:v1", persistPreviewStorage ? "1" : "0"); } catch {}
+  }, [persistPreviewStorage]);
+
 
   // Command palette ⌘K / Ctrl+K
   useEffect(() => {
@@ -417,7 +448,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
           assets[basename(f.path)] = f.asset.dataUrl;
         }
       }
-      return buildPreviewDoc({ html, css, js, assets });
+      return buildPreviewDoc({ html, css, js, assets, storageSeed: previewStorage });
     }
     return buildProjectOverviewDoc({
       projectName: state.projectName,
@@ -426,7 +457,11 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         path: f.path, language: f.language, content: f.content, asset: f.asset,
       })),
     });
+    // We intentionally rebuild on `state` changes (auto-reload on edits) but
+    // NOT on every `previewStorage` mutation — that would loop the iframe.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, effectiveTrack]);
+
 
 
 
@@ -1004,6 +1039,28 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                     title="Reset to default split + Fit layout">
                     Reset
                   </button>
+                  <button
+                    onClick={() => setPersistPreviewStorage((v) => !v)}
+                    className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                    title={persistPreviewStorage
+                      ? "Preview localStorage/sessionStorage is being persisted across reloads. Click to disable."
+                      : "Preview localStorage/sessionStorage resets on every reload. Click to persist."}>
+                    <span className="mr-1 h-1.5 w-1.5 rounded-full" style={{ background: persistPreviewStorage ? "#39d98a" : "#888" }} />
+                    Persist
+                  </button>
+                  {persistPreviewStorage && (Object.keys(previewStorage.local).length > 0 || Object.keys(previewStorage.session).length > 0) && (
+                    <button
+                      onClick={() => {
+                        setPreviewStorage({ local: {}, session: {} });
+                        try { localStorage.removeItem(storageStorageKey); } catch { /* noop */ }
+                        setState((s) => ({ ...s }));
+                        toast.success("Preview storage cleared");
+                      }}
+                      className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                      title="Clear the persisted preview localStorage/sessionStorage snapshot">
+                      Clear data
+                    </button>
+                  )}
                 </>
               )}
               {bottomTab === "errors" && (
@@ -1055,10 +1112,10 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
             )}
             {bottomTab === "errors" && (
-              <ConsolePanel
+              <ErrorsPanel
                 msgs={consoleMsgs.filter((m) => m.level === "error" || m.level === "warn")}
                 subtle={palette.subtle}
-                emptyText="No runtime errors or warnings from the Live Preview. 🎉"
+                palette={palette}
               />
             )}
             {bottomTab === "output" && (
@@ -1648,6 +1705,58 @@ function ConsolePanel({ msgs, subtle, emptyText }: { msgs: ConsoleEntry[]; subtl
         <div key={m.id} className="flex gap-2 border-b border-white/5 px-1 py-1">
           <span className="w-12 shrink-0 uppercase opacity-60" style={{ color: color[m.level] ?? color.log }}>{m.level}</span>
           <span className="min-w-0 break-words" style={{ color: color[m.level] ?? color.log }}>{m.text}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ErrorsPanel({ msgs, subtle, palette }: { msgs: ConsoleEntry[]; subtle: string; palette: { bg: string; panel: string; border: string; text: string; subtle: string } }) {
+  // Group identical error texts; surface the parsed source location (file:line:col)
+  // already appended by the iframe bridge as "(preview:42:9)".
+  const groups = useMemo(() => {
+    const map = new Map<string, { level: string; text: string; location: string; count: number; lastId: number }>();
+    for (const m of msgs) {
+      const loc = /\(([^()]+:\d+(?::\d+)?)\)\s*$/.exec(m.text);
+      const location = loc ? loc[1] : "";
+      const text = loc ? m.text.slice(0, loc.index).trim() : m.text;
+      const key = `${m.level}::${text}`;
+      const g = map.get(key);
+      if (g) { g.count += 1; g.lastId = m.id; if (location) g.location = location; }
+      else map.set(key, { level: m.level, text, location, count: 1, lastId: m.id });
+    }
+    return Array.from(map.values()).sort((a, b) => b.lastId - a.lastId);
+  }, [msgs]);
+
+  if (groups.length === 0) return (
+    <div className="grid h-full place-items-center p-4 text-center text-xs" style={{ color: subtle }}>
+      No runtime errors or warnings from the Live Preview. 🎉
+    </div>
+  );
+  const color: Record<string, string> = { error: "#ff6f8a", warn: "#ffb86c" };
+  return (
+    <div className="h-full overflow-auto p-2 font-mono text-[11px] leading-relaxed">
+      {groups.map((g, i) => (
+        <div key={i} className="mb-1 flex items-start gap-2 rounded-md border px-2 py-1.5"
+          style={{ borderColor: palette.border, background: palette.bg }}>
+          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
+            style={{ background: `${color[g.level] ?? color.error}22`, color: color[g.level] ?? color.error }}>
+            {g.level}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="break-words" style={{ color: palette.text }}>{g.text}</div>
+            {g.location && (
+              <div className="mt-0.5 text-[10px]" style={{ color: subtle }}>
+                at <span className="font-semibold">{g.location}</span>
+              </div>
+            )}
+          </div>
+          {g.count > 1 && (
+            <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{ background: `${color[g.level] ?? color.error}22`, color: color[g.level] ?? color.error }}>
+              ×{g.count}
+            </span>
+          )}
         </div>
       ))}
     </div>

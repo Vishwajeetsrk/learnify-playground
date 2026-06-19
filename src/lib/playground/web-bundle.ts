@@ -6,6 +6,8 @@ export interface WebFiles {
   js: string;
   /** Map of asset path/filename -> data URL. Used to rewrite asset references. */
   assets?: Record<string, string>;
+  /** Seed snapshot for the iframe's shimmed local/session storage. */
+  storageSeed?: { local?: Record<string, string>; session?: Record<string, string> };
 }
 
 export const PREVIEW_VIEWPORTS = {
@@ -17,26 +19,39 @@ export const PREVIEW_VIEWPORTS = {
 export type ViewportKey = keyof typeof PREVIEW_VIEWPORTS;
 
 
-const BRIDGE = `<script>
+
+
+function buildBridge(seed: { local: Record<string, string>; session: Record<string, string> }): string {
+  const seedJson = JSON.stringify(seed).replace(/</g, "\\u003c");
+  return `<script>
 (function(){
+  var __seed = ${seedJson};
   // Shim localStorage/sessionStorage: the preview iframe runs without
   // 'allow-same-origin', so the real Storage APIs throw SecurityError.
-  // Provide an in-memory implementation so templates that persist state
-  // (todo lists, expense trackers, etc.) keep working inside the preview.
-  function makeStorage(){
+  // We provide an in-memory implementation, seeded from a snapshot the
+  // parent persists, and report every mutation back so the parent can
+  // sync the snapshot across reloads.
+  function makeStorage(kind, initial){
     var map = Object.create(null);
+    if (initial) for (var k in initial) map[k] = String(initial[k]);
+    function sync(){
+      try {
+        var snap = {}; for (var k in map) snap[k] = map[k];
+        parent.postMessage({ __pgStorage: true, kind: kind, snapshot: snap }, '*');
+      } catch(e){}
+    }
     return {
       get length(){ return Object.keys(map).length; },
       key: function(i){ return Object.keys(map)[i] || null; },
       getItem: function(k){ return Object.prototype.hasOwnProperty.call(map, k) ? map[k] : null; },
-      setItem: function(k, v){ map[String(k)] = String(v); },
-      removeItem: function(k){ delete map[k]; },
-      clear: function(){ map = Object.create(null); },
+      setItem: function(k, v){ map[String(k)] = String(v); sync(); },
+      removeItem: function(k){ delete map[k]; sync(); },
+      clear: function(){ map = Object.create(null); sync(); },
     };
   }
   try {
-    Object.defineProperty(window, 'localStorage',   { value: makeStorage(), configurable: true });
-    Object.defineProperty(window, 'sessionStorage', { value: makeStorage(), configurable: true });
+    Object.defineProperty(window, 'localStorage',   { value: makeStorage('local',   __seed.local),   configurable: true });
+    Object.defineProperty(window, 'sessionStorage', { value: makeStorage('session', __seed.session), configurable: true });
   } catch(e){}
 
   function send(level, args){
@@ -50,10 +65,16 @@ const BRIDGE = `<script>
     console[lvl] = function(){ var args = Array.prototype.slice.call(arguments);
       if (orig) orig.apply(null, args); send(lvl, args); };
   });
-  window.addEventListener('error', function(e){ send('error', [e.message + (e.filename ? ' ('+e.filename+':'+e.lineno+')' : '')]); });
-  window.addEventListener('unhandledrejection', function(e){ send('error', ['Unhandled promise: ' + (e.reason && e.reason.message || e.reason)]); });
+  window.addEventListener('error', function(e){
+    var loc = e.filename ? ' (' + (e.filename.replace('about:srcdoc','preview')) + ':' + e.lineno + ':' + (e.colno||0) + ')' : '';
+    send('error', [(e.message || 'Error') + loc]);
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    send('error', ['Unhandled promise: ' + (e.reason && e.reason.message || e.reason)]);
+  });
 })();
 </script>`;
+}
 
 /** Rewrite occurrences of an asset filename to its data URL inside HTML/CSS text. */
 function rewriteAssets(input: string, assets: Record<string, string>): string {
@@ -71,8 +92,12 @@ function rewriteAssets(input: string, assets: Record<string, string>): string {
   return out;
 }
 
-export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
+export function buildPreviewDoc({ html, css, js, assets, storageSeed }: WebFiles): string {
   const a = assets ?? {};
+  const bridge = buildBridge({
+    local:   storageSeed?.local   ?? {},
+    session: storageSeed?.session ?? {},
+  });
   let htmlOut = rewriteAssets(html, a);
   const cssOut = rewriteAssets(css, a);
   // Remove <link rel="stylesheet" href="*.css"> and <script src="*.js">
@@ -93,7 +118,7 @@ export function buildPreviewDoc({ html, css, js, assets }: WebFiles): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Preview</title>
-${BRIDGE}
+${bridge}
 <style>${cssOut}</style>
 </head>
 <body>
@@ -116,6 +141,16 @@ export function parseConsoleMessage(data: unknown): ConsoleMsg | null {
     text: Array.isArray(d.args) ? d.args.map(String).join(" ") : "",
     at: Date.now(),
   };
+}
+
+export interface StorageMsg { kind: "local" | "session"; snapshot: Record<string, string> }
+
+export function parseStorageMessage(data: unknown): StorageMsg | null {
+  if (!data || typeof data !== "object") return null;
+  const d = data as { __pgStorage?: boolean; kind?: string; snapshot?: Record<string, string> };
+  if (!d.__pgStorage) return null;
+  const kind = d.kind === "session" ? "session" : "local";
+  return { kind, snapshot: d.snapshot ?? {} };
 }
 
 // --------------------------------------------------------------------------
@@ -200,11 +235,12 @@ export function buildProjectOverviewDoc(opts: {
     : "";
 
   const trackLabel = track === "mobile" ? "Mobile project" : track === "code" ? "Code project" : "Web project";
+  const bridge = buildBridge({ local: {}, session: {} });
 
   return `<!doctype html><html lang="en"><head>
 <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${escapeHtml(projectName)}</title>
-${BRIDGE}
+${bridge}
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
