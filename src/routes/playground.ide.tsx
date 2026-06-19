@@ -80,6 +80,7 @@ interface IdeState {
 }
 
 interface ConsoleEntry { id: number; level: string; text: string }
+interface UploadItem { id: string; name: string; size: number; status: "pending" | "done" | "error"; error?: string }
 
 const DEFAULT_LS_KEY = "playground-ide:v1";
 const QUICK_KEYS = ["Tab", "{", "}", "(", ")", "[", "]", ";", "=", "<", ">", "\"", "/"] as const;
