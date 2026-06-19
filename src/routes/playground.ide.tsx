@@ -636,6 +636,12 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const onMount = useCallback<OnMount>((ed, mn) => {
     editorRef.current = ed; monacoRef.current = mn;
     registerEditorThemes(mn);
+    // Cmd/Ctrl+S = save (autosave already runs; format first when enabled).
+    ed.addCommand(mn.KeyMod.CtrlCmd | mn.KeyCode.KeyS, async () => {
+      const { getFormatOnSave } = await import("@/lib/playground/format");
+      if (getFormatOnSave()) await formatDocument(true);
+      toast.success("Saved");
+    });
   }, []);
 
   function insertQuickKey(k: string) {
