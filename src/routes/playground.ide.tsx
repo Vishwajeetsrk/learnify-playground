@@ -782,7 +782,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <span className={i === arr.length - 1 ? "font-medium" : ""} style={i === arr.length - 1 ? { color: palette.text } : undefined}>{seg}</span>
             </span>
           ))}
-          <Button size="sm" variant="ghost" onClick={formatDocument} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
+          <Button size="sm" variant="ghost" onClick={() => formatDocument()} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
             <Wand2 size={11} className="mr-1" /> Format
           </Button>
         </div>
