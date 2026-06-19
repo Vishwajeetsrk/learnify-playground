@@ -167,7 +167,7 @@ print(fib(20))  → 6765`}
         {/* Static grid below for full discoverability */}
         <div className="mt-12 grid grid-cols-3 gap-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8">
           {LANGS.map((l) => (
-            <LogoTile key={l.slug} name={l.name} slug={l.slug} color={l.color} to={l.to} />
+            <LogoTile key={l.slug} name={l.name} slug={l.slug} color={l.color} to={l.to} lang={l.lang} />
           ))}
         </div>
       </section>
