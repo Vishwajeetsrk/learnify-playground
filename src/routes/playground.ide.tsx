@@ -614,39 +614,24 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
       {/* Files sheet */}
       <Sheet open={filesOpen} onOpenChange={setFilesOpen}>
-        <SheetContent side="left" className="w-[320px] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+        <SheetContent side="left" className="w-[340px] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
           <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
             <SheetTitle style={{ color: palette.text }}>Files</SheetTitle>
           </SheetHeader>
-          <div className="p-3">
-            <div className="mb-2 flex gap-1">
-              <AddFileButton onAdd={addFile} palette={palette} />
-              <Button size="sm" variant="ghost" className="flex-1" onClick={() => setTemplatesOpen(true)}>
-                <LayoutGrid size={14} className="mr-1" /> Templates
-              </Button>
-            </div>
-            <ul className="grid gap-1">
-              {state.files.map((f) => (
-                <li key={f.id} className="flex items-center gap-2 rounded-md px-2 py-1.5"
-                  style={{ background: f.id === state.activeFileId ? palette.bg : "transparent" }}>
-                  <FileIcon name={f.name} />
-                  <button className="flex-1 truncate text-left text-sm"
-                    onClick={() => { setState((s) => ({ ...s, activeFileId: f.id })); setFilesOpen(false); }}>
-                    {f.name}
-                  </button>
-                  <button onClick={() => {
-                    const name = prompt("Rename file", f.name);
-                    if (name && name !== f.name) renameFile(f.id, name);
-                  }} className="opacity-60 hover:opacity-100" title="Rename">✎</button>
-                  {state.files.length > 1 && (
-                    <button onClick={() => deleteFile(f.id)} className="opacity-60 hover:opacity-100" title="Delete">
-                      <Trash2 size={12} />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
+          <FilesTree
+            files={state.files}
+            folders={state.folders ?? []}
+            activeFileId={state.activeFileId}
+            palette={palette}
+            onOpen={(id) => { setState((s) => ({ ...s, activeFileId: id })); setFilesOpen(false); }}
+            onAddFile={addFile}
+            onAddFolder={addFolder}
+            onDeleteFile={deleteFile}
+            onDeleteFolder={deleteFolder}
+            onRenameFile={renameFile}
+            onUploadAssets={uploadAssets}
+            onOpenTemplates={() => setTemplatesOpen(true)}
+          />
         </SheetContent>
       </Sheet>
 
@@ -658,34 +643,58 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               Start from a {effectiveTrack === "code" ? "Code" : effectiveTrack === "mobile" ? "Mobile" : "Web"} template
             </SheetTitle>
           </SheetHeader>
-          <div className="grid grid-cols-2 gap-2 overflow-auto p-3 sm:grid-cols-3">
-            {effectiveTrack !== "code" && (
-              <button onClick={() => newBlank("web")}
-                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
-                style={{ borderColor: palette.border, background: palette.bg }}>
-                <TemplateIcon name="blank-web" size={24} />
-                <span className="text-sm font-semibold">Blank Web</span>
-                <span className="text-[11px]" style={{ color: palette.subtle }}>HTML + CSS + JS</span>
-              </button>
+          <div className="overflow-auto p-3">
+            {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).length > 0 && (
+              <>
+                <div className="mb-2 mt-1 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>
+                  Multi-file projects
+                </div>
+                <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {MULTI_TEMPLATES.filter((t) => t.tracks.includes(effectiveTrack)).map((t) => (
+                    <button key={t.id} onClick={() => loadMultiTemplate(t)}
+                      className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
+                      style={{ borderColor: palette.border, background: palette.bg }}>
+                      <TemplateIcon name={t.icon} size={24} />
+                      <span className="text-sm font-semibold">{t.name}</span>
+                      <span className="line-clamp-2 text-[11px]" style={{ color: palette.subtle }}>{t.description}</span>
+                      <span className="text-[10px] opacity-60">{t.files.length} files · {t.folders.length} folders</span>
+                    </button>
+                  ))}
+                </div>
+              </>
             )}
-            {effectiveTrack === "code" && (
-              <button onClick={() => newBlank("code")}
-                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
-                style={{ borderColor: palette.border, background: palette.bg }}>
-                <TemplateIcon name="blank-code" size={24} />
-                <span className="text-sm font-semibold">Blank Script</span>
-                <span className="text-[11px]" style={{ color: palette.subtle }}>Pick any language</span>
-              </button>
-            )}
-            {trackTemplates.map((t) => (
-              <button key={t.id} onClick={() => loadTemplate(t)}
-                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
-                style={{ borderColor: palette.border, background: palette.bg }}>
-                <TemplateIcon name={t.icon} size={24} />
-                <span className="text-sm font-semibold">{t.name}</span>
-                <span className="line-clamp-2 text-[11px]" style={{ color: palette.subtle }}>{t.description}</span>
-              </button>
-            ))}
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider" style={{ color: palette.subtle }}>
+              Single-file templates
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {effectiveTrack !== "code" && (
+                <button onClick={() => newBlank("web")}
+                  className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
+                  style={{ borderColor: palette.border, background: palette.bg }}>
+                  <TemplateIcon name="blank-web" size={24} />
+                  <span className="text-sm font-semibold">Blank Web</span>
+                  <span className="text-[11px]" style={{ color: palette.subtle }}>HTML + CSS + JS</span>
+                </button>
+              )}
+              {effectiveTrack === "code" && (
+                <button onClick={() => newBlank("code")}
+                  className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
+                  style={{ borderColor: palette.border, background: palette.bg }}>
+                  <TemplateIcon name="blank-code" size={24} />
+                  <span className="text-sm font-semibold">Blank Script</span>
+                  <span className="text-[11px]" style={{ color: palette.subtle }}>Pick any language</span>
+                </button>
+              )}
+              {trackTemplates.map((t) => (
+                <button key={t.id} onClick={() => loadTemplate(t)}
+                  className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
+                  style={{ borderColor: palette.border, background: palette.bg }}>
+                  <TemplateIcon name={t.icon} size={24} />
+                  <span className="text-sm font-semibold">{t.name}</span>
+                  <span className="line-clamp-2 text-[11px]" style={{ color: palette.subtle }}>{t.description}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </SheetContent>
       </Sheet>
