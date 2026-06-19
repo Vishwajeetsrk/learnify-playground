@@ -672,6 +672,8 @@ export const TEMPLATES: Template[] = [
   tag(kotlinHello, ["mobile", "code"]),
   tag(kotlinOop, ["mobile", "code"]),
   tag(kotlinAndroid, ["mobile"]),
+  tag(javaMobileHello, ["mobile"]),
+  tag(javaAndroid, ["mobile"]),
   tag(swiftHello, ["mobile", "code"]),
   tag(swiftStruct, ["mobile", "code"]),
   tag(dartHello, ["mobile", "code"]),
