@@ -22,14 +22,14 @@ export const Route = createFileRoute("/playground/")({
 
 function CodePlayground() {
   const [lang, setLang] = useState<LangKey>("python");
-  const [provider, setProvider] = useState<ProviderKey>("piston");
+  const [provider, setProvider] = useState<ProviderKey>("wandbox");
   const [code, setCode] = useState(LANGUAGES.python.starter);
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
   const [stdout, setStdout] = useState("");
   const [stderr, setStderr] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
-  const [activeProvider, setActiveProvider] = useState<ProviderKey>("piston");
+  const [activeProvider, setActiveProvider] = useState<ProviderKey>("wandbox");
   const [running, setRunning] = useState(false);
   const dirtyRef = useRef(false);
 
