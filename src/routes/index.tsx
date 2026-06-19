@@ -185,7 +185,10 @@ print(fib(20))  → 6765`}
 }
 
 function ContributorsSection() {
-  const { data, isLoading, isError } = useContributors(8);
+  const { data, isLoading, isFetching, isError, refetch } = useContributors(8);
+  const errMsg = !isLoading && data && !data.ok ? describeGhError(data) : isError ? "Couldn't reach GitHub." : "";
+  const contributors = data && data.ok ? data.data : [];
+
   return (
     <section className="mx-auto max-w-6xl px-4 pb-24">
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
@@ -198,14 +201,26 @@ function ContributorsSection() {
             Built in the open on GitHub — huge thanks to everyone shipping commits.
           </p>
         </div>
-        <a
-          href={`${GITHUB_REPO_URL}/graphs/contributors`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
-        >
-          See all <ArrowRight className="h-3.5 w-3.5" />
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            aria-label="Refresh stars and contributors"
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-3 py-1.5 text-xs font-medium text-foreground backdrop-blur transition-all hover:-translate-y-0.5 hover:border-primary/50 disabled:opacity-60"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <a
+            href={GITHUB_CONTRIBUTORS_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            View all contributors <ArrowRight className="h-3.5 w-3.5" />
+          </a>
+        </div>
       </div>
 
       {isLoading ? (
@@ -214,16 +229,30 @@ function ContributorsSection() {
             <div key={i} className="h-24 animate-pulse rounded-2xl border border-border bg-card/40" />
           ))}
         </div>
-      ) : isError || !data || data.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
-          Couldn't load contributors right now.{" "}
-          <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-            View on GitHub
-          </a>.
+      ) : errMsg || contributors.length === 0 ? (
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-card/40 p-6 text-center text-sm text-muted-foreground">
+          <div className="inline-flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 text-amber-400" />
+            {errMsg || "No contributors yet."}
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground hover:border-primary/50 disabled:opacity-60"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${isFetching ? "animate-spin" : ""}`} />
+              Try again
+            </button>
+            <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+              View on GitHub
+            </a>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-          {data.map((c) => (
+          {contributors.map((c) => (
             <a
               key={c.id}
               href={c.html_url}
