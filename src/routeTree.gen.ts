@@ -14,6 +14,7 @@ import { Route as PlaygroundRouteImport } from './routes/playground'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PlaygroundIndexRouteImport } from './routes/playground.index'
 import { Route as PlaygroundWebRouteImport } from './routes/playground.web'
+import { Route as PlaygroundMobileRouteImport } from './routes/playground.mobile'
 
 const ToolsRoute = ToolsRouteImport.update({
   id: '/tools',
@@ -40,17 +41,24 @@ const PlaygroundWebRoute = PlaygroundWebRouteImport.update({
   path: '/web',
   getParentRoute: () => PlaygroundRoute,
 } as any)
+const PlaygroundMobileRoute = PlaygroundMobileRouteImport.update({
+  id: '/mobile',
+  path: '/mobile',
+  getParentRoute: () => PlaygroundRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/tools': typeof ToolsRoute
+  '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground': typeof PlaygroundIndexRoute
 }
@@ -59,19 +67,27 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/playground': typeof PlaygroundRouteWithChildren
   '/tools': typeof ToolsRoute
+  '/playground/mobile': typeof PlaygroundMobileRoute
   '/playground/web': typeof PlaygroundWebRoute
   '/playground/': typeof PlaygroundIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/playground' | '/tools' | '/playground/web' | '/playground/'
+  fullPaths:
+    | '/'
+    | '/playground'
+    | '/tools'
+    | '/playground/mobile'
+    | '/playground/web'
+    | '/playground/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/tools' | '/playground/web' | '/playground'
+  to: '/' | '/tools' | '/playground/mobile' | '/playground/web' | '/playground'
   id:
     | '__root__'
     | '/'
     | '/playground'
     | '/tools'
+    | '/playground/mobile'
     | '/playground/web'
     | '/playground/'
   fileRoutesById: FileRoutesById
@@ -119,15 +135,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlaygroundWebRouteImport
       parentRoute: typeof PlaygroundRoute
     }
+    '/playground/mobile': {
+      id: '/playground/mobile'
+      path: '/mobile'
+      fullPath: '/playground/mobile'
+      preLoaderRoute: typeof PlaygroundMobileRouteImport
+      parentRoute: typeof PlaygroundRoute
+    }
   }
 }
 
 interface PlaygroundRouteChildren {
+  PlaygroundMobileRoute: typeof PlaygroundMobileRoute
   PlaygroundWebRoute: typeof PlaygroundWebRoute
   PlaygroundIndexRoute: typeof PlaygroundIndexRoute
 }
 
 const PlaygroundRouteChildren: PlaygroundRouteChildren = {
+  PlaygroundMobileRoute: PlaygroundMobileRoute,
   PlaygroundWebRoute: PlaygroundWebRoute,
   PlaygroundIndexRoute: PlaygroundIndexRoute,
 }
