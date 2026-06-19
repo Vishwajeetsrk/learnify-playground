@@ -150,6 +150,23 @@ function DatabasePlayground() {
 
   const onMount = useCallback<OnMount>((ed, mn) => {
     editorRef.current = ed; registerEditorThemes(mn);
+    ed.addCommand(mn.KeyMod.CtrlCmd | mn.KeyCode.KeyS, async () => {
+      try {
+        const { formatSource, getFormatOnSave } = await import("@/lib/playground/format");
+        if (getFormatOnSave()) {
+          const model = ed.getModel();
+          if (model) {
+            const out = await formatSource("sql", model.getValue());
+            if (out != null && out !== model.getValue()) {
+              const full = model.getFullModelRange();
+              ed.executeEdits("format", [{ range: full, text: out, forceMoveMarkers: true }]);
+              ed.pushUndoStop();
+            }
+          }
+        }
+      } catch { /* ignore */ }
+      toast.success("Saved");
+    });
   }, []);
 
   const dialectInfo = DIALECTS.find((d) => d.id === state.dialect)!;

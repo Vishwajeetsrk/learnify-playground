@@ -213,6 +213,10 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [assetsOpen, setAssetsOpen] = useState(false);
   const [graphOpen, setGraphOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
+  const [formatOnSave, setFormatOnSaveState] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return localStorage.getItem("playground:format-on-save:v1") === "1"; } catch { return false; }
+  });
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
@@ -286,12 +290,35 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     ed.focus();
     ed.getAction("editor.action.startFindReplaceAction")?.run();
   }
-  async function formatDocument() {
+  async function formatDocument(silent = false) {
     const ed = editorRef.current; if (!ed) return;
-    ed.focus();
+    if (!silent) ed.focus();
+    const model = ed.getModel();
+    if (model) {
+      try {
+        const { formatSource } = await import("@/lib/playground/format");
+        const monacoLang = model.getLanguageId();
+        const map: Record<string, Parameters<typeof formatSource>[0]> = {
+          typescript: "typescript", javascript: "javascript", json: "json",
+          css: "css", scss: "scss", less: "less", markdown: "markdown",
+          yaml: "yaml", sql: "sql",
+        };
+        const lang = map[monacoLang];
+        if (lang) {
+          const out = await formatSource(lang, model.getValue());
+          if (out != null && out !== model.getValue()) {
+            const full = model.getFullModelRange();
+            ed.executeEdits("format", [{ range: full, text: out, forceMoveMarkers: true }]);
+            ed.pushUndoStop();
+            if (!silent) toast.success("Formatted");
+            return;
+          }
+        }
+      } catch { /* fall back to Monaco */ }
+    }
     const act = ed.getAction("editor.action.formatDocument");
-    try { await act?.run(); toast.success("Formatted"); }
-    catch { toast.error("Formatter not available for this language"); }
+    try { await act?.run(); if (!silent) toast.success("Formatted"); }
+    catch { if (!silent) toast.error("Formatter not available for this language"); }
   }
 
   async function copyAsMarkdown() {
@@ -618,6 +645,12 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const onMount = useCallback<OnMount>((ed, mn) => {
     editorRef.current = ed; monacoRef.current = mn;
     registerEditorThemes(mn);
+    // Cmd/Ctrl+S = save (autosave already runs; format first when enabled).
+    ed.addCommand(mn.KeyMod.CtrlCmd | mn.KeyCode.KeyS, async () => {
+      const { getFormatOnSave } = await import("@/lib/playground/format");
+      if (getFormatOnSave()) await formatDocument(true);
+      toast.success("Saved");
+    });
   }, []);
 
   function insertQuickKey(k: string) {
@@ -764,7 +797,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               <span className={i === arr.length - 1 ? "font-medium" : ""} style={i === arr.length - 1 ? { color: palette.text } : undefined}>{seg}</span>
             </span>
           ))}
-          <Button size="sm" variant="ghost" onClick={formatDocument} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
+          <Button size="sm" variant="ghost" onClick={() => formatDocument()} className="ml-auto h-6 px-2 text-[10px]" title="Format document (Shift+Alt+F)">
             <Wand2 size={11} className="mr-1" /> Format
           </Button>
         </div>
@@ -1249,6 +1282,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 className="inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm"
                 style={{ borderColor: palette.border }}>
                 <Maximize2 size={14} className="mr-1" /> Fullscreen
+              </button>
+            </SettingRow>
+            <SettingRow label="Format on save">
+              <button onClick={async () => {
+                const next = !formatOnSave;
+                setFormatOnSaveState(next);
+                const { setFormatOnSave } = await import("@/lib/playground/format");
+                setFormatOnSave(next);
+                toast.success(next ? "Format on save: ON" : "Format on save: OFF");
+              }}
+                className="inline-flex h-9 items-center justify-center rounded-md border px-3 text-sm"
+                style={{ borderColor: palette.border }}>
+                <Wand2 size={14} className="mr-1" /> {formatOnSave ? "Enabled" : "Disabled"}
               </button>
             </SettingRow>
             <div className="rounded-md border p-3 text-xs" style={{ borderColor: palette.border, color: palette.subtle }}>

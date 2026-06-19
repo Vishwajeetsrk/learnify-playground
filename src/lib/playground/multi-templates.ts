@@ -337,10 +337,239 @@ Add images / PDFs to the \`assets/\` folder.
   ],
 };
 
+// ---------------------------------------------------------------------------
+// Networked starters: each ships an ApiService + Repository layer wired to a
+// public placeholder API so devs can study a clean architecture without setup.
+
+const androidKotlinApi: MultiTemplate = {
+  id: "android-kotlin-api",
+  kind: "multi",
+  name: "Android · Kotlin + API",
+  icon: "android",
+  description: "Kotlin/Compose app with Retrofit ApiService + Repository layer.",
+  tracks: ["mobile"],
+  language: "kotlin",
+  folders: ["src", "src/data", "src/data/remote", "src/data/repository", "src/ui", "assets"],
+  activePath: "src/ui/PostsScreen.kt",
+  files: [
+    { path: "src/data/remote/ApiService.kt", content: `package com.example.app.data.remote
+
+import retrofit2.http.GET
+import retrofit2.http.Path
+
+data class Post(val id: Int, val title: String, val body: String)
+
+interface ApiService {
+  @GET("posts") suspend fun listPosts(): List<Post>
+  @GET("posts/{id}") suspend fun getPost(@Path("id") id: Int): Post
+}
+` },
+    { path: "src/data/remote/RetrofitClient.kt", content: `package com.example.app.data.remote
+
+import retrofit2.Retrofit
+import retrofit2.converter.moshi.MoshiConverterFactory
+
+object RetrofitClient {
+  val api: ApiService by lazy {
+    Retrofit.Builder()
+      .baseUrl("https://jsonplaceholder.typicode.com/")
+      .addConverterFactory(MoshiConverterFactory.create())
+      .build()
+      .create(ApiService::class.java)
+  }
+}
+` },
+    { path: "src/data/repository/PostsRepository.kt", content: `package com.example.app.data.repository
+
+import com.example.app.data.remote.Post
+import com.example.app.data.remote.RetrofitClient
+
+class PostsRepository(private val api: com.example.app.data.remote.ApiService = RetrofitClient.api) {
+  suspend fun all(): List<Post> = api.listPosts()
+  suspend fun one(id: Int): Post = api.getPost(id)
+}
+` },
+    { path: "src/ui/PostsScreen.kt", content: `package com.example.app.ui
+
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.example.app.data.remote.Post
+import com.example.app.data.repository.PostsRepository
+import kotlinx.coroutines.launch
+
+@Composable
+fun PostsScreen(repo: PostsRepository = PostsRepository()) {
+  var posts by remember { mutableStateOf<List<Post>>(emptyList()) }
+  val scope = rememberCoroutineScope()
+  LaunchedEffect(Unit) { scope.launch { posts = repo.all() } }
+  LazyColumn(Modifier.padding(16.dp)) {
+    items(posts) { p ->
+      ListItem(headlineContent = { Text(p.title) }, supportingContent = { Text(p.body) })
+      Divider()
+    }
+  }
+}
+` },
+    { path: "README.md", content: `# Android Kotlin + API Starter
+
+Architecture: Compose UI → Repository → ApiService (Retrofit + Moshi).
+Replace the base URL in \`RetrofitClient.kt\` and add your own endpoints
+to \`ApiService.kt\`. The Repository layer keeps UI code free of network details.
+` },
+  ],
+};
+
+const iosSwiftApi: MultiTemplate = {
+  id: "ios-swift-api",
+  kind: "multi",
+  name: "iOS · Swift + API",
+  icon: "swift",
+  description: "SwiftUI app with URLSession ApiService + Repository layer.",
+  tracks: ["mobile"],
+  language: "swift",
+  folders: ["Sources", "Sources/Data", "Sources/Data/Remote", "Sources/Data/Repository", "Sources/Views", "assets"],
+  activePath: "Sources/Views/PostsView.swift",
+  files: [
+    { path: "Sources/Data/Remote/ApiService.swift", content: `import Foundation
+
+struct Post: Codable, Identifiable {
+  let id: Int; let title: String; let body: String
+}
+
+protocol ApiService {
+  func listPosts() async throws -> [Post]
+  func post(id: Int) async throws -> Post
+}
+
+final class HttpApiService: ApiService {
+  private let base = URL(string: "https://jsonplaceholder.typicode.com")!
+  func listPosts() async throws -> [Post] {
+    let (data, _) = try await URLSession.shared.data(from: base.appendingPathComponent("posts"))
+    return try JSONDecoder().decode([Post].self, from: data)
+  }
+  func post(id: Int) async throws -> Post {
+    let (data, _) = try await URLSession.shared.data(from: base.appendingPathComponent("posts/\\(id)"))
+    return try JSONDecoder().decode(Post.self, from: data)
+  }
+}
+` },
+    { path: "Sources/Data/Repository/PostsRepository.swift", content: `import Foundation
+
+final class PostsRepository {
+  private let api: ApiService
+  init(api: ApiService = HttpApiService()) { self.api = api }
+  func all() async throws -> [Post] { try await api.listPosts() }
+  func one(_ id: Int) async throws -> Post { try await api.post(id: id) }
+}
+` },
+    { path: "Sources/Views/PostsView.swift", content: `import SwiftUI
+
+struct PostsView: View {
+  @State private var posts: [Post] = []
+  private let repo = PostsRepository()
+  var body: some View {
+    List(posts) { p in
+      VStack(alignment: .leading) {
+        Text(p.title).font(.headline)
+        Text(p.body).font(.subheadline).foregroundColor(.secondary)
+      }
+    }
+    .task { posts = (try? await repo.all()) ?? [] }
+  }
+}
+` },
+    { path: "README.md", content: `# iOS Swift + API Starter
+
+Architecture: SwiftUI View → Repository → ApiService (URLSession).
+Swap \`HttpApiService\` for a mock in previews/tests by conforming to \`ApiService\`.
+` },
+  ],
+};
+
+const flutterApi: MultiTemplate = {
+  id: "flutter-api",
+  kind: "multi",
+  name: "Flutter · Dart + API",
+  icon: "flutter",
+  description: "Flutter app with http ApiService + Repository layer.",
+  tracks: ["mobile"],
+  language: "dart",
+  folders: ["lib", "lib/data", "lib/data/remote", "lib/data/repository", "lib/screens", "assets"],
+  activePath: "lib/screens/posts_screen.dart",
+  files: [
+    { path: "lib/data/remote/api_service.dart", content: `import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+class Post {
+  final int id; final String title; final String body;
+  Post(this.id, this.title, this.body);
+  factory Post.fromJson(Map<String, dynamic> j) => Post(j['id'], j['title'], j['body']);
+}
+
+class ApiService {
+  static const _base = 'https://jsonplaceholder.typicode.com';
+  Future<List<Post>> listPosts() async {
+    final r = await http.get(Uri.parse('\$_base/posts'));
+    return (jsonDecode(r.body) as List).map((j) => Post.fromJson(j)).toList();
+  }
+  Future<Post> getPost(int id) async {
+    final r = await http.get(Uri.parse('\$_base/posts/\$id'));
+    return Post.fromJson(jsonDecode(r.body));
+  }
+}
+` },
+    { path: "lib/data/repository/posts_repository.dart", content: `import '../remote/api_service.dart';
+
+class PostsRepository {
+  final ApiService api;
+  PostsRepository({ApiService? api}) : api = api ?? ApiService();
+  Future<List<Post>> all() => api.listPosts();
+  Future<Post> one(int id) => api.getPost(id);
+}
+` },
+    { path: "lib/screens/posts_screen.dart", content: `import 'package:flutter/material.dart';
+import '../data/repository/posts_repository.dart';
+import '../data/remote/api_service.dart';
+
+class PostsScreen extends StatefulWidget {
+  const PostsScreen({super.key});
+  @override State<PostsScreen> createState() => _PostsScreenState();
+}
+
+class _PostsScreenState extends State<PostsScreen> {
+  final repo = PostsRepository();
+  List<Post> posts = [];
+  @override void initState() { super.initState(); repo.all().then((p) => setState(() => posts = p)); }
+  @override Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('Posts')),
+    body: ListView.separated(
+      itemCount: posts.length,
+      separatorBuilder: (_, __) => const Divider(),
+      itemBuilder: (_, i) => ListTile(title: Text(posts[i].title), subtitle: Text(posts[i].body)),
+    ),
+  );
+}
+` },
+    { path: "README.md", content: `# Flutter + API Starter
+
+Architecture: Widget → Repository → ApiService (package:http).
+Add \`http: ^1.0.0\` to pubspec dependencies.
+` },
+  ],
+};
+
 export const MULTI_TEMPLATES: MultiTemplate[] = [
   androidKotlin,
   javaAndroidApp,
   iosSwift,
   flutterApp,
   webStarter,
+  androidKotlinApi,
+  iosSwiftApi,
+  flutterApi,
 ];

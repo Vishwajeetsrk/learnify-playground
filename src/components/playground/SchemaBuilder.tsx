@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Database } from "sql.js";
 import {
-  Database as DbIcon, KeyRound, Link2, Plus, RefreshCw, Table as TableIcon,
+  Database as DbIcon, KeyRound, Link2, Network, Plus, RefreshCw, Table as TableIcon,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { SchemaDiagram } from "./SchemaDiagram";
 
 const SQL_TYPES = ["INTEGER", "TEXT", "REAL", "NUMERIC", "BLOB", "BOOLEAN", "DATE", "DATETIME"] as const;
 type SqlType = typeof SQL_TYPES[number];
@@ -54,6 +55,7 @@ export function SchemaBuilder({ db, onChange }: SchemaBuilderProps) {
   const [tables, setTables] = useState<TableInfo[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"editor" | "diagram">("editor");
 
   const refresh = useCallback(() => {
     if (!db) { setTables([]); return; }
@@ -134,6 +136,9 @@ export function SchemaBuilder({ db, onChange }: SchemaBuilderProps) {
         <span className="text-xs font-semibold">Schema</span>
         <span className="text-[11px] opacity-60">{tables.length} table{tables.length === 1 ? "" : "s"}</span>
         <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={() => setView((v) => v === "editor" ? "diagram" : "editor")}>
+            <Network size={11} className="mr-1" /> {view === "editor" ? "Diagram" : "Editor"}
+          </Button>
           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" onClick={refresh}>
             <RefreshCw size={11} className="mr-1" /> Refresh
           </Button>
@@ -143,6 +148,15 @@ export function SchemaBuilder({ db, onChange }: SchemaBuilderProps) {
         </div>
       </div>
 
+      {view === "diagram" ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <SchemaDiagram tables={tables.map((t) => ({
+            name: t.name,
+            columns: t.columns.map((c) => ({ name: c.name, type: c.type, pk: c.pk > 0, notnull: c.notnull > 0 })),
+            fks: t.fks,
+          }))} />
+        </div>
+      ) : (
       <div className="grid min-h-0 flex-1 grid-cols-[140px_1fr] divide-x divide-white/10">
         <aside className="overflow-auto p-1">
           {tables.length === 0 && (
@@ -182,6 +196,7 @@ export function SchemaBuilder({ db, onChange }: SchemaBuilderProps) {
           )}
         </section>
       </div>
+      )}
     </div>
   );
 }
