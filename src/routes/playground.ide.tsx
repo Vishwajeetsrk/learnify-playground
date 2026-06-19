@@ -34,8 +34,15 @@ export const Route = createFileRoute("/playground/ide")({
       { name: "description", content: "Full mobile IDE: write, run, preview, and AI-debug HTML/CSS/JS, Python, Node, Java, and more from your phone." },
     ],
   }),
-  component: IdePlayground,
+  component: () => <IdePlayground />,
 });
+
+export interface IdePlaygroundProps {
+  defaultKind?: "web" | "code";
+  storageKey?: string;
+  defaultLanguage?: LangKey;
+  defaultProjectName?: string;
+}
 
 // --------------------------------------------------------------------------
 // Types
