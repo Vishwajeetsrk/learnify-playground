@@ -21,7 +21,7 @@ import {
   APP_THEMES, EDITOR_THEMES, useAppTheme, useEditorTheme, registerEditorThemes,
   type AppThemeKey, type EditorThemeKey,
 } from "@/lib/playground/themes";
-import { TEMPLATES, WEB_TEMPLATES, type Template } from "@/lib/playground/templates";
+import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track } from "@/lib/playground/templates";
 import {
   buildPreviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
@@ -42,6 +42,8 @@ export interface IdePlaygroundProps {
   storageKey?: string;
   defaultLanguage?: LangKey;
   defaultProjectName?: string;
+  /** Filters the templates sheet ("code" | "web" | "mobile"). Defaults to defaultKind. */
+  track?: Track;
 }
 
 // --------------------------------------------------------------------------
@@ -132,7 +134,9 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName }: IdePlaygroundProps = {}) {
+export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName, track }: IdePlaygroundProps = {}) {
+  const effectiveTrack: Track = track ?? (defaultKind === "code" ? "code" : "web");
+  const trackTemplates = useMemo(() => templatesForTrack(effectiveTrack), [effectiveTrack]);
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
