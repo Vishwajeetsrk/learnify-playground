@@ -11,7 +11,9 @@ import {
 import {
   SiPython, SiJavascript, SiTypescript, SiOpenjdk, SiCplusplus, SiC,
   SiGo, SiRust, SiRuby, SiPhp, SiNodedotjs, SiGnubash, SiHtml5, SiCss,
-  SiReact, SiSharp,
+  SiReact, SiSharp, SiKotlin, SiSwift, SiDart, SiScala, SiApple,
+  SiSqlite, SiMysql, SiPostgresql, SiMongodb, SiMariadb,
+  SiExpress, SiFlask, SiFastapi, SiSpring, SiDotnet, SiNextdotjs, SiFlutter, SiAndroid,
 } from "react-icons/si";
 import type { LangKey } from "@/lib/executors";
 
