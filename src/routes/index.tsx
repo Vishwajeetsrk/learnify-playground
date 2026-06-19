@@ -156,8 +156,9 @@ print(fib(20))  → 6765`}
               Hover to pause. Click any logo to jump into the matching playground.
             </p>
           </div>
-          <Link to="/playground" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
+          <Link to="/tools" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
             See all tools <ArrowRight className="h-3.5 w-3.5" />
+
           </Link>
         </div>
 
