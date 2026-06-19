@@ -50,7 +50,7 @@ const STARTER_JAVA = `// Android-style Java. The playground compiles this with t
 // (Wandbox names the file prog.java, so the outer class is package-private).
 import java.util.*;
 
-public class MainActivity {
+class MainActivity {
     // Simulated Android lifecycle entry point.
     public static void main(String[] args) {
         Log.d("MainActivity", "onCreate()");

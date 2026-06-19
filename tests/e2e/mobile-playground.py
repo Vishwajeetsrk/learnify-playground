@@ -220,7 +220,7 @@ async def assert_run_java(page):
     )
     marker = f"E2E-RUN-{int(time.time())}"
     src = (
-        "public class MainActivity {\n"
+        "class MainActivity {\n"
         "  public static void main(String[] args) {\n"
         f'    System.out.println("{marker}");\n'
         '    System.err.println("warn-line");\n'
