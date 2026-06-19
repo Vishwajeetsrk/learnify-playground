@@ -32,12 +32,17 @@ function CodePlayground() {
   const [code, setCode] = useState(LANGUAGES.python.starter);
   const [stdin, setStdin] = useState("");
   const [output, setOutput] = useState("");
+  const [stdout, setStdout] = useState("");
+  const [stderr, setStderr] = useState("");
+  const [exitCode, setExitCode] = useState<number | null>(null);
+  const [activeProvider, setActiveProvider] = useState<ProviderKey>("piston");
   const [running, setRunning] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("Untitled");
   const [projectId, setProjectId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const dirtyRef = useRef(false);
+
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/playground" } });
