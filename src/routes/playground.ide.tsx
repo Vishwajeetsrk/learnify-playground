@@ -210,6 +210,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [apiOpen, setApiOpen] = useState(false);
   const [dbOpen, setDbOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [assetsOpen, setAssetsOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [validateOpen, setValidateOpen] = useState(false);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
