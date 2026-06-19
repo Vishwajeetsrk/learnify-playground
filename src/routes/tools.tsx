@@ -637,11 +637,11 @@ function ColorConverter() {
           {(["hex", "rgb", "hsl"] as const).map((k) => (
             <button
               key={k}
-              onClick={() => copy(parsed[k])}
+              onClick={() => copy(parsed[k] ?? "")}
               className="flex items-center justify-between rounded border border-border/60 bg-background px-2 py-1 text-left font-mono hover:border-primary"
             >
               <span className="uppercase text-muted-foreground">{k}</span>
-              <span>{parsed[k]}</span>
+              <span>{parsed[k] ?? ""}</span>
             </button>
           ))}
         </div>
@@ -859,11 +859,11 @@ function TimestampConverter() {
           {(["iso", "local", "unix", "ms"] as const).map((k) => (
             <button
               key={k}
-              onClick={() => copy(parsed[k])}
+              onClick={() => copy(parsed[k] ?? "")}
               className="flex items-center justify-between gap-2 rounded border border-border/60 bg-background px-2 py-1 text-left hover:border-primary"
             >
               <span className="shrink-0 uppercase text-muted-foreground">{k}</span>
-              <span className="truncate font-mono">{parsed[k]}</span>
+              <span className="truncate font-mono">{parsed[k] ?? ""}</span>
             </button>
           ))}
         </div>
