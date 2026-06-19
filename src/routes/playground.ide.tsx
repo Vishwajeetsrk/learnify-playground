@@ -1041,6 +1041,18 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <CommandItem onSelect={() => { setCmdOpen(false); setDbOpen(true); }}>
               <DbIcon size={14} /> <span>Open database console</span>
             </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setAssetsOpen(true); }}>
+              <Images size={14} /> <span>Open asset manager</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setGraphOpen(true); }}>
+              <GitFork size={14} /> <span>Show dependency graph</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setValidateOpen(true); }}>
+              <ShieldCheck size={14} /> <span>Validate project</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); formatDocument(); }}>
+              <Wand2 size={14} /> <span>Format document</span>
+            </CommandItem>
             <CommandItem onSelect={() => { setCmdOpen(false); setApiOpen(true); }}>
               <Globe size={14} /> <span>Open API tester</span>
             </CommandItem>
