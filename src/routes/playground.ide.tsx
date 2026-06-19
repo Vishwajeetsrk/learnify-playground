@@ -888,145 +888,221 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </div>
       )}
 
-      {/* Editor + bottom panel */}
-      <div className="flex min-h-0 flex-1 flex-col">
-        <div className="min-h-0 flex-1" style={{ background: palette.bg }}>
-          {activeFile?.asset ? (
-            <AssetPreview file={activeFile} palette={palette} />
-          ) : (
-            <Editor
-              key={activeFile?.id}
-              height="100%"
-              language={activeFile?.language}
-              value={activeFile?.content}
-              theme={EDITOR_THEMES[editorTheme].monaco}
-              onChange={(v) => updateActive(v ?? "")}
-              onMount={onMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14, lineHeight: 22,
-                tabSize: 2, scrollBeyondLastLine: false, automaticLayout: true,
-                wordWrap: "on", bracketPairColorization: { enabled: true },
-                padding: { top: 12, bottom: 12 }, smoothScrolling: true,
-                cursorBlinking: "smooth", renderLineHighlight: "all",
-              }}
-            />
-          )}
-        </div>
+      {/* Editor + bottom/side panel */}
+      {(() => {
+        const showPanel = !fullscreen;
+        const canPreview = state.kind === "web" || effectiveTrack === "mobile";
+        const isSplit = showPanel && layoutMode === "split" && canPreview;
+        const isMax = previewMax && canPreview && !fullscreen;
 
-        {/* Quick key bar */}
-        {!fullscreen && (
-          <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t px-2 py-1.5"
-            style={{ borderColor: palette.border, background: palette.panel }}>
-            {QUICK_KEYS.map((k) => (
-              <button key={k} onClick={() => insertQuickKey(k)}
-                className="h-8 shrink-0 rounded-lg px-2.5 font-mono text-xs"
-                style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>
-                {k}
-              </button>
-            ))}
-            <button onClick={() => editorRef.current?.trigger("kb", "undo", null)}
-              className="ml-auto h-8 shrink-0 rounded-lg px-3 text-xs"
-              style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>↶ Undo</button>
-            <button onClick={() => editorRef.current?.trigger("kb", "redo", null)}
-              className="h-8 shrink-0 rounded-lg px-3 text-xs"
-              style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>↷ Redo</button>
-            <button onClick={() => setFullscreen(true)}
-              className="h-8 shrink-0 rounded-lg px-2 text-xs"
-              style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}
-              title="Fullscreen"><Maximize2 size={12} /></button>
-          </div>
-        )}
-
-        {/* Bottom panel */}
-        {!fullscreen && (
-          <div className="flex shrink-0 flex-col border-t" style={{ borderColor: palette.border, background: palette.panel, height: "clamp(180px, 38vh, 360px)" }}>
-            <div className="flex items-center gap-1 border-b px-2 py-1" style={{ borderColor: palette.border }}>
-              {(state.kind === "web" || effectiveTrack === "mobile") && (
-                <TabBtn active={bottomTab === "preview"} onClick={() => setBottomTab("preview")} palette={palette}>
-                  <Smartphone size={12} className="mr-1" /> Preview
-                </TabBtn>
+        const editorPane = (
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col" style={{ background: palette.bg }}>
+            <div className="min-h-0 flex-1" style={{ background: palette.bg }}>
+              {activeFile?.asset ? (
+                <AssetPreview file={activeFile} palette={palette} />
+              ) : (
+                <Editor
+                  key={activeFile?.id}
+                  height="100%"
+                  language={activeFile?.language}
+                  value={activeFile?.content}
+                  theme={EDITOR_THEMES[editorTheme].monaco}
+                  onChange={(v) => updateActive(v ?? "")}
+                  onMount={onMount}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14, lineHeight: 22,
+                    tabSize: 2, scrollBeyondLastLine: false, automaticLayout: true,
+                    wordWrap: "on", bracketPairColorization: { enabled: true },
+                    padding: { top: 12, bottom: 12 }, smoothScrolling: true,
+                    cursorBlinking: "smooth", renderLineHighlight: "all",
+                  }}
+                />
               )}
-              <TabBtn active={bottomTab === "console"} onClick={() => setBottomTab("console")} palette={palette}>
-                <Terminal size={12} className="mr-1" /> Console {consoleMsgs.length > 0 && <span className="ml-1 text-[10px] opacity-70">{consoleMsgs.length}</span>}
-              </TabBtn>
-              {state.kind === "code" && (
-                <TabBtn active={bottomTab === "output"} onClick={() => setBottomTab("output")} palette={palette}>
-                  <Terminal size={12} className="mr-1" /> Output {exitCode !== null && <span className="ml-1 text-[10px] opacity-70">exit {exitCode}</span>}
-                </TabBtn>
-              )}
-              <div className="ml-auto flex items-center gap-1">
-                {bottomTab === "preview" && state.kind === "web" && (
-                  <>
-                    {(Object.keys(PREVIEW_VIEWPORTS) as ViewportKey[]).map((v) => (
-                      <button key={v} onClick={() => setViewport(v)}
-                        className="grid h-7 w-7 place-items-center rounded-md"
-                        style={{ background: viewport === v ? palette.bg : "transparent", color: palette.text, border: `1px solid ${viewport === v ? palette.border : "transparent"}` }}
-                        title={PREVIEW_VIEWPORTS[v].label}>
-                        {v === "mobile" ? <Smartphone size={12} /> : v === "tablet" ? <Tablet size={12} /> : <Monitor size={12} />}
-                      </button>
-                    ))}
-                    <button onClick={() => setState((s) => ({ ...s }))}
-                      className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload">
-                      <RefreshCw size={12} />
-                    </button>
-                  </>
-                )}
-                {bottomTab === "console" && (
-                  <button onClick={() => setConsoleMsgs([])}
-                    className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
-                    <Eraser size={12} className="mr-1" /> Clear
-                  </button>
-                )}
-                {bottomTab === "output" && (output || stderr) && (
-                  <button onClick={() => { navigator.clipboard.writeText(output); toast.success("Output copied"); }}
-                    className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
-                    <Copy size={12} className="mr-1" /> Copy
-                  </button>
-                )}
-              </div>
             </div>
+            {showPanel && (
+              <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-t px-2 py-1.5"
+                style={{ borderColor: palette.border, background: palette.panel }}>
+                {QUICK_KEYS.map((k) => (
+                  <button key={k} onClick={() => insertQuickKey(k)}
+                    className="h-8 shrink-0 rounded-lg px-2.5 font-mono text-xs"
+                    style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>
+                    {k}
+                  </button>
+                ))}
+                <button onClick={() => editorRef.current?.trigger("kb", "undo", null)}
+                  className="ml-auto h-8 shrink-0 rounded-lg px-3 text-xs"
+                  style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>↶ Undo</button>
+                <button onClick={() => editorRef.current?.trigger("kb", "redo", null)}
+                  className="h-8 shrink-0 rounded-lg px-3 text-xs"
+                  style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}>↷ Redo</button>
+                {canPreview && (
+                  <button onClick={() => setLayoutMode((m) => m === "stacked" ? "split" : "stacked")}
+                    className="h-8 shrink-0 rounded-lg px-2 text-xs"
+                    style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}
+                    title={layoutMode === "stacked" ? "Side-by-side split view" : "Stacked layout"}>
+                    <LayoutGrid size={12} />
+                  </button>
+                )}
+                <button onClick={() => setFullscreen(true)}
+                  className="h-8 shrink-0 rounded-lg px-2 text-xs"
+                  style={{ background: palette.bg, color: palette.text, border: `1px solid ${palette.border}` }}
+                  title="Fullscreen editor"><Maximize2 size={12} /></button>
+              </div>
+            )}
+          </div>
+        );
 
-            <div className="min-h-0 flex-1 overflow-auto">
-              {bottomTab === "preview" && (state.kind === "web" || effectiveTrack === "mobile") && (
-                <div className="flex h-full flex-col">
-                  {effectiveTrack === "mobile" && (
-                    <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
-                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>Why no live emulator?</span> Real Android emulators and the iOS Simulator can't run inside a browser sandbox — they need virtualization, native toolchains and (for iOS) macOS.</div>
-                      <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>What works here:</span> Kotlin / Swift / Dart code execution (console output), syntax validation, AI assist (Explain · Convert · Tests · Docs), multi-file projects, asset manager, and ZIP / native-project export.</div>
-                      <div><span className="font-semibold" style={{ color: palette.text }}>To run as a real app:</span> tap the <Smartphone size={11} className="inline -mt-0.5" /> Export button → choose Android Studio, Xcode, or Flutter → open the ZIP locally.</div>
-                    </div>
-                  )}
-                  <div className="min-h-0 flex-1">
-                    <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
-                  </div>
-                </div>
+        const panelHeader = (
+          <div className="flex items-center gap-1 border-b px-2 py-1" style={{ borderColor: palette.border }}>
+            {canPreview && (
+              <TabBtn active={bottomTab === "preview"} onClick={() => setBottomTab("preview")} palette={palette}>
+                <Smartphone size={12} className="mr-1" /> Preview
+              </TabBtn>
+            )}
+            <TabBtn active={bottomTab === "console"} onClick={() => setBottomTab("console")} palette={palette}>
+              <Terminal size={12} className="mr-1" /> Console {consoleMsgs.length > 0 && <span className="ml-1 text-[10px] opacity-70">{consoleMsgs.length}</span>}
+            </TabBtn>
+            {state.kind === "code" && (
+              <TabBtn active={bottomTab === "output"} onClick={() => setBottomTab("output")} palette={palette}>
+                <Terminal size={12} className="mr-1" /> Output {exitCode !== null && <span className="ml-1 text-[10px] opacity-70">exit {exitCode}</span>}
+              </TabBtn>
+            )}
+            <div className="ml-auto flex items-center gap-1">
+              {bottomTab === "preview" && state.kind === "web" && (
+                <>
+                  {(Object.keys(PREVIEW_VIEWPORTS) as ViewportKey[]).map((v) => (
+                    <button key={v} onClick={() => setViewport(v)}
+                      className="grid h-7 min-w-[28px] place-items-center rounded-md px-1.5 text-[10px] font-medium"
+                      style={{ background: viewport === v ? palette.bg : "transparent", color: palette.text, border: `1px solid ${viewport === v ? palette.border : "transparent"}` }}
+                      title={PREVIEW_VIEWPORTS[v].label}>
+                      {v === "fit" ? "Fit" : v === "mobile" ? <Smartphone size={12} /> : v === "tablet" ? <Tablet size={12} /> : <Monitor size={12} />}
+                    </button>
+                  ))}
+                  <button onClick={() => setState((s) => ({ ...s }))}
+                    className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10" title="Reload">
+                    <RefreshCw size={12} />
+                  </button>
+                </>
+              )}
+              {bottomTab === "preview" && canPreview && (
+                <button onClick={() => setPreviewMax((v) => !v)}
+                  className="grid h-7 w-7 place-items-center rounded-md hover:bg-white/10"
+                  title={previewMax ? "Exit preview fullscreen" : "Preview fullscreen"}>
+                  {previewMax ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+                </button>
               )}
               {bottomTab === "console" && (
-                <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
+                <button onClick={() => setConsoleMsgs([])}
+                  className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
+                  <Eraser size={12} className="mr-1" /> Clear
+                </button>
               )}
-              {bottomTab === "output" && (
-                <div className="flex h-full flex-col">
-                  {lastRun && (
-                    <div className="shrink-0 border-b px-3 py-1.5 text-[11px]" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
-                      <span className="font-semibold" style={{ color: palette.text }}>{lastRun.provider}</span>
-                      {lastRun.status && <span className="ml-2">· {lastRun.status}</span>}
-                      {lastRun.timeSec != null && <span className="ml-2">· {lastRun.timeSec.toFixed(3)}s</span>}
-                      {lastRun.memoryKb != null && <span className="ml-2">· {(lastRun.memoryKb / 1024).toFixed(1)} MB</span>}
-                      {exitCode !== null && <span className="ml-2">· exit {exitCode}</span>}
-                    </div>
-                  )}
-                  <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
-                    style={{ background: "#000", color: "#7ce38b" }}>
-                    {output || "Tap Run to execute your code."}
-                  </pre>
-                </div>
+              {bottomTab === "output" && (output || stderr) && (
+                <button onClick={() => { navigator.clipboard.writeText(output); toast.success("Output copied"); }}
+                  className="inline-flex h-7 items-center rounded-md px-2 text-[11px] hover:bg-white/10">
+                  <Copy size={12} className="mr-1" /> Copy
+                </button>
               )}
             </div>
-
           </div>
-        )}
-      </div>
+        );
+
+        const panelBody = (
+          <div className="min-h-0 min-w-0 flex-1 overflow-auto">
+            {bottomTab === "preview" && canPreview && (
+              <div className="flex h-full flex-col">
+                {effectiveTrack === "mobile" && (
+                  <div className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                    <div className="mb-1"><span className="font-semibold" style={{ color: palette.text }}>Why no live emulator?</span> Real Android emulators and the iOS Simulator can't run inside a browser sandbox — they need virtualization, native toolchains and (for iOS) macOS.</div>
+                    <div><span className="font-semibold" style={{ color: palette.text }}>To run as a real app:</span> tap the <Smartphone size={11} className="inline -mt-0.5" /> Export button → choose Android Studio, Xcode, or Flutter.</div>
+                  </div>
+                )}
+                <div className="min-h-0 flex-1">
+                  <PreviewFrame doc={previewDoc} viewport={viewport} bg={palette.bg} />
+                </div>
+              </div>
+            )}
+            {bottomTab === "console" && (
+              <ConsolePanel msgs={consoleMsgs} subtle={palette.subtle} />
+            )}
+            {bottomTab === "output" && (
+              <div className="flex h-full flex-col">
+                {lastRun && (
+                  <div className="shrink-0 border-b px-3 py-1.5 text-[11px]" style={{ borderColor: palette.border, background: palette.panel, color: palette.subtle }}>
+                    <span className="font-semibold" style={{ color: palette.text }}>{lastRun.provider}</span>
+                    {lastRun.status && <span className="ml-2">· {lastRun.status}</span>}
+                    {lastRun.timeSec != null && <span className="ml-2">· {lastRun.timeSec.toFixed(3)}s</span>}
+                    {lastRun.memoryKb != null && <span className="ml-2">· {(lastRun.memoryKb / 1024).toFixed(1)} MB</span>}
+                    {exitCode !== null && <span className="ml-2">· exit {exitCode}</span>}
+                  </div>
+                )}
+                <pre className="m-0 min-h-0 flex-1 overflow-auto whitespace-pre-wrap break-words p-3 font-mono text-xs leading-relaxed"
+                  style={{ background: "#000", color: "#7ce38b" }}>
+                  {output || "Tap Run to execute your code."}
+                </pre>
+              </div>
+            )}
+          </div>
+        );
+
+        if (isMax) {
+          return (
+            <div className="flex min-h-0 flex-1 flex-col border-t" style={{ borderColor: palette.border, background: palette.panel }}>
+              {panelHeader}
+              {panelBody}
+            </div>
+          );
+        }
+
+        if (isSplit) {
+          return (
+            <div className="flex min-h-0 flex-1 flex-row">
+              <div className="flex min-w-0 flex-col" style={{ width: `${100 - splitWidth}%` }}>
+                {editorPane}
+              </div>
+              <DragHandle
+                orientation="vertical"
+                onDelta={(_dy, dx, parentSize) => {
+                  if (!parentSize) return;
+                  const next = splitWidth - (dx / parentSize) * 100;
+                  setSplitWidth(Math.max(20, Math.min(80, next)));
+                }}
+                color={palette.border}
+              />
+              <div className="flex min-w-0 flex-col border-l" style={{ width: `${splitWidth}%`, borderColor: palette.border, background: palette.panel }}>
+                {panelHeader}
+                {panelBody}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <div className="flex min-h-0 flex-1 flex-col">
+            {editorPane}
+            {showPanel && (
+              <>
+                <DragHandle
+                  orientation="horizontal"
+                  onDelta={(dy, _dx, parentSize) => {
+                    if (!parentSize) return;
+                    const next = panelHeight - dy;
+                    setPanelHeight(Math.max(120, Math.min(parentSize - 160, next)));
+                  }}
+                  color={palette.border}
+                />
+                <div className="flex shrink-0 flex-col border-t"
+                  style={{ borderColor: palette.border, background: palette.panel, height: panelHeight }}>
+                  {panelHeader}
+                  {panelBody}
+                </div>
+              </>
+            )}
+          </div>
+        );
+      })()}
+
 
       {/* Fullscreen exit */}
       {fullscreen && (
