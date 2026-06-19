@@ -229,9 +229,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [recentPaths, setRecentPaths] = useState<string[]>([]);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [persistPreviewStorage, setPersistPreviewStorage] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try { return localStorage.getItem("playground:persist-preview-storage:v1") !== "0"; } catch { return true; }
+  });
+  const [previewStorage, setPreviewStorage] = useState<{ local: Record<string, string>; session: Record<string, string> }>({ local: {}, session: {} });
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
   const monacoRef = useRef<Parameters<OnMount>[1] | null>(null);
   const consoleIdRef = useRef(0);
+  const storageStorageKey = `${storageKey}::preview-storage`;
 
   // Hydrate
   useEffect(() => {
