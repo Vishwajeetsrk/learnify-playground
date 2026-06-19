@@ -456,7 +456,7 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       {!fullscreen && (
         <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b px-2 py-1"
           style={{ borderColor: palette.border, background: palette.panel }}>
-          {state.files.map((f) => (
+          {state.files.filter((f) => !f.asset).map((f) => (
             <button key={f.id}
               onClick={() => setState((s) => ({ ...s, activeFileId: f.id }))}
               className={`group inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
@@ -466,7 +466,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                 background: f.id === state.activeFileId ? palette.bg : "transparent",
                 color: palette.text,
                 border: `1px solid ${f.id === state.activeFileId ? palette.border : "transparent"}`,
-              }}>
+              }}
+              title={f.path}>
               <FileIcon name={f.name} />
               <span>{f.name}</span>
               {state.files.length > 1 && (
@@ -488,23 +489,27 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
       {/* Editor + bottom panel */}
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="min-h-0 flex-1" style={{ background: palette.bg }}>
-          <Editor
-            key={activeFile?.id}
-            height="100%"
-            language={activeFile?.language}
-            value={activeFile?.content}
-            theme={EDITOR_THEMES[editorTheme].monaco}
-            onChange={(v) => updateActive(v ?? "")}
-            onMount={onMount}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 14, lineHeight: 22,
-              tabSize: 2, scrollBeyondLastLine: false, automaticLayout: true,
-              wordWrap: "on", bracketPairColorization: { enabled: true },
-              padding: { top: 12, bottom: 12 }, smoothScrolling: true,
-              cursorBlinking: "smooth", renderLineHighlight: "all",
-            }}
-          />
+          {activeFile?.asset ? (
+            <AssetPreview file={activeFile} palette={palette} />
+          ) : (
+            <Editor
+              key={activeFile?.id}
+              height="100%"
+              language={activeFile?.language}
+              value={activeFile?.content}
+              theme={EDITOR_THEMES[editorTheme].monaco}
+              onChange={(v) => updateActive(v ?? "")}
+              onMount={onMount}
+              options={{
+                minimap: { enabled: false },
+                fontSize: 14, lineHeight: 22,
+                tabSize: 2, scrollBeyondLastLine: false, automaticLayout: true,
+                wordWrap: "on", bracketPairColorization: { enabled: true },
+                padding: { top: 12, bottom: 12 }, smoothScrolling: true,
+                cursorBlinking: "smooth", renderLineHighlight: "all",
+              }}
+            />
+          )}
         </div>
 
         {/* Quick key bar */}
