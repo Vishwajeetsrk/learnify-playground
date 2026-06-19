@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Link, createFileRoute } from "@tanstack/react-router";
 import { Code2, Globe, Smartphone, Play, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
