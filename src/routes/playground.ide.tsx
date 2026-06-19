@@ -682,6 +682,8 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             onDeleteFolder={deleteFolder}
             onRenameFile={renameFile}
             onUploadAssets={uploadAssets}
+            uploads={uploads}
+            onClearUploads={clearUploads}
             onOpenTemplates={() => setTemplatesOpen(true)}
           />
         </SheetContent>
