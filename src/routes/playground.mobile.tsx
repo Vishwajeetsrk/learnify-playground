@@ -41,6 +41,7 @@ import {
   renameMobileProject,
   saveMobileProject,
 } from "@/lib/playground-projects.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 // Android-flavoured Java starter. Wandbox compiles it as a normal Java program
 // (the playground runs JVM bytecode, not a real Android emulator), but the
