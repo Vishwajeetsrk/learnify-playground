@@ -237,6 +237,29 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     return () => window.removeEventListener("message", onMsg);
   }, []);
 
+  // Command palette ⌘K / Ctrl+K
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setCmdOpen((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  function toggleAppTheme() {
+    const order: AppThemeKey[] = ["dark", "light", "amoled"];
+    const i = order.indexOf(appTheme);
+    setAppTheme(order[(i + 1) % order.length]);
+  }
+  function openFindReplace() {
+    const ed = editorRef.current; if (!ed) return;
+    ed.focus();
+    ed.getAction("editor.action.startFindReplaceAction")?.run();
+  }
+
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
 
