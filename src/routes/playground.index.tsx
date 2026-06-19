@@ -15,6 +15,7 @@ export const Route = createFileRoute("/playground/")({
       defaultLanguage="python"
       defaultProjectName="My Code Project"
       storageKey="playground-ide:code"
+      track="code"
     />
   ),
 });
