@@ -209,7 +209,15 @@ async def assert_device_matrix(page):
 
 async def assert_run_java(page):
     """Click the in-screen ▶ Run app button and verify logcat shows stdout."""
-    # Replace code with something with a deterministic marker.
+    # Wait for monaco's java model to be ready (page may have just rebound after reload).
+    await page.wait_for_function(
+        """() => {
+          const m = window.monaco;
+          if (!m) return false;
+          return m.editor.getModels().some(x => x.getLanguageId() === 'java');
+        }""",
+        timeout=15000,
+    )
     marker = f"E2E-RUN-{int(time.time())}"
     src = (
         "public class MainActivity {\n"
