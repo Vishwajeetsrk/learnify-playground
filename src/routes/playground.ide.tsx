@@ -132,7 +132,7 @@ function ensureActive(s: IdeState): IdeState {
 // --------------------------------------------------------------------------
 // Component
 
-function IdePlayground() {
+function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY, defaultLanguage = "python", defaultProjectName }: IdePlaygroundProps = {}) {
   const [state, setState] = useState<IdeState>(() => blankWeb());
   const [appTheme, setAppTheme] = useAppTheme();
   const [editorTheme, setEditorTheme] = useEditorTheme();
@@ -155,14 +155,19 @@ function IdePlayground() {
   const consoleIdRef = useRef(0);
 
   // Hydrate
-  useEffect(() => { setState(loadState()); }, []);
+  useEffect(() => {
+    const s = loadState(storageKey, defaultKind, defaultLanguage, defaultProjectName);
+    setState(s);
+    setBottomTab(s.kind === "web" ? "preview" : "output");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Autosave to localStorage (debounced)
   useEffect(() => {
     const t = setTimeout(() => {
-      try { localStorage.setItem(LS_KEY, JSON.stringify(state)); setSavedAt(Date.now()); } catch {}
+      try { localStorage.setItem(storageKey, JSON.stringify(state)); setSavedAt(Date.now()); } catch {}
     }, 600);
     return () => clearTimeout(t);
-  }, [state]);
+  }, [state, storageKey]);
 
   // Preview console capture
   useEffect(() => {
