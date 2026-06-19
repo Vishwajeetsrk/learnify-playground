@@ -25,6 +25,7 @@ import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track 
 import {
   buildPreviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
+import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 
 export const Route = createFileRoute("/playground/ide")({
   ssr: false,
@@ -322,11 +323,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               className="h-7 w-full min-w-0 border-0 bg-transparent px-0 text-sm font-semibold focus-visible:ring-0"
               style={{ color: palette.text }}
             />
-            <span className="truncate text-[10px]" style={{ color: palette.subtle }}>
-              {state.kind === "web" ? "HTML · CSS · JS" : LANGUAGES[state.language].label}
-              {savedAt && <> · Saved</>}
+            <span className="flex items-center gap-1.5 truncate text-[10px]" style={{ color: palette.subtle }}>
+              {state.kind === "web"
+                ? <>HTML · CSS · JS</>
+                : <><LanguageIcon language={state.language} size={11} /> {LANGUAGES[state.language].label}</>}
+              {savedAt && <span className="opacity-70">· Saved</span>}
             </span>
           </div>
+
 
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Button size="icon" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates" className="h-9 w-9">
