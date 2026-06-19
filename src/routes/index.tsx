@@ -338,37 +338,57 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  const DRAG_THRESHOLD = 6; // px before we hijack the gesture as a drag
+
   const onPointerMove = (e: React.PointerEvent) => {
     const s = stateRef.current;
     const rect = wrapRef.current?.getBoundingClientRect();
     if (rect) {
       const cx = (e.clientX - rect.left) / rect.width - 0.5;
       const cy = (e.clientY - rect.top) / rect.height - 0.5;
-      s.targetTiltX = -8 + cy * 14;       // parallax pitch
-      s.targetTiltY = cx * 6;             // subtle roll
+      s.targetTiltX = -8 + cy * 14;
+      s.targetTiltY = cx * 6;
     }
-    if (s.dragging) {
-      const now = performance.now();
-      const dx = e.clientX - s.lastX;
-      const dt = Math.max(1, now - s.lastT);
-      s.rotY += dx * 0.4;
-      s.velocity = (dx / dt) * 6;         // throw momentum (deg/frame approx)
-      s.lastX = e.clientX;
-      s.lastT = now;
+    if (s.pointerDown) {
+      // promote to drag once movement exceeds threshold
+      if (!s.dragging) {
+        const dx0 = e.clientX - s.startX;
+        const dy0 = e.clientY - s.startY;
+        if (Math.hypot(dx0, dy0) > DRAG_THRESHOLD) {
+          s.dragging = true;
+          try { (e.currentTarget as HTMLElement).setPointerCapture(s.pointerId); } catch {}
+        }
+      }
+      if (s.dragging) {
+        const now = performance.now();
+        const dx = e.clientX - s.lastX;
+        const dt = Math.max(1, now - s.lastT);
+        s.rotY += dx * 0.4;
+        s.velocity = (dx / dt) * 6;
+        s.lastX = e.clientX;
+        s.lastT = now;
+      }
     }
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
     const s = stateRef.current;
-    s.dragging = true;
-    s.lastX = e.clientX;
+    s.pointerDown = true;
+    s.dragging = false;       // wait for movement before treating as drag
+    s.startX = s.lastX = e.clientX;
+    s.startY = e.clientY;
     s.lastT = performance.now();
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    s.pointerId = e.pointerId;
   };
   const onPointerUp = (e: React.PointerEvent) => {
     const s = stateRef.current;
+    const wasDragging = s.dragging;
+    s.pointerDown = false;
     s.dragging = false;
-    // Decay flung velocity back to baseline
+    if (wasDragging) {
+      // Suppress the synthetic click after a drag so the Link doesn't fire.
+      e.preventDefault();
+    }
     const baseline = 0.15;
     const decay = () => {
       s.velocity = s.velocity * 0.94 + baseline * 0.06;
