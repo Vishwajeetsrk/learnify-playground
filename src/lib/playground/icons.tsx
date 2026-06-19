@@ -78,6 +78,12 @@ const LANGUAGE_ICONS: Record<LangKey, IconSpec> = {
   rust:       { Cmp: SiRust,        color: "#DEA584" },
   ruby:       { Cmp: SiRuby,        color: "#CC342D" },
   bash:       { Cmp: SiGnubash,     color: "#4EAA25" },
+  kotlin:     { Cmp: SiKotlin,      color: "#7F52FF" },
+  swift:      { Cmp: SiSwift,       color: "#F05138" },
+  dart:       { Cmp: SiDart,        color: "#0175C2" },
+  scala:      { Cmp: SiScala,       color: "#DC322F" },
+  objc:       { Cmp: SiApple,       color: "#A8B9CC" },
+  sql:        { Cmp: Database,      color: "#7eb2ff" },
 };
 
 export function LanguageIcon({ language, size = 14, className }: { language: LangKey; size?: number; className?: string }) {
