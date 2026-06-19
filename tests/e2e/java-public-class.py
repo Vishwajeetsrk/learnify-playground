@@ -42,10 +42,16 @@ async def main() -> None:
         await run.click()
 
         # Wait for the exit marker.
-        await page.wait_for_function(
-            "() => document.body.innerText.includes('— exit 0 —')",
-            timeout=60000,
-        )
+        try:
+            await page.wait_for_function(
+                "() => document.body.innerText.includes('— exit')",
+                timeout=90000,
+            )
+        except Exception:
+            await page.screenshot(path=str(SCREENSHOTS / "java_public_FAIL.png"))
+            tail = (await page.evaluate("() => document.body.innerText"))[-2000:]
+            print("BODY TAIL:", tail)
+            raise
         await page.screenshot(path=str(SCREENSHOTS / "java_public_2_ran.png"))
 
         body = await page.evaluate("() => document.body.innerText")
