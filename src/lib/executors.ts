@@ -178,20 +178,27 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
 };
 
 export const PROVIDERS: Record<ProviderKey, { label: string; description: string; dailyFreeLimit: number }> = {
-  wandbox: {
-    label: "Wandbox",
-    description: "Free public Wandbox compiler service · supports every language listed",
-    dailyFreeLimit: 300,
+  judge0: {
+    label: "Judge0 CE",
+    description: "Public Judge0 CE runner · reports runtime + memory · public ce.judge0.com by default, or point at a self-hosted instance via Settings.",
+    dailyFreeLimit: 50,
   },
   piston: {
     label: "Piston",
     description: "Engineer-Man Piston runner · public emkc.org by default, or point at a self-hosted instance via Settings.",
     dailyFreeLimit: 500,
   },
+  wandbox: {
+    label: "Wandbox",
+    description: "Free public Wandbox compiler service · supports a wide range of compilers.",
+    dailyFreeLimit: 300,
+  },
 };
 
 const PISTON_URL_KEY = "playground:piston-url";
 const DEFAULT_PISTON_URL = "https://emkc.org/api/v2/piston";
+const JUDGE0_URL_KEY = "playground:judge0-url";
+const DEFAULT_JUDGE0_URL = "https://ce.judge0.com";
 
 export function getPistonBaseUrl(): string {
   if (typeof window === "undefined") return DEFAULT_PISTON_URL;
@@ -215,6 +222,30 @@ export function setPistonBaseUrl(url: string) {
     /* ignore */
   }
 }
+
+export function getJudge0BaseUrl(): string {
+  if (typeof window === "undefined") return DEFAULT_JUDGE0_URL;
+  try {
+    return localStorage.getItem(JUDGE0_URL_KEY)?.trim() || DEFAULT_JUDGE0_URL;
+  } catch {
+    return DEFAULT_JUDGE0_URL;
+  }
+}
+
+export function setJudge0BaseUrl(url: string) {
+  if (typeof window === "undefined") return;
+  try {
+    const clean = url.trim().replace(/\/+$/, "");
+    if (clean && clean !== DEFAULT_JUDGE0_URL) {
+      localStorage.setItem(JUDGE0_URL_KEY, clean);
+    } else {
+      localStorage.removeItem(JUDGE0_URL_KEY);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 
 export interface RunResult {
   stdout: string;
