@@ -444,9 +444,10 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
       onPointerCancel={onPointerUp}
       onPointerEnter={onEnter}
       onPointerLeave={onLeave}
-      className="relative mx-auto h-[360px] w-full max-w-[680px] touch-none select-none"
+      className="relative mx-auto h-[360px] w-full max-w-[680px] touch-pan-y select-none"
       style={{ perspective: "1200px", cursor: "grab" }}
       role="region"
+      data-testid="polyglot-orbit"
       aria-label="Polyglot Orbit — interactive 3D language carousel"
     >
       {/* Floor glow */}
