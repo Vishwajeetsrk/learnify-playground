@@ -7,10 +7,16 @@ import {
   Eraser, FolderOpen, X, RefreshCw, Terminal, LayoutGrid, Globe, Database as DbIcon,
   FolderPlus, Folder, FolderOpen as FolderOpenIcon, Upload, ChevronRight, ChevronDown, Image as ImageIcon, FileText,
   Download, Pencil, Sun, Moon, Search as SearchIcon, Command as CommandIcon, Replace as ReplaceIcon,
+  Images, ShieldCheck, GitFork, Wand2,
 } from "lucide-react";
 import {
   CommandDialog, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem,
 } from "@/components/ui/command";
+import { buildGraph } from "@/lib/playground/relations";
+import { buildManifest } from "@/lib/playground/manifest";
+import { AssetManager } from "@/components/playground/AssetManager";
+import { DepGraph } from "@/components/playground/DepGraph";
+import { ValidationReport } from "@/components/playground/ValidationReport";
 import JSZip from "jszip";
 import { MULTI_TEMPLATES, type MultiTemplate } from "@/lib/playground/multi-templates";
 import { toast } from "sonner";
@@ -204,6 +210,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [apiOpen, setApiOpen] = useState(false);
   const [dbOpen, setDbOpen] = useState(false);
   const [cmdOpen, setCmdOpen] = useState(false);
+  const [assetsOpen, setAssetsOpen] = useState(false);
+  const [graphOpen, setGraphOpen] = useState(false);
+  const [validateOpen, setValidateOpen] = useState(false);
   const [consoleMsgs, setConsoleMsgs] = useState<ConsoleEntry[]>([]);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const editorRef = useRef<Parameters<OnMount>[0] | null>(null);
@@ -259,9 +268,23 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     ed.focus();
     ed.getAction("editor.action.startFindReplaceAction")?.run();
   }
+  async function formatDocument() {
+    const ed = editorRef.current; if (!ed) return;
+    ed.focus();
+    const act = ed.getAction("editor.action.formatDocument");
+    try { await act?.run(); toast.success("Formatted"); }
+    catch { toast.error("Formatter not available for this language"); }
+  }
 
   const activeFile = state.files.find((f) => f.id === state.activeFileId) ?? state.files[0];
   const palette = APP_THEMES[appTheme];
+
+  // File-relationship graph for the current project (asset-aware).
+  const projectGraph = useMemo(
+    () => buildGraph(state.files.map((f) => ({ path: f.path, content: f.content, isAsset: !!f.asset }))),
+    [state.files],
+  );
+
 
   // Build preview doc.
   // - Web projects: live HTML/CSS/JS sandbox with all files connected and assets inlined.
@@ -307,6 +330,25 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     if (state.files.some((f) => f.path === fullPath)) { toast.error(`${fullPath} already exists`); return; }
     const f = mkFile(fullPath, "");
     setState((s) => ({ ...s, files: [...s.files, f], activeFileId: f.id }));
+    // Auto-link: for web projects, offer to wire new .css/.js into index.html.
+    if (state.kind === "web") autoLinkIntoHtml(fullPath);
+  }
+  function autoLinkIntoHtml(newPath: string) {
+    const ext = newPath.toLowerCase().split(".").pop();
+    if (ext !== "css" && ext !== "js") return;
+    const html = state.files.find((f) => f.path === "index.html");
+    if (!html) return;
+    const tag = ext === "css"
+      ? `  <link rel="stylesheet" href="${newPath}">\n`
+      : `  <script src="${newPath}" defer></script>\n`;
+    if (html.content.includes(newPath)) return;
+    const updated = ext === "css" && /<\/head>/i.test(html.content)
+      ? html.content.replace(/<\/head>/i, `${tag}</head>`)
+      : ext === "js" && /<\/body>/i.test(html.content)
+        ? html.content.replace(/<\/body>/i, `${tag}</body>`)
+        : `${html.content}\n${tag}`;
+    setState((s) => ({ ...s, files: s.files.map((f) => f.id === html.id ? { ...f, content: updated } : f) }));
+    toast.success(`Linked ${newPath} into index.html`);
   }
   function addFolder(path: string) {
     const clean = path.replace(/^\/+|\/+$/g, "");
@@ -393,6 +435,18 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         zip.file(f.path, f.content);
       }
     }
+    // project.json manifest + relations summary
+    const manifest = buildManifest({
+      name: state.projectName, kind: state.kind, language: state.language,
+      files: state.files.map((f) => ({ path: f.path, content: f.content, isAsset: !!f.asset })),
+      folders: state.folders ?? [],
+    });
+    zip.file("project.json", JSON.stringify(manifest, null, 2));
+    const relLines = ["# Project relations", "", `Total references: ${projectGraph.edges.length}`, `Broken: ${projectGraph.broken.length}`, ""];
+    for (const e of projectGraph.edges) {
+      relLines.push(`- ${e.from} → ${e.to} (${e.kind})${e.resolved ? "" : "  **broken**"}`);
+    }
+    zip.file("RELATIONS.md", relLines.join("\n"));
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -544,6 +598,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </Button>
             <Button size="icon" variant="ghost" onClick={() => setDbOpen(true)} title="Database" className="h-9 w-9">
               <DbIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setAssetsOpen(true)} title="Asset Manager" className="hidden h-9 w-9 sm:inline-flex">
+              <Images size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setGraphOpen(true)} title="Dependency Graph" className="hidden h-9 w-9 sm:inline-flex">
+              <GitFork size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={() => setValidateOpen(true)}
+              title={projectGraph.broken.length ? `Validate (${projectGraph.broken.length} issue${projectGraph.broken.length === 1 ? "" : "s"})` : "Validate project"}
+              className="relative h-9 w-9">
+              <ShieldCheck size={16} />
+              {projectGraph.broken.length > 0 && (
+                <span className="absolute -right-0.5 -top-0.5 grid h-3.5 min-w-[14px] place-items-center rounded-full bg-amber-500 px-1 text-[9px] font-bold text-black">
+                  {projectGraph.broken.length}
+                </span>
+              )}
             </Button>
             <Button size="icon" variant="ghost" onClick={exportZip} title="Download as ZIP" className="h-9 w-9">
               <Download size={16} />
@@ -889,6 +959,64 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </SheetContent>
       </Sheet>
 
+      {/* Asset Manager sheet */}
+      <Sheet open={assetsOpen} onOpenChange={setAssetsOpen}>
+        <SheetContent side="bottom" className="h-[85vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><Images size={14} className="mr-1 inline" /> Assets</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(85vh-3.5rem)]">
+            <AssetManager
+              files={state.files}
+              palette={palette}
+              onUpload={(fl) => uploadAssets(fl)}
+              onDelete={(id) => deleteFile(id)}
+              onInsertPath={(p) => {
+                const ed = editorRef.current;
+                if (!ed) { navigator.clipboard.writeText(p).catch(() => {}); return; }
+                ed.focus();
+                const sel = ed.getSelection();
+                if (!sel) return;
+                ed.executeEdits("insert-asset", [{ range: sel, text: p, forceMoveMarkers: true }]);
+                setAssetsOpen(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Dependency Graph sheet */}
+      <Sheet open={graphOpen} onOpenChange={setGraphOpen}>
+        <SheetContent side="bottom" className="h-[70vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><GitFork size={14} className="mr-1 inline" /> Project dependency graph</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(70vh-3.5rem)]">
+            <DepGraph graph={projectGraph} palette={palette}
+              onSelect={(p) => {
+                const hit = state.files.find((f) => f.path === p);
+                if (hit) { setState((s) => ({ ...s, activeFileId: hit.id })); setGraphOpen(false); }
+              }} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Validation report sheet */}
+      <Sheet open={validateOpen} onOpenChange={setValidateOpen}>
+        <SheetContent side="right" className="w-full max-w-md p-0 sm:w-[420px]" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><ShieldCheck size={14} className="mr-1 inline" /> Project validation</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(100vh-3.5rem)]">
+            <ValidationReport graph={projectGraph} palette={palette}
+              onOpenFile={(p) => {
+                const hit = state.files.find((f) => f.path === p);
+                if (hit) { setState((s) => ({ ...s, activeFileId: hit.id })); setValidateOpen(false); }
+              }} />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       {/* Command palette */}
       <CommandDialog open={cmdOpen} onOpenChange={setCmdOpen}>
         <CommandInput placeholder="Type a command or search files..." />
@@ -912,6 +1040,18 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             </CommandItem>
             <CommandItem onSelect={() => { setCmdOpen(false); setDbOpen(true); }}>
               <DbIcon size={14} /> <span>Open database console</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setAssetsOpen(true); }}>
+              <Images size={14} /> <span>Open asset manager</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setGraphOpen(true); }}>
+              <GitFork size={14} /> <span>Show dependency graph</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); setValidateOpen(true); }}>
+              <ShieldCheck size={14} /> <span>Validate project</span>
+            </CommandItem>
+            <CommandItem onSelect={() => { setCmdOpen(false); formatDocument(); }}>
+              <Wand2 size={14} /> <span>Format document</span>
             </CommandItem>
             <CommandItem onSelect={() => { setCmdOpen(false); setApiOpen(true); }}>
               <Globe size={14} /> <span>Open API tester</span>
