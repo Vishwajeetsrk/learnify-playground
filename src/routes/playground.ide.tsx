@@ -1039,6 +1039,28 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                     title="Reset to default split + Fit layout">
                     Reset
                   </button>
+                  <button
+                    onClick={() => setPersistPreviewStorage((v) => !v)}
+                    className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                    title={persistPreviewStorage
+                      ? "Preview localStorage/sessionStorage is being persisted across reloads. Click to disable."
+                      : "Preview localStorage/sessionStorage resets on every reload. Click to persist."}>
+                    <span className="mr-1 h-1.5 w-1.5 rounded-full" style={{ background: persistPreviewStorage ? "#39d98a" : "#888" }} />
+                    Persist
+                  </button>
+                  {persistPreviewStorage && (Object.keys(previewStorage.local).length > 0 || Object.keys(previewStorage.session).length > 0) && (
+                    <button
+                      onClick={() => {
+                        setPreviewStorage({ local: {}, session: {} });
+                        try { localStorage.removeItem(storageStorageKey); } catch { /* noop */ }
+                        setState((s) => ({ ...s }));
+                        toast.success("Preview storage cleared");
+                      }}
+                      className="inline-flex h-7 items-center rounded-md px-2 text-[10px] font-medium hover:bg-white/10"
+                      title="Clear the persisted preview localStorage/sessionStorage snapshot">
+                      Clear data
+                    </button>
+                  )}
                 </>
               )}
               {bottomTab === "errors" && (
