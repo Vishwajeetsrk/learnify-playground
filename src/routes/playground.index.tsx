@@ -48,6 +48,11 @@ function CodePlayground() {
     if (!loading && !user) navigate({ to: "/auth", search: { redirect: "/playground" } });
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    setActiveProvider(provider);
+  }, [provider]);
+
+
   function setLanguage(next: LangKey) {
     if (!dirtyRef.current || code === LANGUAGES[lang].starter) {
       setCode(LANGUAGES[next].starter);
