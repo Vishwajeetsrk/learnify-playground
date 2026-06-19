@@ -915,5 +915,122 @@ function WordCounter() {
   );
 }
 
-// Suppress unused import warning for Braces icon — used by a future tool slot.
-void Braces;
+/* ---------- Lorem ipsum ---------- */
+const LOREM_WORDS = "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum".split(" ");
+
+function LoremIpsum() {
+  const [count, setCount] = useState(3);
+  const [unit, setUnit] = useState<"paragraphs" | "sentences" | "words">("paragraphs");
+  const text = useMemo(() => {
+    function word() { return LOREM_WORDS[Math.floor(Math.random() * LOREM_WORDS.length)]; }
+    function sentence() {
+      const n = 6 + Math.floor(Math.random() * 12);
+      const words = Array.from({ length: n }, word);
+      words[0] = words[0][0].toUpperCase() + words[0].slice(1);
+      return words.join(" ") + ".";
+    }
+    function paragraph() {
+      const n = 3 + Math.floor(Math.random() * 5);
+      return Array.from({ length: n }, sentence).join(" ");
+    }
+    const n = Math.max(1, Math.min(50, count));
+    if (unit === "words") return Array.from({ length: n }, word).join(" ");
+    if (unit === "sentences") return Array.from({ length: n }, sentence).join(" ");
+    return Array.from({ length: n }, paragraph).join("\n\n");
+  }, [count, unit]);
+  return (
+    <Card icon={Pilcrow} title="Lorem ipsum" desc="Generate placeholder text in paragraphs, sentences, or words.">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          type="number"
+          min={1}
+          max={50}
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value) || 1)}
+          className="h-9 w-20 rounded border border-input bg-background px-2 text-xs"
+        />
+        <Tabs value={unit} options={[{ value: "paragraphs", label: "Paragraphs" }, { value: "sentences", label: "Sentences" }, { value: "words", label: "Words" }]} onChange={setUnit} />
+        <Button size="sm" variant="outline" className="ml-auto" onClick={() => copy(text)}>Copy</Button>
+      </div>
+      <textarea readOnly value={text} className="h-28 resize-y rounded-md border border-input bg-background p-2 font-mono text-xs" />
+    </Card>
+  );
+}
+
+/* ---------- Text diff ---------- */
+function TextDiff() {
+  const [a, setA] = useState("hello world\nfoo\nbar\n");
+  const [b, setB] = useState("hello WORLD\nfoo\nbaz\n");
+  const diff = useMemo(() => {
+    const la = a.split(/\r?\n/);
+    const lb = b.split(/\r?\n/);
+    // Simple LCS line diff
+    const m = la.length, n = lb.length;
+    const dp: number[][] = Array.from({ length: m + 1 }, () => new Array(n + 1).fill(0));
+    for (let i = m - 1; i >= 0; i--) for (let j = n - 1; j >= 0; j--) {
+      dp[i][j] = la[i] === lb[j] ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+    }
+    const out: { t: "=" | "-" | "+"; v: string }[] = [];
+    let i = 0, j = 0;
+    while (i < m && j < n) {
+      if (la[i] === lb[j]) { out.push({ t: "=", v: la[i] }); i++; j++; }
+      else if (dp[i + 1][j] >= dp[i][j + 1]) { out.push({ t: "-", v: la[i++] }); }
+      else { out.push({ t: "+", v: lb[j++] }); }
+    }
+    while (i < m) out.push({ t: "-", v: la[i++] });
+    while (j < n) out.push({ t: "+", v: lb[j++] });
+    return out;
+  }, [a, b]);
+  return (
+    <Card icon={Diff} title="Text diff" desc="Line-by-line diff of two text blocks.">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <textarea value={a} onChange={(e) => setA(e.target.value)} className="h-24 resize-y rounded-md border border-input bg-background p-2 font-mono text-[11px]" placeholder="Original" />
+        <textarea value={b} onChange={(e) => setB(e.target.value)} className="h-24 resize-y rounded-md border border-input bg-background p-2 font-mono text-[11px]" placeholder="Changed" />
+      </div>
+      <pre className="max-h-48 overflow-auto rounded border border-border/60 bg-background p-2 font-mono text-[11px] leading-relaxed">
+        {diff.map((d, idx) => (
+          <div key={idx} className={d.t === "+" ? "bg-emerald-500/10 text-emerald-300" : d.t === "-" ? "bg-rose-500/10 text-rose-300" : "text-muted-foreground"}>
+            <span className="select-none pr-2 opacity-60">{d.t === "=" ? " " : d.t}</span>{d.v || "\u00a0"}
+          </div>
+        ))}
+      </pre>
+    </Card>
+  );
+}
+
+/* ---------- Number base converter ---------- */
+function NumberBase() {
+  const [value, setValue] = useState("255");
+  const [base, setBase] = useState<2 | 8 | 10 | 16>(10);
+  const num = useMemo(() => {
+    try {
+      const n = parseInt(value.replace(/^0[xob]/i, ""), base);
+      if (!Number.isFinite(n)) return null;
+      return n;
+    } catch { return null; }
+  }, [value, base]);
+  return (
+    <Card icon={Calculator} title="Number base converter" desc="Convert between binary, octal, decimal, and hex.">
+      <div className="flex flex-wrap items-center gap-2">
+        <input value={value} onChange={(e) => setValue(e.target.value)} className="h-9 flex-1 rounded border border-input bg-background px-2 font-mono text-xs" />
+        <Tabs value={String(base) as "10"} options={[{ value: "2", label: "Bin" }, { value: "8", label: "Oct" }, { value: "10", label: "Dec" }, { value: "16", label: "Hex" }]} onChange={(v) => setBase(Number(v) as 2 | 8 | 10 | 16)} />
+      </div>
+      {num === null ? (
+        <p className="text-xs text-destructive">Invalid for base {base}</p>
+      ) : (
+        <div className="grid gap-1 text-xs">
+          {([["BIN", 2], ["OCT", 8], ["DEC", 10], ["HEX", 16]] as const).map(([label, b]) => (
+            <button key={label} onClick={() => copy(num.toString(b))} className="flex items-center justify-between gap-2 rounded border border-border/60 bg-background px-2 py-1 text-left hover:border-primary">
+              <span className="shrink-0 uppercase text-muted-foreground">{label}</span>
+              <span className="truncate font-mono">{b === 16 ? num.toString(16).toUpperCase() : num.toString(b)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// Suppress unused import warnings for icons reserved for future tool slots.
+void Braces; void QrCode;
+
