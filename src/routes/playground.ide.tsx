@@ -1689,6 +1689,58 @@ function ConsolePanel({ msgs, subtle, emptyText }: { msgs: ConsoleEntry[]; subtl
   );
 }
 
+function ErrorsPanel({ msgs, subtle, palette }: { msgs: ConsoleEntry[]; subtle: string; palette: { bg: string; panel: string; border: string; text: string; subtle: string } }) {
+  // Group identical error texts; surface the parsed source location (file:line:col)
+  // already appended by the iframe bridge as "(preview:42:9)".
+  const groups = useMemo(() => {
+    const map = new Map<string, { level: string; text: string; location: string; count: number; lastId: number }>();
+    for (const m of msgs) {
+      const loc = /\(([^()]+:\d+(?::\d+)?)\)\s*$/.exec(m.text);
+      const location = loc ? loc[1] : "";
+      const text = loc ? m.text.slice(0, loc.index).trim() : m.text;
+      const key = `${m.level}::${text}`;
+      const g = map.get(key);
+      if (g) { g.count += 1; g.lastId = m.id; if (location) g.location = location; }
+      else map.set(key, { level: m.level, text, location, count: 1, lastId: m.id });
+    }
+    return Array.from(map.values()).sort((a, b) => b.lastId - a.lastId);
+  }, [msgs]);
+
+  if (groups.length === 0) return (
+    <div className="grid h-full place-items-center p-4 text-center text-xs" style={{ color: subtle }}>
+      No runtime errors or warnings from the Live Preview. 🎉
+    </div>
+  );
+  const color: Record<string, string> = { error: "#ff6f8a", warn: "#ffb86c" };
+  return (
+    <div className="h-full overflow-auto p-2 font-mono text-[11px] leading-relaxed">
+      {groups.map((g, i) => (
+        <div key={i} className="mb-1 flex items-start gap-2 rounded-md border px-2 py-1.5"
+          style={{ borderColor: palette.border, background: palette.bg }}>
+          <span className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
+            style={{ background: `${color[g.level] ?? color.error}22`, color: color[g.level] ?? color.error }}>
+            {g.level}
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="break-words" style={{ color: palette.text }}>{g.text}</div>
+            {g.location && (
+              <div className="mt-0.5 text-[10px]" style={{ color: subtle }}>
+                at <span className="font-semibold">{g.location}</span>
+              </div>
+            )}
+          </div>
+          {g.count > 1 && (
+            <span className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+              style={{ background: `${color[g.level] ?? color.error}22`, color: color[g.level] ?? color.error }}>
+              ×{g.count}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function monacoLangFromName(name: string): string {
   const ext = name.split(".").pop()?.toLowerCase();
   const map: Record<string, string> = {
