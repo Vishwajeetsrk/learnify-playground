@@ -30,11 +30,13 @@ function CodePlayground() {
   const [stderr, setStderr] = useState("");
   const [exitCode, setExitCode] = useState<number | null>(null);
   const [activeProvider, setActiveProvider] = useState<ProviderKey>("wandbox");
+  const [fallbackInfo, setFallbackInfo] = useState<{ from: ProviderKey; to: ProviderKey; reason: string } | null>(null);
   const [running, setRunning] = useState(false);
   const dirtyRef = useRef(false);
 
   useEffect(() => {
     setActiveProvider(provider);
+    setFallbackInfo(null);
   }, [provider]);
 
   function setLanguage(next: LangKey) {
@@ -50,14 +52,16 @@ function CodePlayground() {
     setStdout("");
     setStderr("");
     setExitCode(null);
+    setFallbackInfo(null);
     try {
       const r = await runCode(lang, code, stdin, provider, {
         fallback: true,
-        onFallback: ({ from, to, reason }) => {
-          toast.warning(`${PROVIDERS[from].label} unavailable — falling back to ${PROVIDERS[to].label}`, {
-            description: reason,
+        onFallback: (info) => {
+          toast.warning(`${PROVIDERS[info.from].label} unavailable — falling back to ${PROVIDERS[info.to].label}`, {
+            description: info.reason,
           });
-          setActiveProvider(to);
+          setActiveProvider(info.to);
+          setFallbackInfo(info);
         },
       });
       setActiveProvider(r.provider);
@@ -74,6 +78,7 @@ function CodePlayground() {
       setRunning(false);
     }
   }
+
 
   async function handleCopy() {
     if (!output) return;
@@ -152,14 +157,38 @@ function CodePlayground() {
             placeholder="Optional input passed to your program…"
             className="h-20 shrink-0 resize-none bg-background p-3 font-mono text-xs outline-none"
           />
-          <div className="flex items-center justify-between border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border/60 bg-card/40 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             <span>Terminal</span>
-            {(stdout || stderr || exitCode !== null) && (
-              <span className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80">
-                {activeProvider} · exit {exitCode ?? "?"}
+            <div className="flex items-center gap-1.5">
+              <span
+                title={
+                  fallbackInfo
+                    ? `Fell back from ${PROVIDERS[fallbackInfo.from].label}: ${fallbackInfo.reason}`
+                    : `Executed by ${PROVIDERS[activeProvider].label}`
+                }
+                className={`inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10px] normal-case tracking-normal ${
+                  fallbackInfo
+                    ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
+                    : "border-primary/40 bg-primary/10 text-primary"
+                }`}
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                {PROVIDERS[activeProvider].label}
+                {fallbackInfo && <span className="opacity-70">· fallback</span>}
               </span>
-            )}
+              {(stdout || stderr || exitCode !== null) && (
+                <span className="font-mono text-[10px] normal-case tracking-normal text-muted-foreground/80">
+                  exit {exitCode ?? "?"}
+                </span>
+              )}
+            </div>
           </div>
+          {fallbackInfo && (
+            <div className="border-b border-amber-500/30 bg-amber-500/5 px-3 py-1.5 text-[11px] normal-case text-amber-300/90">
+              Switched from <strong>{PROVIDERS[fallbackInfo.from].label}</strong> → <strong>{PROVIDERS[fallbackInfo.to].label}</strong>: {fallbackInfo.reason}
+            </div>
+          )}
+
           <pre className="min-h-[180px] flex-1 overflow-auto whitespace-pre-wrap break-words bg-black p-3 font-mono text-xs leading-relaxed text-green-300">
             {output || "Run your code to see output here."}
           </pre>
