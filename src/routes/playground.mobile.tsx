@@ -837,133 +837,13 @@ function PhoneFrame({
             </div>
           </div>
 
-          {/* App bar (Material 3) */}
-          <div
-            style={{
-              padding: "6px 16px 12px",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 999,
-                background: "linear-gradient(135deg,#22c55e,#06b6d4)",
-                display: "grid",
-                placeItems: "center",
-                color: "white",
-                fontWeight: 800,
-                fontSize: 14,
-              }}
-            >
-              A
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: "#f8fafc" }}>
-                MainActivity
-              </div>
-              <div style={{ fontSize: 10, color: "#94a3b8", fontFamily: "ui-monospace, monospace" }}>
-                {device.label} · logcat
-              </div>
-            </div>
-          </div>
+          <PhoneContent
+            device={device}
+            logs={logs}
+            running={running}
+            screenRef={screenRef}
+          />
 
-          {/* Logcat surface (Material card) */}
-          <div
-            ref={screenRef}
-            data-testid="logcat"
-            style={{
-              flex: 1,
-              margin: "0 12px 12px",
-              padding: 12,
-              borderRadius: 18,
-              background: "rgba(15, 23, 42, 0.65)",
-              border: "1px solid rgba(148,163,184,0.12)",
-              boxShadow: "0 1px 0 rgba(255,255,255,0.03) inset",
-              overflow: "auto",
-              fontFamily:
-                'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
-              fontSize: 12,
-              lineHeight: 1.55,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-word",
-            }}
-          >
-            {logs.length === 0 ? (
-              <div
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                  color: "#94a3b8",
-                  textAlign: "center",
-                  gap: 14,
-                  padding: 16,
-                }}
-              >
-                <div
-                  style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 16,
-                    background: "linear-gradient(135deg,#22c55e,#06b6d4)",
-                    display: "grid",
-                    placeItems: "center",
-                    color: "white",
-                    fontWeight: 800,
-                    fontSize: 24,
-                  }}
-                >
-                  ▶
-                </div>
-                <div style={{ fontWeight: 700, color: "#f1f5f9", fontSize: 14 }}>
-                  Your Android app
-                </div>
-                <div style={{ fontSize: 12, maxWidth: 220 }}>
-                  Tap the green button below to build &amp; launch your Java code.
-                </div>
-              </div>
-            ) : (
-              logs.map((l, i) => {
-                const palette =
-                  l.stream === "err"
-                    ? { bg: "rgba(239,68,68,0.18)", fg: "#fecaca", label: "E", text: "#fecaca" }
-                    : l.stream === "sys"
-                      ? { bg: "rgba(167,139,250,0.18)", fg: "#ddd6fe", label: "S", text: "#ddd6fe" }
-                      : { bg: "rgba(52,211,153,0.18)", fg: "#a7f3d0", label: "I", text: "#d1fae5" };
-                return (
-                  <div
-                    key={i}
-                    style={{ display: "flex", gap: 8, alignItems: "flex-start", marginBottom: 2 }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 800,
-                        color: palette.fg,
-                        background: palette.bg,
-                        padding: "1px 0",
-                        borderRadius: 4,
-                        flexShrink: 0,
-                        minWidth: 16,
-                        textAlign: "center",
-                        lineHeight: "14px",
-                        marginTop: 2,
-                      }}
-                    >
-                      {palette.label}
-                    </span>
-                    <span style={{ color: palette.text, flex: 1 }}>{l.text}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
 
           {/* Floating Action Button */}
           <button
