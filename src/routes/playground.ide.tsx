@@ -200,6 +200,10 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
   const [viewport, setViewport] = useState<ViewportKey>("mobile");
   const [bottomTab, setBottomTab] = useState<"preview" | "console" | "output">("preview");
   const [fullscreen, setFullscreen] = useState(false);
+  const [previewMax, setPreviewMax] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<"stacked" | "split">("stacked");
+  const [panelHeight, setPanelHeight] = useState<number>(320);
+  const [splitWidth, setSplitWidth] = useState<number>(50); // percent for preview pane
   const [running, setRunning] = useState(false);
   const [output, setOutput] = useState("");
   const [stdout, setStdout] = useState("");
