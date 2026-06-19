@@ -267,7 +267,9 @@ export interface RunOptions {
 function friendlyError(err: unknown, provider: ProviderKey): string {
   if (err instanceof ProviderError) {
     if (err.status === 429) return `${PROVIDERS[provider].label} is rate-limited right now (HTTP 429). Try again in a moment or switch providers.`;
-    if (err.status === 403) return `${PROVIDERS[provider].label} rejected the request (HTTP 403). ${err.message}`;
+    if (err.status === 401 || err.status === 403) {
+      return `${PROVIDERS[provider].label} rejected the request (HTTP ${err.status}). ${provider === "piston" ? "The public Piston API is whitelist-only since Feb 2026 — switch to Wandbox." : err.message}`;
+    }
     if (err.status && err.status >= 500) return `${PROVIDERS[provider].label} is temporarily unavailable (HTTP ${err.status}).`;
     return err.message;
   }
