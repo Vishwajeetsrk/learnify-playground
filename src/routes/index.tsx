@@ -468,6 +468,8 @@ function LogoOrbit({ items }: { items: { name: string; slug: string; color: stri
               key={it.slug}
               to={it.lang ? `${it.to}?lang=${encodeURIComponent(it.lang)}` : it.to}
               draggable={false}
+              data-testid={`orbit-logo-${it.slug}`}
+              data-orbit-link="true"
               title={`${it.name} — open playground`}
               className="group absolute -left-8 -top-8 flex h-16 w-16 items-center justify-center rounded-2xl border border-border bg-card/90 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.6)] backdrop-blur transition-colors hover:border-primary"
               style={{
