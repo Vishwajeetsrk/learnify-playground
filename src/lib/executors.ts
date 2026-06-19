@@ -19,16 +19,24 @@ export type LangKey =
   | "go"
   | "rust"
   | "ruby"
-  | "bash";
+  | "bash"
+  | "kotlin"
+  | "swift"
+  | "dart"
+  | "scala"
+  | "objc"
+  | "sql";
 
 export type ProviderKey = "wandbox" | "piston";
 
 interface LangSpec {
   label: string;
   monaco: string;
-  wandbox: { compiler: string };
+  wandbox?: { compiler: string };
   piston?: { language: string; version: string; filename: string };
   starter: string;
+  /** false = no live executor; runCode throws a friendly snippet-mode message. */
+  runnable?: boolean;
 }
 
 export const LANGUAGES: Record<LangKey, LangSpec> = {
@@ -114,6 +122,42 @@ export const LANGUAGES: Record<LangKey, LangSpec> = {
     wandbox: { compiler: "bash" },
     starter: `echo "Hello from Bash"\n`,
   },
+  kotlin: {
+    label: "Kotlin",
+    monaco: "kotlin",
+    wandbox: { compiler: "kotlin-1.9.23" },
+    starter: `fun main() {\n  println("Hello from Kotlin")\n}\n`,
+  },
+  swift: {
+    label: "Swift",
+    monaco: "swift",
+    wandbox: { compiler: "swift-5.10.1" },
+    starter: `let name = "Swift"\nprint("Hello from \\(name)")\n`,
+  },
+  scala: {
+    label: "Scala",
+    monaco: "scala",
+    wandbox: { compiler: "scala-3.5.0" },
+    starter: `@main def hello() = println("Hello from Scala")\n`,
+  },
+  dart: {
+    label: "Dart",
+    monaco: "dart",
+    runnable: false,
+    starter: `void main() {\n  print('Hello from Dart');\n}\n`,
+  },
+  objc: {
+    label: "Objective-C",
+    monaco: "objective-c",
+    runnable: false,
+    starter: `#import <Foundation/Foundation.h>\nint main(){ @autoreleasepool { NSLog(@"Hello from Objective-C"); } return 0; }\n`,
+  },
+  sql: {
+    label: "SQL",
+    monaco: "sql",
+    runnable: false,
+    starter: `SELECT 'Hello from SQL' AS greeting;\n`,
+  },
 };
 
 export const PROVIDERS: Record<ProviderKey, { label: string; description: string; dailyFreeLimit: number }> = {
@@ -154,6 +198,7 @@ class ProviderError extends Error {
 
 async function runWandbox(lang: LangKey, source: string, stdin: string): Promise<RunResult> {
   const wb = LANGUAGES[lang].wandbox;
+  if (!wb) throw new ProviderError("wandbox", null, `${LANGUAGES[lang].label} has no Wandbox compiler configured. Use the AI assistant or run locally.`);
   const res = await fetch("https://wandbox.org/api/compile.json", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -283,6 +328,9 @@ export async function runCode(
   provider: ProviderKey = "wandbox",
   options: RunOptions = {},
 ): Promise<RunResult> {
+  if (LANGUAGES[lang].runnable === false) {
+    throw new Error(`${LANGUAGES[lang].label} runs in snippet mode — no free online executor. Use the AI assistant to explain, convert, or generate tests, or copy the code to your local toolchain.`);
+  }
   try {
     return await runWithProvider(provider, lang, source, stdin);
   } catch (err) {

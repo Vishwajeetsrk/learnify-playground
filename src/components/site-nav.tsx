@@ -2,27 +2,29 @@ import { Link } from "@tanstack/react-router";
 import { Code2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+const NAV = [
+  { to: "/playground", label: "Code" },
+  { to: "/playground/web", label: "Web" },
+  { to: "/playground/mobile", label: "Mobile" },
+  { to: "/playground/backend", label: "Backend" },
+  { to: "/playground/database", label: "Database" },
+  { to: "/tools", label: "Tools" },
+] as const;
+
 export function SiteNav() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:px-4">
+        <Link to="/" className="flex shrink-0 items-center gap-2 font-semibold tracking-tight">
           <Code2 className="h-5 w-5 text-primary" />
-          <span>Playground</span>
+          <span className="hidden sm:inline">Playground</span>
         </Link>
-        <nav className="flex items-center gap-1 sm:gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/playground">Code</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/playground/web">Web</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/playground/mobile">Mobile</Link>
-          </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link to="/tools">Tools</Link>
-          </Button>
+        <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto sm:justify-end sm:gap-1">
+          {NAV.map((n) => (
+            <Button key={n.to} asChild variant="ghost" size="sm" className="shrink-0 px-2 sm:px-3">
+              <Link to={n.to}>{n.label}</Link>
+            </Button>
+          ))}
         </nav>
       </div>
     </header>

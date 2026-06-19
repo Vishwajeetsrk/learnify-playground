@@ -106,6 +106,7 @@ function extForLang(l: LangKey): string {
     python: "py", javascript: "js", typescript: "ts", java: "java",
     c: "c", cpp: "cpp", csharp: "cs", php: "php", go: "go",
     rust: "rs", ruby: "rb", bash: "sh",
+    kotlin: "kt", swift: "swift", dart: "dart", scala: "scala", objc: "m", sql: "sql",
   };
   return map[l];
 }
