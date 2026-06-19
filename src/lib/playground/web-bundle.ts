@@ -9,11 +9,13 @@ export interface WebFiles {
 }
 
 export const PREVIEW_VIEWPORTS = {
+  fit:     { label: "Fit",     w: 0,    h: 0    },
   mobile:  { label: "Mobile",  w: 375,  h: 667  },
   tablet:  { label: "Tablet",  w: 768,  h: 1024 },
   desktop: { label: "Desktop", w: 1280, h: 800  },
 } as const;
 export type ViewportKey = keyof typeof PREVIEW_VIEWPORTS;
+
 
 const BRIDGE = `<script>
 (function(){
