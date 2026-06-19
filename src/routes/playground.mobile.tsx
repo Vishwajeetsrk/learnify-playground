@@ -12,6 +12,8 @@ import {
   Trash2,
   Loader2,
   Play,
+  Copy,
+
   Square,
   Wifi,
   Signal,
