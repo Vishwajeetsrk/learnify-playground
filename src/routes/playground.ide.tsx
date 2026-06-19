@@ -622,6 +622,26 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
         </SheetContent>
       </Sheet>
 
+      {/* API Tester sheet */}
+      <Sheet open={apiOpen} onOpenChange={setApiOpen}>
+        <SheetContent side="bottom" className="h-[85vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><Globe size={14} className="mr-1 inline" /> API Tester</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(85vh-3.5rem)]"><ApiTester /></div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Database sheet */}
+      <Sheet open={dbOpen} onOpenChange={setDbOpen}>
+        <SheetContent side="bottom" className="h-[85vh] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
+          <SheetHeader className="border-b px-4 py-3" style={{ borderColor: palette.border }}>
+            <SheetTitle style={{ color: palette.text }}><DbIcon size={14} className="mr-1 inline" /> Database</SheetTitle>
+          </SheetHeader>
+          <div className="h-[calc(85vh-3.5rem)]"><DbConsole storageKey={`${storageKey}:db`} /></div>
+        </SheetContent>
+      </Sheet>
+
       {/* Settings sheet */}
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="w-[320px] p-0" style={{ background: palette.panel, color: palette.text, borderColor: palette.border }}>
