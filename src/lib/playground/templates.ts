@@ -523,6 +523,122 @@ const javaCalc: CodeTemplate = {
   source: `class Calc {\n  static int add(int a, int b){ return a+b; }\n  static int sub(int a, int b){ return a-b; }\n  public static void main(String[] a){\n    System.out.println("3+4 = " + add(3,4));\n    System.out.println("9-2 = " + sub(9,2));\n  }\n}\n`,
 };
 
+// ---------------------------------------------------------------------------
+// Mobile-native snippet templates (Kotlin, Swift, Dart, Objective-C)
+
+const kotlinHello: CodeTemplate = {
+  id: "kt-hello", kind: "code", name: "Kotlin · Hello", icon: "kotlin",
+  description: "Variables, functions, and string templates.", language: "kotlin",
+  source: `fun greet(name: String = "Kotlin") = "Hello, $name!"\n\nfun main() {\n  println(greet())\n  println(greet("Android"))\n}\n`,
+};
+const kotlinOop: CodeTemplate = {
+  id: "kt-oop", kind: "code", name: "Kotlin · Classes & OOP", icon: "kotlin",
+  description: "Data classes, inheritance, and collections.", language: "kotlin",
+  source: `open class Animal(val name: String) { open fun speak() = "..." }\nclass Dog(name: String) : Animal(name) { override fun speak() = "Woof!" }\n\nfun main() {\n  val pets = listOf(Dog("Rex"), Dog("Bella"))\n  pets.forEach { println("\${it.name}: \${it.speak()}") }\n}\n`,
+};
+const kotlinAndroid: CodeTemplate = {
+  id: "kt-android", kind: "code", name: "Kotlin · Android Activity", icon: "android",
+  description: "Snippet of an Android Activity with a Compose UI.", language: "kotlin",
+  source: `// Snippet — paste into an Android Studio project.\n// import androidx.compose.material3.*\n// import androidx.compose.runtime.*\n\nclass MainActivity /* : ComponentActivity() */ {\n  fun onCreate() {\n    // setContent { Greeting("Android") }\n  }\n}\n\n// @Composable fun Greeting(name: String) { Text(text = "Hello \$name!") }\n`,
+};
+const swiftHello: CodeTemplate = {
+  id: "swift-hello", kind: "code", name: "Swift · Hello", icon: "swift",
+  description: "Variables, functions, and string interpolation.", language: "swift",
+  source: `func greet(_ name: String = "Swift") -> String { "Hello, \\(name)!" }\nprint(greet())\nprint(greet("iOS"))\n`,
+};
+const swiftStruct: CodeTemplate = {
+  id: "swift-struct", kind: "code", name: "Swift · Structs & Classes", icon: "swift",
+  description: "Value types vs reference types in Swift.", language: "swift",
+  source: `struct Point { var x: Double; var y: Double\n  func distance(to o: Point) -> Double { ((x-o.x)*(x-o.x) + (y-o.y)*(y-o.y)).squareRoot() }\n}\nlet a = Point(x: 0, y: 0); let b = Point(x: 3, y: 4)\nprint("distance =", a.distance(to: b))\n`,
+};
+const dartHello: CodeTemplate = {
+  id: "dart-hello", kind: "code", name: "Dart · Hello", icon: "dart",
+  description: "Functions, named args, and null-safety.", language: "dart",
+  source: `String greet({String name = 'Dart'}) => 'Hello, \$name!';\n\nvoid main() {\n  print(greet());\n  print(greet(name: 'Flutter'));\n}\n`,
+};
+const flutterWidget: CodeTemplate = {
+  id: "flutter-widget", kind: "code", name: "Flutter · Counter Widget", icon: "flutter",
+  description: "Classic StatefulWidget counter snippet.", language: "dart",
+  source: `// Snippet — paste into a Flutter project.\nimport 'package:flutter/material.dart';\n\nclass Counter extends StatefulWidget {\n  const Counter({super.key});\n  @override State<Counter> createState() => _CounterState();\n}\n\nclass _CounterState extends State<Counter> {\n  int _n = 0;\n  @override Widget build(BuildContext context) => Scaffold(\n    body: Center(child: Text('Count: \$_n', style: const TextStyle(fontSize: 32))),\n    floatingActionButton: FloatingActionButton(\n      onPressed: () => setState(() => _n++),\n      child: const Icon(Icons.add),\n    ),\n  );\n}\n`,
+};
+const objcHello: CodeTemplate = {
+  id: "objc-hello", kind: "code", name: "Objective-C · Hello", icon: "objc",
+  description: "NSLog from a classic Objective-C main.", language: "objc",
+  source: `#import <Foundation/Foundation.h>\nint main(int argc, const char * argv[]) {\n  @autoreleasepool {\n    NSString *name = @"Objective-C";\n    NSLog(@"Hello from %@", name);\n  }\n  return 0;\n}\n`,
+};
+
+// ---------------------------------------------------------------------------
+// Backend snippet templates — runnable in snippet mode, paired with API tester
+
+const nodeExpress: CodeTemplate = {
+  id: "be-express", kind: "code", name: "Express · REST API", icon: "express",
+  description: "Minimal Express server with GET/POST routes.", language: "javascript",
+  source: `// Snippet — run locally with: npm i express && node server.js\nconst express = require('express');\nconst app = express();\napp.use(express.json());\n\nconst todos = [];\napp.get('/api/todos', (_req, res) => res.json(todos));\napp.post('/api/todos', (req, res) => {\n  const t = { id: Date.now(), text: req.body.text, done: false };\n  todos.push(t); res.status(201).json(t);\n});\napp.delete('/api/todos/:id', (req, res) => {\n  const i = todos.findIndex(x => String(x.id) === req.params.id);\n  if (i >= 0) todos.splice(i, 1);\n  res.status(204).end();\n});\n\napp.listen(3000, () => console.log('http://localhost:3000'));\n`,
+};
+const nodeAuth: CodeTemplate = {
+  id: "be-auth", kind: "code", name: "Express · Auth API", icon: "express",
+  description: "JWT login + protected route with bcrypt hashing.", language: "javascript",
+  source: `// Snippet — npm i express jsonwebtoken bcryptjs\nconst express = require('express');\nconst jwt = require('jsonwebtoken');\nconst bcrypt = require('bcryptjs');\nconst app = express(); app.use(express.json());\nconst SECRET = process.env.JWT_SECRET || 'dev-secret';\nconst users = new Map();\n\napp.post('/auth/register', async (req, res) => {\n  const { email, password } = req.body;\n  if (users.has(email)) return res.status(409).json({ error: 'exists' });\n  users.set(email, await bcrypt.hash(password, 10));\n  res.json({ ok: true });\n});\napp.post('/auth/login', async (req, res) => {\n  const { email, password } = req.body;\n  const hash = users.get(email);\n  if (!hash || !(await bcrypt.compare(password, hash))) return res.status(401).json({ error: 'invalid' });\n  res.json({ token: jwt.sign({ sub: email }, SECRET, { expiresIn: '1h' }) });\n});\napp.get('/me', (req, res) => {\n  const t = (req.headers.authorization || '').replace('Bearer ', '');\n  try { res.json(jwt.verify(t, SECRET)); } catch { res.status(401).end(); }\n});\napp.listen(3000);\n`,
+};
+const flaskApi: CodeTemplate = {
+  id: "be-flask", kind: "code", name: "Flask · REST API", icon: "flask",
+  description: "Minimal Flask CRUD API.", language: "python",
+  source: `# Snippet — pip install flask && python app.py\nfrom flask import Flask, request, jsonify\napp = Flask(__name__)\nnotes = []\n\n@app.get("/api/notes")\ndef list_notes(): return jsonify(notes)\n\n@app.post("/api/notes")\ndef add_note():\n    n = { "id": len(notes)+1, "text": request.json["text"] }\n    notes.append(n)\n    return jsonify(n), 201\n\n@app.delete("/api/notes/<int:nid>")\ndef del_note(nid):\n    notes[:] = [n for n in notes if n["id"] != nid]\n    return "", 204\n\nif __name__ == "__main__":\n    app.run(port=5000, debug=True)\n`,
+};
+const fastapiApi: CodeTemplate = {
+  id: "be-fastapi", kind: "code", name: "FastAPI · Typed API", icon: "fastapi",
+  description: "Async FastAPI service with Pydantic models.", language: "python",
+  source: `# Snippet — pip install fastapi uvicorn && uvicorn main:app --reload\nfrom fastapi import FastAPI, HTTPException\nfrom pydantic import BaseModel\n\napp = FastAPI()\n\nclass Item(BaseModel):\n    id: int\n    name: str\n    price: float\n\nitems: dict[int, Item] = {}\n\n@app.get("/items")\ndef list_items(): return list(items.values())\n\n@app.post("/items", status_code=201)\ndef create(item: Item):\n    items[item.id] = item\n    return item\n\n@app.get("/items/{item_id}")\ndef read(item_id: int):\n    if item_id not in items: raise HTTPException(404)\n    return items[item_id]\n`,
+};
+const phpApi: CodeTemplate = {
+  id: "be-php", kind: "code", name: "PHP · JSON API", icon: "php",
+  description: "Single-file PHP REST endpoint.", language: "php",
+  source: `<?php\nheader("Content-Type: application/json");\n$method = $_SERVER["REQUEST_METHOD"];\n$body = json_decode(file_get_contents("php://input"), true) ?? [];\n\n$db = json_decode(@file_get_contents("/tmp/items.json"), true) ?? [];\n\nswitch ($method) {\n  case "GET":  echo json_encode($db); break;\n  case "POST": $db[] = $body; file_put_contents("/tmp/items.json", json_encode($db));\n               http_response_code(201); echo json_encode($body); break;\n  default: http_response_code(405);\n}\n`,
+};
+const springBoot: CodeTemplate = {
+  id: "be-spring", kind: "code", name: "Spring Boot · Controller", icon: "spring",
+  description: "Spring Boot REST controller snippet.", language: "java",
+  source: `// Snippet — paste into a Spring Boot project.\nimport org.springframework.web.bind.annotation.*;\nimport java.util.*;\n\n@RestController\n@RequestMapping("/api/users")\nclass UserController {\n  private final Map<Long, String> users = new HashMap<>();\n\n  @GetMapping public Collection<String> list() { return users.values(); }\n\n  @PostMapping public String create(@RequestBody Map<String,String> body) {\n    long id = users.size() + 1L;\n    users.put(id, body.get("name"));\n    return "Created " + id;\n  }\n\n  @DeleteMapping("/{id}") public void delete(@PathVariable long id) { users.remove(id); }\n}\n`,
+};
+const aspnetApi: CodeTemplate = {
+  id: "be-aspnet", kind: "code", name: "ASP.NET · Minimal API", icon: "dotnet",
+  description: "ASP.NET Core minimal API snippet.", language: "csharp",
+  source: `// Snippet — dotnet new web && dotnet run\nvar builder = WebApplication.CreateBuilder(args);\nvar app = builder.Build();\n\nvar todos = new List<string>();\napp.MapGet("/todos", () => todos);\napp.MapPost("/todos", (string text) => { todos.Add(text); return Results.Created($"/todos/{todos.Count}", text); });\napp.MapDelete("/todos/{i}", (int i) => { todos.RemoveAt(i); return Results.NoContent(); });\n\napp.Run();\n`,
+};
+const ginGo: CodeTemplate = {
+  id: "be-gin", kind: "code", name: "Go · Gin REST API", icon: "go",
+  description: "Gin web framework JSON CRUD.", language: "go",
+  source: `// Snippet — go get github.com/gin-gonic/gin\npackage main\n\nimport (\n  "github.com/gin-gonic/gin"\n  "net/http"\n)\n\ntype Book struct{ ID int; Title string }\n\nfunc main() {\n  r := gin.Default()\n  books := []Book{{1, "Go in Action"}}\n  r.GET("/books", func(c *gin.Context) { c.JSON(http.StatusOK, books) })\n  r.POST("/books", func(c *gin.Context) {\n    var b Book\n    if err := c.BindJSON(&b); err != nil { return }\n    books = append(books, b); c.JSON(http.StatusCreated, b)\n  })\n  r.Run(":8080")\n}\n`,
+};
+
+// Database (SQL) templates — load into Database playground.
+
+const dbStudent: CodeTemplate = {
+  id: "db-student", kind: "code", name: "Students DB", icon: "database",
+  description: "Schema + sample query for a student management system.", language: "sql",
+  source: `-- Student Management System\nDROP TABLE IF EXISTS enrollments;\nDROP TABLE IF EXISTS students;\nDROP TABLE IF EXISTS courses;\n\nCREATE TABLE students (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT UNIQUE, grade INTEGER);\nCREATE TABLE courses  (id INTEGER PRIMARY KEY, title TEXT NOT NULL, credits INTEGER);\nCREATE TABLE enrollments (\n  student_id INTEGER REFERENCES students(id),\n  course_id  INTEGER REFERENCES courses(id),\n  score      INTEGER\n);\n\nINSERT INTO students VALUES (1,'Ada Lovelace','ada@uni.edu',12),(2,'Alan Turing','alan@uni.edu',11),(3,'Grace Hopper','grace@uni.edu',12);\nINSERT INTO courses  VALUES (1,'Algorithms',4),(2,'Compilers',3),(3,'Databases',4);\nINSERT INTO enrollments VALUES (1,1,95),(1,3,90),(2,2,88),(3,1,92),(3,3,98);\n\n-- Top students per course\nSELECT c.title, s.name, e.score\nFROM enrollments e\nJOIN students s ON s.id = e.student_id\nJOIN courses  c ON c.id = e.course_id\nORDER BY c.title, e.score DESC;\n`,
+};
+const dbEmployee: CodeTemplate = {
+  id: "db-employee", kind: "code", name: "Employees DB", icon: "database",
+  description: "Departments + salaries with aggregates.", language: "sql",
+  source: `DROP TABLE IF EXISTS employees;\nDROP TABLE IF EXISTS departments;\nCREATE TABLE departments (id INTEGER PRIMARY KEY, name TEXT);\nCREATE TABLE employees  (id INTEGER PRIMARY KEY, name TEXT, salary REAL, dept_id INTEGER REFERENCES departments(id));\n\nINSERT INTO departments VALUES (1,'Engineering'),(2,'Design'),(3,'Sales');\nINSERT INTO employees VALUES\n (1,'Alex',95000,1),(2,'Sam',82000,1),(3,'Jordan',78000,2),(4,'Riley',120000,3),(5,'Kai',88000,3);\n\nSELECT d.name AS dept, COUNT(*) AS people, ROUND(AVG(e.salary),2) AS avg_salary\nFROM employees e JOIN departments d ON d.id = e.dept_id\nGROUP BY d.name ORDER BY avg_salary DESC;\n`,
+};
+const dbEcommerce: CodeTemplate = {
+  id: "db-ecom", kind: "code", name: "E-commerce DB", icon: "database",
+  description: "Products, orders, line items with revenue rollup.", language: "sql",
+  source: `DROP TABLE IF EXISTS order_items;\nDROP TABLE IF EXISTS orders;\nDROP TABLE IF EXISTS products;\nCREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT, price REAL);\nCREATE TABLE orders   (id INTEGER PRIMARY KEY, customer TEXT, created_at TEXT);\nCREATE TABLE order_items (\n  order_id INTEGER REFERENCES orders(id),\n  product_id INTEGER REFERENCES products(id),\n  qty INTEGER\n);\n\nINSERT INTO products VALUES (1,'Headphones',129.99),(2,'Keyboard',89.50),(3,'Mouse',49.00);\nINSERT INTO orders VALUES (1,'Alice','2026-01-10'),(2,'Bob','2026-01-12'),(3,'Alice','2026-02-03');\nINSERT INTO order_items VALUES (1,1,1),(1,3,2),(2,2,1),(3,1,1),(3,2,1);\n\nSELECT p.name, SUM(i.qty) AS units_sold, ROUND(SUM(i.qty*p.price),2) AS revenue\nFROM order_items i JOIN products p ON p.id = i.product_id\nGROUP BY p.name ORDER BY revenue DESC;\n`,
+};
+const dbLibrary: CodeTemplate = {
+  id: "db-library", kind: "code", name: "Library DB", icon: "database",
+  description: "Books, members, and checkout history.", language: "sql",
+  source: `DROP TABLE IF EXISTS loans;\nDROP TABLE IF EXISTS books;\nDROP TABLE IF EXISTS members;\nCREATE TABLE books   (id INTEGER PRIMARY KEY, title TEXT, author TEXT);\nCREATE TABLE members (id INTEGER PRIMARY KEY, name TEXT);\nCREATE TABLE loans   (book_id INTEGER, member_id INTEGER, borrowed_on TEXT, returned_on TEXT);\n\nINSERT INTO books VALUES (1,'Dune','Herbert'),(2,'Sapiens','Harari'),(3,'1984','Orwell');\nINSERT INTO members VALUES (1,'Mia'),(2,'Noah');\nINSERT INTO loans VALUES (1,1,'2026-03-01','2026-03-10'),(2,1,'2026-03-12',NULL),(3,2,'2026-02-20','2026-03-02');\n\nSELECT m.name AS member, b.title, l.borrowed_on,\n  CASE WHEN l.returned_on IS NULL THEN 'on loan' ELSE 'returned' END AS status\nFROM loans l JOIN books b ON b.id = l.book_id JOIN members m ON m.id = l.member_id;\n`,
+};
+const dbHospital: CodeTemplate = {
+  id: "db-hospital", kind: "code", name: "Hospital DB", icon: "database",
+  description: "Patients, doctors, and appointments.", language: "sql",
+  source: `DROP TABLE IF EXISTS appointments;\nDROP TABLE IF EXISTS doctors;\nDROP TABLE IF EXISTS patients;\nCREATE TABLE patients (id INTEGER PRIMARY KEY, name TEXT, dob TEXT);\nCREATE TABLE doctors  (id INTEGER PRIMARY KEY, name TEXT, specialty TEXT);\nCREATE TABLE appointments (\n  id INTEGER PRIMARY KEY, patient_id INTEGER, doctor_id INTEGER, scheduled_at TEXT\n);\n\nINSERT INTO patients VALUES (1,'Jane','1990-05-01'),(2,'Mark','1985-12-22');\nINSERT INTO doctors  VALUES (1,'Dr. Lee','Cardiology'),(2,'Dr. Patel','Pediatrics');\nINSERT INTO appointments VALUES (1,1,1,'2026-04-01 09:30'),(2,2,2,'2026-04-02 14:00'),(3,1,2,'2026-04-05 11:15');\n\nSELECT p.name AS patient, d.name AS doctor, d.specialty, a.scheduled_at\nFROM appointments a\nJOIN patients p ON p.id = a.patient_id\nJOIN doctors  d ON d.id = a.doctor_id\nORDER BY a.scheduled_at;\n`,
+};
+
 // Assign tracks. Default: a web template appears in Web, a code template in Code.
 // Mobile-friendly UIs appear in BOTH Web and Mobile.
 function tag<T extends Template>(t: T, tracks: Track[]): T { return { ...t, tracks }; }
@@ -537,12 +653,21 @@ export const TEMPLATES: Template[] = [
   tag(login, ["web", "mobile"]),
   tag(chat, ["web", "mobile"]),
   tag(expense, ["web", "mobile"]),
-  // Mobile-only templates
+  // Mobile-only web shells
   tag(bottomNavApp, ["mobile"]),
   tag(feedApp, ["mobile"]),
   tag(pwaTodo, ["mobile"]),
   tag(onboarding, ["mobile"]),
-  // Code (script) templates
+  // Mobile-native snippets
+  tag(kotlinHello, ["mobile", "code"]),
+  tag(kotlinOop, ["mobile", "code"]),
+  tag(kotlinAndroid, ["mobile"]),
+  tag(swiftHello, ["mobile", "code"]),
+  tag(swiftStruct, ["mobile", "code"]),
+  tag(dartHello, ["mobile", "code"]),
+  tag(flutterWidget, ["mobile"]),
+  tag(objcHello, ["mobile", "code"]),
+  // Code (general) templates
   tag(pythonHello, ["code"]),
   tag(pyFizzBuzz, ["code"]),
   tag(nodeHello, ["code"]),
@@ -552,6 +677,21 @@ export const TEMPLATES: Template[] = [
   tag(cppDemo, ["code"]),
   tag(goDemo, ["code"]),
   tag(rustDemo, ["code"]),
+  // Backend snippets
+  tag(nodeExpress, ["backend"]),
+  tag(nodeAuth, ["backend"]),
+  tag(flaskApi, ["backend"]),
+  tag(fastapiApi, ["backend"]),
+  tag(phpApi, ["backend"]),
+  tag(springBoot, ["backend"]),
+  tag(aspnetApi, ["backend"]),
+  tag(ginGo, ["backend"]),
+  // Database (SQL) templates
+  tag(dbStudent, ["database"]),
+  tag(dbEmployee, ["database"]),
+  tag(dbEcommerce, ["database"]),
+  tag(dbLibrary, ["database"]),
+  tag(dbHospital, ["database"]),
 ];
 
 export const WEB_TEMPLATES = TEMPLATES.filter((t): t is WebTemplate => t.kind === "web");
@@ -560,3 +700,4 @@ export const CODE_TEMPLATES = TEMPLATES.filter((t): t is CodeTemplate => t.kind 
 export function templatesForTrack(track: Track): Template[] {
   return TEMPLATES.filter((t) => (t.tracks ?? []).includes(track));
 }
+
