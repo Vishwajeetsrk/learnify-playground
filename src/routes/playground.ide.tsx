@@ -551,6 +551,15 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
             <Button size="icon" variant="ghost" onClick={handleShare} title="Share" className="hidden h-9 w-9 sm:inline-flex">
               <Share2 size={16} />
             </Button>
+            <Button size="icon" variant="ghost" onClick={() => setCmdOpen(true)} title="Command Palette (⌘K)" className="hidden h-9 w-9 sm:inline-flex">
+              <CommandIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={openFindReplace} title="Find & Replace" className="hidden h-9 w-9 sm:inline-flex">
+              <ReplaceIcon size={16} />
+            </Button>
+            <Button size="icon" variant="ghost" onClick={toggleAppTheme} title={`Theme: ${APP_THEMES[appTheme].label}`} className="h-9 w-9">
+              {appTheme === "light" ? <Moon size={16} /> : <Sun size={16} />}
+            </Button>
             <Button size="icon" variant="ghost" onClick={() => setAiOpen(true)} title="AI Assistant" className="h-9 w-9">
               <Sparkles size={16} />
             </Button>
