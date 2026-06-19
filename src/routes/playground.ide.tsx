@@ -25,6 +25,7 @@ import { TEMPLATES, WEB_TEMPLATES, templatesForTrack, type Template, type Track 
 import {
   buildPreviewDoc, parseConsoleMessage, PREVIEW_VIEWPORTS, type ViewportKey,
 } from "@/lib/playground/web-bundle";
+import { TemplateIcon, LanguageIcon, FileExtIcon } from "@/lib/playground/icons";
 
 export const Route = createFileRoute("/playground/ide")({
   ssr: false,
@@ -322,11 +323,14 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
               className="h-7 w-full min-w-0 border-0 bg-transparent px-0 text-sm font-semibold focus-visible:ring-0"
               style={{ color: palette.text }}
             />
-            <span className="truncate text-[10px]" style={{ color: palette.subtle }}>
-              {state.kind === "web" ? "HTML · CSS · JS" : LANGUAGES[state.language].label}
-              {savedAt && <> · Saved</>}
+            <span className="flex items-center gap-1.5 truncate text-[10px]" style={{ color: palette.subtle }}>
+              {state.kind === "web"
+                ? <>HTML · CSS · JS</>
+                : <><LanguageIcon language={state.language} size={11} /> {LANGUAGES[state.language].label}</>}
+              {savedAt && <span className="opacity-70">· Saved</span>}
             </span>
           </div>
+
 
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
             <Button size="icon" variant="ghost" onClick={() => setTemplatesOpen(true)} title="Templates" className="h-9 w-9">
@@ -555,27 +559,27 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
           <div className="grid grid-cols-2 gap-2 overflow-auto p-3 sm:grid-cols-3">
             {effectiveTrack !== "code" && (
               <button onClick={() => newBlank("web")}
-                className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left"
+                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
                 style={{ borderColor: palette.border, background: palette.bg }}>
-                <span className="text-2xl">🌐</span>
+                <TemplateIcon name="blank-web" size={24} />
                 <span className="text-sm font-semibold">Blank Web</span>
                 <span className="text-[11px]" style={{ color: palette.subtle }}>HTML + CSS + JS</span>
               </button>
             )}
             {effectiveTrack === "code" && (
               <button onClick={() => newBlank("code")}
-                className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left"
+                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left"
                 style={{ borderColor: palette.border, background: palette.bg }}>
-                <span className="text-2xl">📝</span>
+                <TemplateIcon name="blank-code" size={24} />
                 <span className="text-sm font-semibold">Blank Script</span>
                 <span className="text-[11px]" style={{ color: palette.subtle }}>Pick any language</span>
               </button>
             )}
             {trackTemplates.map((t) => (
               <button key={t.id} onClick={() => loadTemplate(t)}
-                className="flex flex-col items-start gap-1 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
+                className="flex flex-col items-start gap-2 rounded-xl border p-3 text-left transition hover:-translate-y-0.5"
                 style={{ borderColor: palette.border, background: palette.bg }}>
-                <span className="text-2xl">{t.emoji}</span>
+                <TemplateIcon name={t.icon} size={24} />
                 <span className="text-sm font-semibold">{t.name}</span>
                 <span className="line-clamp-2 text-[11px]" style={{ color: palette.subtle }}>{t.description}</span>
               </button>
@@ -646,7 +650,9 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {(Object.keys(LANGUAGES) as LangKey[]).map((k) => (
-                      <SelectItem key={k} value={k}>{LANGUAGES[k].label}</SelectItem>
+                      <SelectItem key={k} value={k}>
+                        <span className="inline-flex items-center gap-2"><LanguageIcon language={k} size={14} /> {LANGUAGES[k].label}</span>
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -696,14 +702,10 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 }
 
 function FileIcon({ name }: { name: string }) {
-  const ext = name.split(".").pop()?.toLowerCase();
-  const map: Record<string, string> = {
-    html: "🟧", css: "🟦", js: "🟨", ts: "🔷", json: "📦",
-    py: "🐍", java: "☕", kt: "🟪", php: "🐘", rb: "💎",
-    go: "🐹", rs: "🦀", c: "🔧", cpp: "🔧", cs: "🔷", sh: "🟩",
-  };
-  return <span className="text-xs">{map[ext ?? ""] ?? "📄"}</span>;
+  return <FileExtIcon name={name} size={13} />;
 }
+
+
 
 function AddFileButton({ onAdd, palette }: { onAdd: (name: string) => void; palette: typeof APP_THEMES[AppThemeKey] }) {
   const [open, setOpen] = useState(false);
