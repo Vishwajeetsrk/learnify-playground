@@ -3,7 +3,7 @@ import {
   findMainClass,
   preprocessJava,
   parseJavaErrors,
-} from "./java-preprocess";
+} from "../../src/lib/java-preprocess";
 
 describe("findMainClass", () => {
   it("finds a single public class with main", () => {
