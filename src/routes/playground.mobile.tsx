@@ -46,7 +46,9 @@ import {
 // (the playground runs JVM bytecode, not a real Android emulator), but the
 // structure mirrors what a beginner would write inside an Activity's
 // onCreate(). Output is rendered inside the phone "screen" as logcat lines.
-const STARTER_JAVA = `import java.util.*;
+const STARTER_JAVA = `// Android-style Java. The playground compiles this with the JVM
+// (Wandbox names the file prog.java, so the outer class is package-private).
+import java.util.*;
 
 public class MainActivity {
     // Simulated Android lifecycle entry point.
