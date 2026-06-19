@@ -703,10 +703,19 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
   function handleShare() {
     try {
-      const payload = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      const payload = btoa(unescape(encodeURIComponent(JSON.stringify({
+        v: 2,
+        state,
+        previewStorage: persistPreviewStorage ? previewStorage : { local: {}, session: {} },
+        persistPreviewStorage,
+      }))));
       const url = `${location.origin}${location.pathname}#share=${payload}`;
       navigator.clipboard.writeText(url);
-      toast.success("Share link copied", { description: "Anyone with the link can open this project." });
+      toast.success("Share link copied", {
+        description: persistPreviewStorage
+          ? "Link includes preview data so the recipient sees the same state."
+          : "Anyone with the link can open this project.",
+      });
     } catch { toast.error("Could not create share link"); }
   }
 
@@ -717,8 +726,18 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
     if (!m) return;
     try {
       const json = decodeURIComponent(escape(atob(m[1])));
-      const parsed = JSON.parse(json) as IdeState;
-      if (parsed.files?.length) { setState(ensureActive(parsed)); toast.success("Loaded shared project"); }
+      const parsed = JSON.parse(json) as
+        | IdeState
+        | { v: 2; state: IdeState; previewStorage?: { local: Record<string,string>; session: Record<string,string> }; persistPreviewStorage?: boolean };
+      const sharedState = "v" in parsed && parsed.v === 2 ? parsed.state : (parsed as IdeState);
+      if (sharedState.files?.length) {
+        setState(ensureActive(sharedState));
+        if ("v" in parsed && parsed.v === 2) {
+          if (typeof parsed.persistPreviewStorage === "boolean") setPersistPreviewStorage(parsed.persistPreviewStorage);
+          if (parsed.previewStorage) setPreviewStorage(parsed.previewStorage);
+        }
+        toast.success("Loaded shared project");
+      }
       window.history.replaceState(null, "", window.location.pathname);
     } catch { /* ignore */ }
   }, []);
