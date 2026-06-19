@@ -5,6 +5,7 @@ import {
   Calculator,
   Clock,
   Code as CodeIcon,
+  Diff,
   Download,
   FileImage,
   FileJson,
@@ -13,6 +14,8 @@ import {
   KeyRound,
   Link as LinkIcon,
   Palette,
+  Pilcrow,
+  QrCode,
   Scan,
   ScrollText,
   ShieldCheck,
@@ -30,7 +33,7 @@ export const Route = createFileRoute("/tools")({
       {
         name: "description",
         content:
-          "Free in-browser utilities: image compression, JSON/CSV, base64, URL encoder, JWT decoder, UUID, hash, color converter, regex tester, and more.",
+          "Free in-browser utilities: image compression, JSON/CSV, base64, URL encoder, JWT decoder, UUID, hash, color converter, regex tester, lorem ipsum, text diff, QR codes, and more.",
       },
     ],
   }),
@@ -62,6 +65,9 @@ function ToolsPage() {
         <SlugifyTool />
         <TimestampConverter />
         <WordCounter />
+        <LoremIpsum />
+        <TextDiff />
+        <QrGenerator />
       </div>
     </div>
   );
