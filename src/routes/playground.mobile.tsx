@@ -421,12 +421,12 @@ function MobilePlayground() {
       <h1 className="sr-only">Android Mobile Playground</h1>
 
       <div className="flex flex-nowrap items-center gap-2 overflow-x-auto border-b border-border/60 bg-card/40 p-2 [&::-webkit-scrollbar]:h-1">
-        <Smartphone className="h-4 w-4 text-primary" />
-        <span className="hidden text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
+        <Smartphone className="h-4 w-4 shrink-0 text-primary" />
+        <span className="hidden shrink-0 text-xs font-semibold uppercase tracking-wider text-muted-foreground sm:inline">
           Android · Java
         </span>
         <Select value={device} onValueChange={(v) => setDevice(v as DeviceKey)}>
-          <SelectTrigger className="h-9 w-36" data-testid="device-select">
+          <SelectTrigger className="h-9 w-36 shrink-0" data-testid="device-select">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -443,10 +443,11 @@ function MobilePlayground() {
           onClick={() => setLandscape((s) => !s)}
           aria-pressed={landscape}
           title="Rotate"
+          className="shrink-0"
         >
           <RotateCw className="mr-1 h-4 w-4" /> {landscape ? "Landscape" : "Portrait"}
         </Button>
-        <label className="flex items-center gap-1 text-xs text-muted-foreground">
+        <label className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
           Zoom
           <input
             type="range"
@@ -463,7 +464,8 @@ function MobilePlayground() {
           </span>
         </label>
 
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-2 pl-2">
+
           {projectName && (
             <span
               className="hidden max-w-[180px] truncate rounded-md border border-border/60 bg-background/60 px-2 py-1 font-mono text-[11px] text-muted-foreground sm:inline-block"
