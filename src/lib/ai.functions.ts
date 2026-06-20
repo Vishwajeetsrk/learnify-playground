@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { generateText } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
 const DebugInput = z.object({
   language: z.string().min(1).max(50),
