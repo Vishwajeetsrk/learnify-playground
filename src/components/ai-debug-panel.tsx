@@ -66,6 +66,7 @@ export function AiDebugPanel({
   const { key: userApiKey } = useUserApiKey();
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
   const [action, setAction] = useState<ActionKey>("diagnose");
