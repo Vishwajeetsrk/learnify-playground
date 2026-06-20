@@ -83,6 +83,7 @@ export function AiDebugPanel({
     setAction(actionKey);
     setLoading(true);
     setReply("");
+    setErrorMsg(null);
     setApplied(false);
     try {
       const res = await ask({
@@ -97,6 +98,7 @@ export function AiDebugPanel({
       setReply(res.reply);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      setErrorMsg(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
