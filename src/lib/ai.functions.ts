@@ -26,7 +26,7 @@ function buildOpenRouterModel(userKey: string) {
     },
   });
   // Free, capable default on OpenRouter
-  return provider("google/gemini-2.0-flash-exp:free");
+  return provider("google/gemini-2.5-flash-lite");
 }
 
 export const debugCode = createServerFn({ method: "POST" })
