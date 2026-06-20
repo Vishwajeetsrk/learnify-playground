@@ -89,7 +89,7 @@ The landing page features **Polyglot Orbit** — a premium interactive 3D carous
   <img title="React"      src="https://cdn.simpleicons.org/react"      width="36" />&nbsp;
   <img title="Android"    src="https://cdn.simpleicons.org/android"    width="36" />&nbsp;
   <img title="iOS"        src="https://cdn.simpleicons.org/apple"      width="36" />&nbsp;
-  <br /><sub>Missing a brand asset? Tiles automatically fall back across 3 CDNs and finally to a colored initials badge — no language tile is ever blank.</sub>
+ <br /> <!-- <sub>Missing a brand asset? Tiles automatically fall back across 3 CDNs and finally to a colored initials badge — no language tile is ever blank.</sub> -->
 </p>
 
 ---
@@ -217,7 +217,7 @@ PRs welcome! Please:
 
 ## 📄 License
 
-[MIT](LICENSE) — free for personal and commercial use.
+[MIT](LICENSE) 
 
 <div align="center">
 
