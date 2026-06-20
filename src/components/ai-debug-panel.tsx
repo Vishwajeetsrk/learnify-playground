@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Loader2, Sparkles, Wand2, BookOpen, Wrench, Zap, RefreshCcw, FileText, FlaskConical, Pencil } from "lucide-react";
+import { AlertTriangle, Check, Loader2, RefreshCcw as Retry, Sparkles, Wand2, BookOpen, Wrench, Zap, RefreshCcw, FileText, FlaskConical, Pencil } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
