@@ -15,18 +15,51 @@ const DebugInput = z.object({
   userApiKey: z.string().max(200).optional().default(""),
 });
 
-function buildOpenRouterModel(userKey: string) {
-  const provider = createOpenAICompatible({
+// Ordered free-tier fallbacks on OpenRouter. We try them in order until one
+// returns endpoints / succeeds.
+const FALLBACK_MODELS = [
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "deepseek/deepseek-chat-v3.1:free",
+  "mistralai/mistral-small-3.2-24b-instruct:free",
+  "qwen/qwen-2.5-72b-instruct:free",
+] as const;
+
+function buildProvider(key: string) {
+  return createOpenAICompatible({
     name: "openrouter",
     baseURL: "https://openrouter.ai/api/v1",
     headers: {
-      Authorization: `Bearer ${userKey}`,
+      Authorization: `Bearer ${key}`,
       "HTTP-Referer": "https://polyglot-orbit.app",
       "X-Title": "Polyglot Orbit Playground",
     },
   });
-  // Free, capable default on OpenRouter
-  return provider("meta-llama/llama-3.3-70b-instruct:free");
+}
+
+function redactKey(k: string) {
+  if (!k) return "(none)";
+  return `${k.slice(0, 6)}…${k.slice(-4)} (${k.length} chars)`;
+}
+
+function isNoEndpointsError(msg: string) {
+  return /no endpoints found|not a valid model|model_not_found|404/i.test(msg);
+}
+
+// Cheap endpoint availability probe — OpenRouter returns the provider list
+// for a model id; if `data` is empty there are no endpoints today.
+async function hasEndpoints(model: string, key: string): Promise<boolean> {
+  try {
+    const res = await fetch(
+      `https://openrouter.ai/api/v1/models/${encodeURIComponent(model)}/endpoints`,
+      { headers: { Authorization: `Bearer ${key}` } },
+    );
+    if (!res.ok) return false;
+    const body = (await res.json()) as { data?: { endpoints?: unknown[] } };
+    return Array.isArray(body?.data?.endpoints) && body.data!.endpoints!.length > 0;
+  } catch {
+    // Network/probe failure shouldn't block the real call — assume available.
+    return true;
+  }
 }
 
 export const debugCode = createServerFn({ method: "POST" })
@@ -74,11 +107,10 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       { role: "user" as const, content: user },
     ];
 
-    // Resolve OpenRouter key: user-supplied (browser) takes priority,
-    // otherwise fall back to the server-side OPENROUTER_API_KEY secret.
     const userKey = data.userApiKey?.trim();
     const envKey = process.env.OPENROUTER_API_KEY?.trim();
     const key = userKey || envKey;
+    const reqId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
     if (!key) {
       throw new Error(
@@ -86,16 +118,71 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       );
     }
 
-    try {
-      const { text } = await generateText({ model: buildOpenRouterModel(key), messages });
-      return { reply: text, source: userKey ? ("openrouter-user" as const) : ("openrouter-env" as const) };
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      if (message.includes("429"))
-        throw new Error("OpenRouter rate limit reached. Try again shortly or use a different key.");
-      if (message.includes("401") || message.includes("403"))
-        throw new Error("OpenRouter rejected the key. Check it via 'Your key' and try again.");
-      throw new Error(`OpenRouter error: ${message}`);
-    }
-  });
+    const provider = buildProvider(key);
+    const attempts: { model: string; ok: boolean; ms: number; error?: string }[] = [];
 
+    console.log("[ai/debug] request", {
+      reqId,
+      language: data.language,
+      codeBytes: data.code.length,
+      stderrBytes: data.stderr.length,
+      exitCode: data.exitCode,
+      executor: data.provider,
+      keySource: userKey ? "user-byo" : "env",
+      key: redactKey(key),
+    });
+
+    let lastError: unknown = null;
+
+    for (const model of FALLBACK_MODELS) {
+      const t0 = Date.now();
+      // Endpoint availability gate — avoids the noisy "No endpoints found" path.
+      const available = await hasEndpoints(model, key);
+      if (!available) {
+        const ms = Date.now() - t0;
+        attempts.push({ model, ok: false, ms, error: "no endpoints" });
+        console.warn("[ai/debug] skip model (no endpoints)", { reqId, model, ms });
+        continue;
+      }
+
+      try {
+        const { text } = await generateText({ model: provider(model), messages });
+        const ms = Date.now() - t0;
+        attempts.push({ model, ok: true, ms });
+        console.log("[ai/debug] success", { reqId, model, ms, replyBytes: text.length, attempts });
+        return {
+          reply: text,
+          source: userKey ? ("openrouter-user" as const) : ("openrouter-env" as const),
+          model,
+          reqId,
+          attempts,
+        };
+      } catch (err) {
+        const ms = Date.now() - t0;
+        const message = err instanceof Error ? err.message : String(err);
+        attempts.push({ model, ok: false, ms, error: message.slice(0, 200) });
+        console.warn("[ai/debug] model failed", { reqId, model, ms, error: message.slice(0, 200) });
+        lastError = err;
+
+        // Auth/rate errors won't be fixed by another model — bail fast.
+        if (/401|403|invalid api key|unauthor/i.test(message)) {
+          throw new Error("OpenRouter rejected the key. Check it via 'Your key' and try again.");
+        }
+        if (/429|rate limit/i.test(message)) {
+          throw new Error("OpenRouter rate limit reached. Try again shortly or use a different key.");
+        }
+        // Otherwise (incl. no-endpoints, 5xx) continue to the next fallback.
+        if (!isNoEndpointsError(message) && !/5\d\d/.test(message)) {
+          // Unknown error — still try the next model once, but remember it.
+        }
+      }
+    }
+
+    console.error("[ai/debug] all models failed", { reqId, attempts });
+    const tried = attempts.map((a) => a.model).join(", ");
+    const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
+    throw new Error(
+      `OpenRouter has no working free model right now (tried: ${tried}). ` +
+        `Try again in a moment, or add your own key via 'Your key'. Last error: ${detail}`,
+    );
+  });
