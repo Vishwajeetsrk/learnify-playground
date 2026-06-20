@@ -26,7 +26,7 @@ function buildOpenRouterModel(userKey: string) {
     },
   });
   // Free, capable default on OpenRouter
-  return provider("google/gemini-2.0-flash-exp:free");
+  return provider("meta-llama/llama-3.3-70b-instruct:free");
 }
 
 export const debugCode = createServerFn({ method: "POST" })
