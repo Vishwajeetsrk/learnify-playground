@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Loader2, Sparkles, Wand2, BookOpen, Wrench, Zap, RefreshCcw, FileText, FlaskConical, Pencil } from "lucide-react";
+import { AlertTriangle, Check, Loader2, RefreshCcw as Retry, Sparkles, Wand2, BookOpen, Wrench, Zap, RefreshCcw, FileText, FlaskConical, Pencil } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -66,6 +66,7 @@ export function AiDebugPanel({
   const { key: userApiKey } = useUserApiKey();
   const [question, setQuestion] = useState("");
   const [reply, setReply] = useState("");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
   const [action, setAction] = useState<ActionKey>("diagnose");
@@ -82,6 +83,7 @@ export function AiDebugPanel({
     setAction(actionKey);
     setLoading(true);
     setReply("");
+    setErrorMsg(null);
     setApplied(false);
     try {
       const res = await ask({
@@ -96,6 +98,7 @@ export function AiDebugPanel({
       setReply(res.reply);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      setErrorMsg(msg);
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -153,6 +156,18 @@ export function AiDebugPanel({
           {currentAction.label}
         </Button>
       </div>
+      {errorMsg && !loading && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <div className="font-semibold text-destructive">AI request failed</div>
+            <div className="mt-0.5 break-words text-foreground/80">{errorMsg}</div>
+          </div>
+          <Button size="sm" variant="outline" className="h-7 shrink-0" onClick={() => run()}>
+            <Retry className="mr-1 h-3 w-3" /> Retry
+          </Button>
+        </div>
+      )}
       {reply && (
         <>
           <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border/60 bg-background p-2 text-xs leading-relaxed text-foreground">
