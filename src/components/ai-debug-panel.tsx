@@ -156,6 +156,18 @@ export function AiDebugPanel({
           {currentAction.label}
         </Button>
       </div>
+      {errorMsg && !loading && (
+        <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-2 text-xs text-foreground">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+          <div className="flex-1">
+            <div className="font-semibold text-destructive">AI request failed</div>
+            <div className="mt-0.5 break-words text-foreground/80">{errorMsg}</div>
+          </div>
+          <Button size="sm" variant="outline" className="h-7 shrink-0" onClick={() => run()}>
+            <Retry className="mr-1 h-3 w-3" /> Retry
+          </Button>
+        </div>
+      )}
       {reply && (
         <>
           <pre className="max-h-48 overflow-auto whitespace-pre-wrap rounded-md border border-border/60 bg-background p-2 text-xs leading-relaxed text-foreground">
