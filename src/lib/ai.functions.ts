@@ -74,21 +74,12 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       { role: "user" as const, content: user },
     ];
 
+    // Resolve OpenRouter key: user-supplied (browser) takes priority,
+    // otherwise fall back to the server-side OPENROUTER_API_KEY secret.
     const userKey = data.userApiKey?.trim();
+    const envKey = process.env.OPENROUTER_API_KEY?.trim();
+    const key = userKey || envKey;
 
-    // 1) If user supplied their own OpenRouter key, use it directly.
-    if (userKey) {
-      try {
-        const { text } = await generateText({ model: buildOpenRouterModel(userKey), messages });
-        return { reply: text, source: "openrouter" as const };
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        throw new Error(`OpenRouter error: ${message}`);
-      }
-    }
-
-    // 2) Otherwise use the built-in gateway.
-    const key = process.env.LOVABLE_API_KEY;
     if (!key) {
       throw new Error(
         "AI is not configured. Click 'Your key' to add your OpenRouter API key and try again.",
@@ -96,22 +87,15 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     }
 
     try {
-      const gateway = createLovableAiGatewayProvider(key);
-      const { text } = await generateText({
-        model: gateway("google/gemini-3-flash-preview"),
-        messages,
-      });
-      return { reply: text, source: "builtin" as const };
+      const { text } = await generateText({ model: buildOpenRouterModel(key), messages });
+      return { reply: text, source: userKey ? ("openrouter-user" as const) : ("openrouter-env" as const) };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (message.includes("429"))
-        throw new Error(
-          "AI rate limit reached. Add your own OpenRouter key (click 'Your key') to keep going.",
-        );
-      if (message.includes("402"))
-        throw new Error(
-          "Built-in AI credits exhausted. Add your own OpenRouter key (click 'Your key') to keep going.",
-        );
-      throw new Error(`AI error: ${message}`);
+        throw new Error("OpenRouter rate limit reached. Try again shortly or use a different key.");
+      if (message.includes("401") || message.includes("403"))
+        throw new Error("OpenRouter rejected the key. Check it via 'Your key' and try again.");
+      throw new Error(`OpenRouter error: ${message}`);
     }
   });
+
