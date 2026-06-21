@@ -166,9 +166,12 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     const keySource = userKey ? "user-byo" : "env";
 
     if (!key) {
-      throw new Error(
-        `[${runId}] AI is not configured. Click 'Your key' to add your OpenRouter API key and try again.`,
-      );
+      return {
+        ok: false as const,
+        runId,
+        message: "AI is not configured. Click 'Your key' to add your OpenRouter API key and try again.",
+        attempts: [] as AttemptInfo[],
+      };
     }
 
     const provider = buildProvider(key);
