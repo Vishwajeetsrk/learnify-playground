@@ -52,7 +52,17 @@ function extractFix(reply: string, language: string): string | null {
   return best?.body.trimEnd() ?? null;
 }
 
-type LastRequest = Parameters<ReturnType<typeof useServerFn<typeof debugCode>>>[0]["data"];
+type LastRequest = {
+  language: string;
+  code: string;
+  stdout: string;
+  stderr: string;
+  exitCode: number | null;
+  provider: ProviderKey;
+  stdin: string;
+  question: string;
+  userApiKey: string;
+};
 
 export function AiDebugPanel({
   language,
