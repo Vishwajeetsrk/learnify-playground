@@ -59,7 +59,11 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
           userApiKey,
         },
       });
-      setReply(res.reply);
+      if (res.ok) {
+        setReply(res.reply);
+      } else {
+        toast.error(`[${res.runId}] ${res.message}`);
+      }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     } finally {
