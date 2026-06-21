@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_debug_events: {
+        Row: {
+          attempts: Json
+          code_bytes: number | null
+          created_at: string
+          error: string | null
+          executor: string | null
+          exit_code: number | null
+          final_model: string | null
+          id: string
+          key_source: string | null
+          language: string | null
+          reply_bytes: number | null
+          run_id: string
+          stderr_bytes: number | null
+          success: boolean
+          user_id: string
+        }
+        Insert: {
+          attempts?: Json
+          code_bytes?: number | null
+          created_at?: string
+          error?: string | null
+          executor?: string | null
+          exit_code?: number | null
+          final_model?: string | null
+          id?: string
+          key_source?: string | null
+          language?: string | null
+          reply_bytes?: number | null
+          run_id: string
+          stderr_bytes?: number | null
+          success: boolean
+          user_id: string
+        }
+        Update: {
+          attempts?: Json
+          code_bytes?: number | null
+          created_at?: string
+          error?: string | null
+          executor?: string | null
+          exit_code?: number | null
+          final_model?: string | null
+          id?: string
+          key_source?: string | null
+          language?: string | null
+          reply_bytes?: number | null
+          run_id?: string
+          stderr_bytes?: number | null
+          success?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       playground_projects: {
         Row: {
           code: string | null

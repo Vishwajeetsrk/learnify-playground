@@ -1271,20 +1271,22 @@ export function IdePlayground({ defaultKind = "web", storageKey = DEFAULT_LS_KEY
 
         if (isSplit) {
           return (
-            <div className="flex min-h-0 flex-1 flex-row">
-              <div className="flex min-w-0 flex-col" style={{ width: `${100 - splitWidth}%` }}>
+            <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+              <div className="flex min-w-0 flex-col max-md:!w-full max-md:flex-1" style={{ width: `${100 - splitWidth}%` }}>
                 {editorPane}
               </div>
-              <DragHandle
-                orientation="vertical"
-                onDelta={(_dy, dx, parentSize) => {
-                  if (!parentSize) return;
-                  const next = splitWidth - (dx / parentSize) * 100;
-                  setSplitWidth(Math.max(20, Math.min(80, next)));
-                }}
-                color={palette.border}
-              />
-              <div className="flex min-w-0 flex-col border-l" style={{ width: `${splitWidth}%`, borderColor: palette.border, background: palette.panel }}>
+              <div className="hidden md:block">
+                <DragHandle
+                  orientation="vertical"
+                  onDelta={(_dy, dx, parentSize) => {
+                    if (!parentSize) return;
+                    const next = splitWidth - (dx / parentSize) * 100;
+                    setSplitWidth(Math.max(20, Math.min(80, next)));
+                  }}
+                  color={palette.border}
+                />
+              </div>
+              <div className="flex min-w-0 flex-col border-l max-md:!w-full max-md:flex-1 max-md:border-l-0 max-md:border-t" style={{ width: `${splitWidth}%`, borderColor: palette.border, background: palette.panel }}>
                 {panelHeader}
                 {panelBody}
               </div>
