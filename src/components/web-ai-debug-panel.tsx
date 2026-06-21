@@ -92,17 +92,17 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
           {consoleErrors}
         </pre>
       )}
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
         <input
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder="Ask about a bug, or leave blank to auto-diagnose…"
-          className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-ring"
+          className="h-9 w-full min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-xs outline-none focus:ring-1 focus:ring-ring sm:h-8"
           onKeyDown={(e) => {
             if (e.key === "Enter" && !loading) run();
           }}
         />
-        <Button size="sm" onClick={run} disabled={loading}>
+        <Button size="sm" onClick={run} disabled={loading} className="w-full sm:w-auto">
           {loading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1 h-3.5 w-3.5" />}
           Ask AI
         </Button>
