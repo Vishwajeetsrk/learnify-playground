@@ -251,7 +251,10 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
             final_model: null, attempts, error: "auth rejected",
             code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
           });
-          throw new Error(`[${runId}] OpenRouter rejected the key. Check it via 'Your key' and try again.`);
+          return {
+            ok: false as const, runId, attempts,
+            message: "OpenRouter rejected the key. Check it via 'Your key' and try again.",
+          };
         }
         if (/429|rate limit/i.test(message)) {
           await recordEvent({
@@ -260,7 +263,10 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
             final_model: null, attempts, error: "rate limited",
             code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
           });
-          throw new Error(`[${runId}] OpenRouter rate limit reached. Try again shortly or use a different key.`);
+          return {
+            ok: false as const, runId, attempts,
+            message: "OpenRouter rate limit reached. Try again shortly or use a different key.",
+          };
         }
         if (!isNoEndpointsError(message) && !/5\d\d/.test(message)) {
           // Unknown error — still try the next model.
@@ -271,15 +277,17 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     console.error("[ai/debug] all models failed", { runId, attempts });
     const tried = attempts.map((a) => a.model).join(", ");
     const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
-    const errMsg = `[${runId}] OpenRouter has no working free model right now (tried: ${tried}). Try again in a moment, or add your own key via 'Your key'. Last error: ${detail}`;
     await recordEvent({
       run_id: runId, language: data.language, executor: data.provider || "",
       exit_code: data.exitCode, key_source: keySource, success: false,
       final_model: null, attempts, error: detail.slice(0, 500),
       code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
     });
-    const wrapped = new Error(errMsg) as Error & { attempts?: AttemptInfo[]; runId?: string };
-    wrapped.attempts = attempts;
-    wrapped.runId = runId;
-    throw wrapped;
+    return {
+      ok: false as const,
+      runId,
+      attempts,
+      message: `OpenRouter has no working free model right now (tried: ${tried}). Try again in a moment, or add your own key via 'Your key'. Last error: ${detail}`,
+    };
   });
+
