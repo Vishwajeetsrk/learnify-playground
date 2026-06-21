@@ -226,6 +226,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
           reply_bytes: text.length,
         });
         return {
+          ok: true as const,
           reply: text,
           source: userKey ? ("openrouter-user" as const) : ("openrouter-env" as const),
           model,
