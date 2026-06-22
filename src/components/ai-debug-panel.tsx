@@ -131,6 +131,7 @@ export function AiDebugPanel({
       language, code: code || "(empty)", stdout, stderr, exitCode, provider, stdin,
       question: act.prompt(language, question.trim()),
       userApiKey,
+      aiProvider,
     });
   }
 
