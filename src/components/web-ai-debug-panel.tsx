@@ -59,6 +59,7 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
             "Return fixed code in THREE separate fenced blocks tagged ```html, ```css, and ```js (only include the ones that need changes). Each block must be the complete file contents.",
           userApiKey,
           aiProvider,
+        },
       });
       if (res.ok) {
         setReply(res.reply);
