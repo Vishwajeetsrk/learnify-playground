@@ -182,8 +182,18 @@ export function AiDebugPanel({
           )}
         </div>
         <span className="flex shrink-0 items-center gap-2">
+          <select
+            value={aiProvider}
+            onChange={(e) => setAiProvider(e.target.value as typeof aiProvider)}
+            title="AI provider for this request"
+            className="h-6 rounded-md border border-border/60 bg-background px-1.5 text-[10px] font-medium normal-case tracking-normal text-foreground outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="auto">Auto</option>
+            <option value="lovable">Lovable Gateway</option>
+            <option value="openrouter">OpenRouter (BYO)</option>
+          </select>
           <ByoKeyButton />
-          <span className="rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-foreground">
+          <span className="hidden rounded-md border border-border/60 bg-muted px-1.5 py-0.5 text-[10px] font-medium normal-case tracking-normal text-foreground sm:inline-block">
             {language}
           </span>
         </span>
