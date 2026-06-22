@@ -167,22 +167,28 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     ];
 
     const userKey = data.userApiKey?.trim();
-    const envKey = process.env.OPENROUTER_API_KEY?.trim();
-    const key = userKey || envKey;
+    const lovableKey = process.env.LOVABLE_API_KEY?.trim();
+    const envOpenRouterKey = process.env.OPENROUTER_API_KEY?.trim();
     const runId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    const keySource = userKey ? "user-byo" : "env";
 
-    if (!key) {
-      return {
-        ok: false as const,
-        runId,
-        message: "AI is not configured. Click 'Your key' to add your OpenRouter API key and try again.",
-        attempts: [] as AttemptInfo[],
-      };
+    // Routing: BYO key → OpenRouter (free models). Otherwise → Lovable AI Gateway.
+    const useOpenRouter = !!userKey;
+    const keySource = userKey ? "user-byo" : lovableKey ? "lovable-gateway" : "none";
+
+    if (useOpenRouter ? !userKey : !lovableKey) {
+      const fallbackKey = useOpenRouter ? userKey : envOpenRouterKey;
+      if (!fallbackKey) {
+        return {
+          ok: false as const,
+          runId,
+          message: "AI is not configured. The Lovable AI key is missing — add your own OpenRouter key via 'Your key' to continue.",
+          attempts: [] as AttemptInfo[],
+        };
+      }
     }
 
-    const provider = buildProvider(key);
     const attempts: AttemptInfo[] = [];
+    let lastError: unknown = null;
 
     console.log("[ai/debug] request", {
       runId,
@@ -192,23 +198,89 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       exitCode: data.exitCode,
       executor: data.provider,
       keySource,
-      key: redactKey(key),
+      route: useOpenRouter ? "openrouter" : "lovable",
     });
 
-    let lastError: unknown = null;
+    // ----- Lovable AI Gateway path (default) -----
+    if (!useOpenRouter && lovableKey) {
+      const provider = createLovableAiGatewayProvider(lovableKey);
+      for (const model of LOVABLE_MODELS) {
+        const t0 = Date.now();
+        try {
+          const { text } = await generateText({ model: provider(model), messages });
+          const ms = Date.now() - t0;
+          attempts.push({ model, ok: true, ms, status: 200, providers: ["lovable"] });
+          console.log("[ai/debug] success", { runId, model, ms, replyBytes: text.length });
+          await recordEvent({
+            run_id: runId, language: data.language, executor: data.provider || "",
+            exit_code: data.exitCode, key_source: keySource, success: true,
+            final_model: model, attempts, error: null,
+            code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: text.length,
+          });
+          return {
+            ok: true as const, reply: text,
+            source: "lovable-gateway" as const,
+            model, runId, attempts,
+          };
+        } catch (err) {
+          const ms = Date.now() - t0;
+          const message = err instanceof Error ? err.message : String(err);
+          attempts.push({ model, ok: false, ms, providers: ["lovable"], error: message.slice(0, 200) });
+          console.warn("[ai/debug] lovable model failed", { runId, model, ms, error: message.slice(0, 200) });
+          lastError = err;
 
-    for (const model of FALLBACK_MODELS) {
+          if (/402|payment required|credits?|insufficient/i.test(message)) {
+            await recordEvent({
+              run_id: runId, language: data.language, executor: data.provider || "",
+              exit_code: data.exitCode, key_source: keySource, success: false,
+              final_model: null, attempts, error: "credits exhausted",
+              code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
+            });
+            return {
+              ok: false as const, runId, attempts,
+              message: "Lovable AI credits are exhausted for this workspace. Top up credits in Settings → Plans & credits, or add your own OpenRouter key via 'Your key'.",
+            };
+          }
+          if (/429|rate limit/i.test(message)) {
+            await recordEvent({
+              run_id: runId, language: data.language, executor: data.provider || "",
+              exit_code: data.exitCode, key_source: keySource, success: false,
+              final_model: null, attempts, error: "rate limited",
+              code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
+            });
+            return {
+              ok: false as const, runId, attempts,
+              message: "Lovable AI rate limit reached. Try again shortly.",
+            };
+          }
+        }
+      }
+
+      const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
+      console.error("[ai/debug] all lovable models failed", { runId, attempts });
+      await recordEvent({
+        run_id: runId, language: data.language, executor: data.provider || "",
+        exit_code: data.exitCode, key_source: keySource, success: false,
+        final_model: null, attempts, error: detail.slice(0, 500),
+        code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
+      });
+      return {
+        ok: false as const, runId, attempts,
+        message: `Lovable AI couldn't complete the request (tried ${attempts.map(a => a.model).join(", ")}). Last error: ${detail}`,
+      };
+    }
+
+    // ----- OpenRouter path (user supplied a BYO key) -----
+    const orKey = (userKey || envOpenRouterKey)!;
+    const provider = buildProvider(orKey);
+    console.log("[ai/debug] openrouter key", { runId, key: redactKey(orKey) });
+
+    for (const model of OPENROUTER_MODELS) {
       const t0 = Date.now();
-      const probe = await probeEndpoints(model, key);
+      const probe = await probeEndpoints(model, orKey);
       if (!probe.available) {
         const ms = Date.now() - t0;
-        const a: AttemptInfo = {
-          model, ok: false, ms,
-          status: probe.status,
-          providers: probe.providers,
-          error: "no endpoints",
-        };
-        attempts.push(a);
+        attempts.push({ model, ok: false, ms, status: probe.status, providers: probe.providers, error: "no endpoints" });
         console.warn("[ai/debug] skip model (no endpoints)", { runId, model, ms, status: probe.status });
         continue;
       }
@@ -219,35 +291,20 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
         attempts.push({ model, ok: true, ms, status: 200, providers: probe.providers });
         console.log("[ai/debug] success", { runId, model, ms, replyBytes: text.length, providers: probe.providers });
         await recordEvent({
-          run_id: runId,
-          language: data.language,
-          executor: data.provider || "",
-          exit_code: data.exitCode,
-          key_source: keySource,
-          success: true,
-          final_model: model,
-          attempts,
-          error: null,
-          code_bytes: data.code.length,
-          stderr_bytes: data.stderr.length,
-          reply_bytes: text.length,
+          run_id: runId, language: data.language, executor: data.provider || "",
+          exit_code: data.exitCode, key_source: keySource, success: true,
+          final_model: model, attempts, error: null,
+          code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: text.length,
         });
         return {
-          ok: true as const,
-          reply: text,
+          ok: true as const, reply: text,
           source: userKey ? ("openrouter-user" as const) : ("openrouter-env" as const),
-          model,
-          runId,
-          attempts,
+          model, runId, attempts,
         };
       } catch (err) {
         const ms = Date.now() - t0;
         const message = err instanceof Error ? err.message : String(err);
-        attempts.push({
-          model, ok: false, ms,
-          providers: probe.providers,
-          error: message.slice(0, 200),
-        });
+        attempts.push({ model, ok: false, ms, providers: probe.providers, error: message.slice(0, 200) });
         console.warn("[ai/debug] model failed", { runId, model, ms, error: message.slice(0, 200) });
         lastError = err;
 
@@ -275,9 +332,6 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
             message: "OpenRouter rate limit reached. Try again shortly or use a different key.",
           };
         }
-        if (!isNoEndpointsError(message) && !/5\d\d/.test(message)) {
-          // Unknown error — still try the next model.
-        }
       }
     }
 
@@ -294,7 +348,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       ok: false as const,
       runId,
       attempts,
-      message: `OpenRouter has no working free model right now (tried: ${tried}). Try again in a moment, or add your own key via 'Your key'. Last error: ${detail}`,
+      message: `OpenRouter has no working free model right now (tried: ${tried}). Try again in a moment, or remove your custom key to use Lovable AI. Last error: ${detail}`,
     };
   });
 
