@@ -62,6 +62,7 @@ type LastRequest = {
   stdin: string;
   question: string;
   userApiKey: string;
+  aiProvider: "auto" | "lovable" | "openrouter";
 };
 
 export function AiDebugPanel({
