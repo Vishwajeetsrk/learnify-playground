@@ -16,7 +16,10 @@ const DebugInput = z.object({
   stdin: z.string().max(10000).optional().default(""),
   question: z.string().max(2000).optional().default(""),
   userApiKey: z.string().max(200).optional().default(""),
+  aiProvider: z.enum(["auto", "lovable", "openrouter"]).optional().default("auto"),
 });
+
+export type AiProviderChoice = "auto" | "lovable" | "openrouter";
 
 // Lovable AI Gateway models (preferred — no user key needed, billed to workspace credits).
 const LOVABLE_MODELS = [
