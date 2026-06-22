@@ -83,6 +83,7 @@ export function AiDebugPanel({
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
   const [action, setAction] = useState<ActionKey>("diagnose");
+  const [aiProvider, setAiProvider] = useState<"auto" | "lovable" | "openrouter">("auto");
   const [runId, setRunId] = useState<string | null>(null);
   const [attempts, setAttempts] = useState<AttemptInfo[]>([]);
   const [finalModel, setFinalModel] = useState<string | null>(null);
