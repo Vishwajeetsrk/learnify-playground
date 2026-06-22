@@ -28,6 +28,7 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [aiProvider, setAiProvider] = useState<"auto" | "lovable" | "openrouter">("auto");
 
   const fixes = useMemo(() => {
     if (!reply) return null;
