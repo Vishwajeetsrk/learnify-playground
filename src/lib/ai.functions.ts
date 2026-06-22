@@ -4,6 +4,7 @@ import { generateText } from "ai";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 
 const DebugInput = z.object({
   language: z.string().min(1).max(50),
@@ -17,9 +18,15 @@ const DebugInput = z.object({
   userApiKey: z.string().max(200).optional().default(""),
 });
 
-// Ordered free-tier fallbacks on OpenRouter. We try them in order until one
-// returns endpoints / succeeds.
-const FALLBACK_MODELS = [
+// Lovable AI Gateway models (preferred — no user key needed, billed to workspace credits).
+const LOVABLE_MODELS = [
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-flash",
+  "google/gemini-2.5-flash-lite",
+] as const;
+
+// OpenRouter free-tier fallbacks used when the user provides their own key.
+const OPENROUTER_MODELS = [
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-chat-v3.1:free",
   "mistralai/mistral-small-3.2-24b-instruct:free",
