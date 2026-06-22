@@ -174,20 +174,32 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     const envOpenRouterKey = process.env.OPENROUTER_API_KEY?.trim();
     const runId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Routing: BYO key → OpenRouter (free models). Otherwise → Lovable AI Gateway.
-    const useOpenRouter = !!userKey;
-    const keySource = userKey ? "user-byo" : lovableKey ? "lovable-gateway" : "none";
+    // Routing: explicit choice via aiProvider, else auto (BYO key → OpenRouter, else Lovable).
+    const choice = data.aiProvider ?? "auto";
+    let useOpenRouter: boolean;
+    if (choice === "openrouter") useOpenRouter = true;
+    else if (choice === "lovable") useOpenRouter = false;
+    else useOpenRouter = !!userKey;
 
-    if (useOpenRouter ? !userKey : !lovableKey) {
-      const fallbackKey = useOpenRouter ? userKey : envOpenRouterKey;
-      if (!fallbackKey) {
-        return {
-          ok: false as const,
-          runId,
-          message: "AI is not configured. The Lovable AI key is missing — add your own OpenRouter key via 'Your key' to continue.",
-          attempts: [] as AttemptInfo[],
-        };
-      }
+    const keySource = useOpenRouter
+      ? (userKey ? "user-byo" : envOpenRouterKey ? "env-openrouter" : "none")
+      : (lovableKey ? "lovable-gateway" : "none");
+
+    if (useOpenRouter && !userKey && !envOpenRouterKey) {
+      return {
+        ok: false as const,
+        runId,
+        message: "OpenRouter selected but no key is set. Add your key via 'Your key' or switch the provider to Lovable Gateway.",
+        attempts: [] as AttemptInfo[],
+      };
+    }
+    if (!useOpenRouter && !lovableKey) {
+      return {
+        ok: false as const,
+        runId,
+        message: "Lovable AI Gateway is not configured. Switch the provider to OpenRouter and add your key via 'Your key'.",
+        attempts: [] as AttemptInfo[],
+      };
     }
 
     const attempts: AttemptInfo[] = [];
