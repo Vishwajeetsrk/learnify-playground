@@ -28,6 +28,7 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [aiProvider, setAiProvider] = useState<"auto" | "lovable" | "openrouter">("auto");
 
   const fixes = useMemo(() => {
     if (!reply) return null;
@@ -57,6 +58,7 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
             (question ? question + "\n\n" : "") +
             "Return fixed code in THREE separate fenced blocks tagged ```html, ```css, and ```js (only include the ones that need changes). Each block must be the complete file contents.",
           userApiKey,
+          aiProvider,
         },
       });
       if (res.ok) {
@@ -80,10 +82,21 @@ export function WebAiDebugPanel({ html, css, js, consoleErrors, onApply }: Props
 
   return (
     <div className="flex flex-col gap-2 border-t border-border/60 bg-card/30 p-3">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5 text-primary" /> AI debug helper
-        <span className="ml-auto flex items-center gap-2 text-[10px] font-normal normal-case text-muted-foreground/70">
-          <span>Sees HTML · CSS · JS · console errors</span>
+      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+        <span>AI debug helper</span>
+        <span className="ml-auto flex flex-wrap items-center gap-2 text-[10px] font-normal normal-case text-muted-foreground/70">
+          <span className="hidden sm:inline">HTML · CSS · JS · console</span>
+          <select
+            value={aiProvider}
+            onChange={(e) => setAiProvider(e.target.value as typeof aiProvider)}
+            title="AI provider for this request"
+            className="h-6 rounded-md border border-border/60 bg-background px-1.5 text-[10px] font-medium normal-case text-foreground outline-none focus:ring-1 focus:ring-ring"
+          >
+            <option value="auto">Auto</option>
+            <option value="lovable">Lovable Gateway</option>
+            <option value="openrouter">OpenRouter (BYO)</option>
+          </select>
           <ByoKeyButton />
         </span>
       </div>
