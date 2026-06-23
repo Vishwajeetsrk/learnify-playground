@@ -399,17 +399,18 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     }
 
     console.error("[ai/debug] all models failed", { runId, attempts });
+    const finalDetail = lastError instanceof Error ? lastError.message : String(lastError ?? detail);
     await recordEvent({
       run_id: runId, language: data.language, executor: data.provider || "",
       exit_code: data.exitCode, key_source: keySource, success: false,
-      final_model: null, attempts, error: detail.slice(0, 500),
+      final_model: null, attempts, error: finalDetail.slice(0, 500),
       code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
     });
     return {
       ok: false as const,
       runId,
       attempts,
-      message: `OpenRouter has no working free model right now (tried: ${tried}). Try again in a moment, or remove your custom key to use Lovable AI. Last error: ${detail}`,
+      message: `OpenRouter free models are unavailable (tried: ${tried}) and the Lovable AI fallback also failed. Switch the provider to Lovable Gateway and retry, or try OpenRouter again later. Last error: ${finalDetail}`,
     };
   });
 
