@@ -294,7 +294,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       };
     }
 
-    // ----- OpenRouter path (user supplied a BYO key) -----
+    // ----- OpenRouter path (user supplied a BYO key or project key) -----
     const orKey = (userKey || envOpenRouterKey)!;
     const provider = buildProvider(orKey);
     console.log("[ai/debug] openrouter key", { runId, key: redactKey(orKey) });
@@ -391,18 +391,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
           console.warn("[ai/debug] fallback model failed", { runId, model, ms, error: message.slice(0, 200) });
           lastError = err;
 
-          if (/402|payment required|credits?|insufficient/i.test(message)) {
-            await recordEvent({
-              run_id: runId, language: data.language, executor: data.provider || "",
-              exit_code: data.exitCode, key_source: "lovable-gateway-fallback", success: false,
-              final_model: null, attempts, error: "credits exhausted",
-              code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
-            });
-            return {
-              ok: false as const, runId, attempts,
-              message: `OpenRouter free models are unavailable, and Lovable AI credits are exhausted. Tried OpenRouter: ${tried}.`,
-            };
-          }
+          if (/402|payment required|credits?|insufficient/i.test(message)) break;
         }
       }
     }
@@ -419,7 +408,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       ok: false as const,
       runId,
       attempts,
-      message: `OpenRouter free models are unavailable (tried: ${tried}) and the Lovable AI fallback also failed. Switch the provider to Lovable Gateway and retry, or try OpenRouter again later. Last error: ${finalDetail}`,
+      message: `All configured AI routes failed. OpenRouter tried free and low-cost models (${tried}); Lovable AI fallback also failed. Add credits to either provider or retry later. Last error: ${finalDetail}`,
     };
   });
 
