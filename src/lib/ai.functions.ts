@@ -28,13 +28,22 @@ const LOVABLE_MODELS = [
   "google/gemini-2.5-flash-lite",
 ] as const;
 
-// OpenRouter free-tier fallbacks used when the user provides their own key.
-const OPENROUTER_MODELS = [
+// OpenRouter models used when the user/project provides a key. Free models are tried first,
+// then low-cost paid models so a funded key does not dead-end on unavailable free endpoints.
+const OPENROUTER_FREE_MODELS = [
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-chat-v3.1:free",
   "mistralai/mistral-small-3.2-24b-instruct:free",
   "qwen/qwen-2.5-72b-instruct:free",
 ] as const;
+
+const OPENROUTER_PAID_MODELS = [
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-4o-mini",
+  "mistralai/mistral-small-3.2-24b-instruct",
+] as const;
+
+const OPENROUTER_MODELS = [...OPENROUTER_FREE_MODELS, ...OPENROUTER_PAID_MODELS] as const;
 
 export type AttemptInfo = {
   model: string;
@@ -73,7 +82,7 @@ async function probeEndpoints(
 ): Promise<{ available: boolean; providers: string[]; status: number }> {
   try {
     const res = await fetch(
-      `https://openrouter.ai/api/v1/models/${encodeURIComponent(model)}/endpoints`,
+      `https://openrouter.ai/api/v1/models/${model.split("/").map(encodeURIComponent).join("/")}/endpoints`,
       { headers: { Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return { available: false, providers: [], status: res.status };
