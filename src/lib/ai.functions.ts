@@ -28,13 +28,22 @@ const LOVABLE_MODELS = [
   "google/gemini-2.5-flash-lite",
 ] as const;
 
-// OpenRouter free-tier fallbacks used when the user provides their own key.
-const OPENROUTER_MODELS = [
+// OpenRouter models used when the user/project provides a key. Free models are tried first,
+// then low-cost paid models so a funded key does not dead-end on unavailable free endpoints.
+const OPENROUTER_FREE_MODELS = [
   "meta-llama/llama-3.3-70b-instruct:free",
   "deepseek/deepseek-chat-v3.1:free",
   "mistralai/mistral-small-3.2-24b-instruct:free",
   "qwen/qwen-2.5-72b-instruct:free",
 ] as const;
+
+const OPENROUTER_PAID_MODELS = [
+  "google/gemini-2.5-flash-lite",
+  "openai/gpt-4o-mini",
+  "mistralai/mistral-small-3.2-24b-instruct",
+] as const;
+
+const OPENROUTER_MODELS = [...OPENROUTER_FREE_MODELS, ...OPENROUTER_PAID_MODELS] as const;
 
 export type AttemptInfo = {
   model: string;
@@ -73,7 +82,7 @@ async function probeEndpoints(
 ): Promise<{ available: boolean; providers: string[]; status: number }> {
   try {
     const res = await fetch(
-      `https://openrouter.ai/api/v1/models/${encodeURIComponent(model)}/endpoints`,
+      `https://openrouter.ai/api/v1/models/${model.split("/").map(encodeURIComponent).join("/")}/endpoints`,
       { headers: { Authorization: `Bearer ${key}` } },
     );
     if (!res.ok) return { available: false, providers: [], status: res.status };
@@ -172,14 +181,16 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     const userKey = data.userApiKey?.trim();
     const lovableKey = process.env.LOVABLE_API_KEY?.trim();
     const envOpenRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+    const hasOpenRouterKey = !!(userKey || envOpenRouterKey);
     const runId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Routing: explicit choice via aiProvider, else auto (Lovable first; OpenRouter only when no gateway is available).
+    // Routing: explicit choice via aiProvider, else auto (OpenRouter when a key exists, otherwise Lovable AI).
     const choice = data.aiProvider ?? "auto";
     let useOpenRouter: boolean;
     if (choice === "openrouter") useOpenRouter = true;
     else if (choice === "lovable") useOpenRouter = false;
-    else useOpenRouter = !lovableKey && !!userKey;
+    else useOpenRouter = hasOpenRouterKey;
+    const canFallbackToOpenRouter = choice !== "lovable" && hasOpenRouterKey;
 
     const keySource = useOpenRouter
       ? (userKey ? "user-byo" : envOpenRouterKey ? "env-openrouter" : "none")
@@ -245,6 +256,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
           lastError = err;
 
           if (/402|payment required|credits?|insufficient/i.test(message)) {
+            if (canFallbackToOpenRouter) break;
             await recordEvent({
               run_id: runId, language: data.language, executor: data.provider || "",
               exit_code: data.exitCode, key_source: keySource, success: false,
@@ -273,6 +285,9 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
 
       const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
       console.error("[ai/debug] all lovable models failed", { runId, attempts });
+      if (canFallbackToOpenRouter) {
+        console.warn("[ai/debug] falling back to openrouter", { runId, failedRoute: "lovable" });
+      } else {
       await recordEvent({
         run_id: runId, language: data.language, executor: data.provider || "",
         exit_code: data.exitCode, key_source: keySource, success: false,
@@ -283,9 +298,10 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
         ok: false as const, runId, attempts,
         message: `Lovable AI couldn't complete the request (tried ${attempts.map(a => a.model).join(", ")}). Last error: ${detail}`,
       };
+      }
     }
 
-    // ----- OpenRouter path (user supplied a BYO key) -----
+    // ----- OpenRouter path (user supplied a BYO key or project key) -----
     const orKey = (userKey || envOpenRouterKey)!;
     const provider = buildProvider(orKey);
     console.log("[ai/debug] openrouter key", { runId, key: redactKey(orKey) });
@@ -382,18 +398,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
           console.warn("[ai/debug] fallback model failed", { runId, model, ms, error: message.slice(0, 200) });
           lastError = err;
 
-          if (/402|payment required|credits?|insufficient/i.test(message)) {
-            await recordEvent({
-              run_id: runId, language: data.language, executor: data.provider || "",
-              exit_code: data.exitCode, key_source: "lovable-gateway-fallback", success: false,
-              final_model: null, attempts, error: "credits exhausted",
-              code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
-            });
-            return {
-              ok: false as const, runId, attempts,
-              message: `OpenRouter free models are unavailable, and Lovable AI credits are exhausted. Tried OpenRouter: ${tried}.`,
-            };
-          }
+          if (/402|payment required|credits?|insufficient/i.test(message)) break;
         }
       }
     }
@@ -410,7 +415,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       ok: false as const,
       runId,
       attempts,
-      message: `OpenRouter free models are unavailable (tried: ${tried}) and the Lovable AI fallback also failed. Switch the provider to Lovable Gateway and retry, or try OpenRouter again later. Last error: ${finalDetail}`,
+      message: `All configured AI routes failed. OpenRouter tried free and low-cost models (${tried}); Lovable AI fallback also failed. Add credits to either provider or retry later. Last error: ${finalDetail}`,
     };
   });
 
