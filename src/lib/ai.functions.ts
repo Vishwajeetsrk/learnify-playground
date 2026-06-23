@@ -350,9 +350,55 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
       }
     }
 
-    console.error("[ai/debug] all models failed", { runId, attempts });
+    console.error("[ai/debug] all openrouter models failed", { runId, attempts });
     const tried = attempts.map((a) => a.model).join(", ");
     const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
+
+    if (lovableKey) {
+      console.warn("[ai/debug] falling back to lovable gateway", { runId, failedRoute: "openrouter", tried });
+      const fallbackProvider = createLovableAiGatewayProvider(lovableKey);
+      for (const model of LOVABLE_MODELS) {
+        const t0 = Date.now();
+        try {
+          const { text } = await generateText({ model: fallbackProvider(model), messages });
+          const ms = Date.now() - t0;
+          attempts.push({ model, ok: true, ms, status: 200, providers: ["lovable-fallback"] });
+          console.log("[ai/debug] fallback success", { runId, model, ms, replyBytes: text.length });
+          await recordEvent({
+            run_id: runId, language: data.language, executor: data.provider || "",
+            exit_code: data.exitCode, key_source: "lovable-gateway-fallback", success: true,
+            final_model: model, attempts, error: null,
+            code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: text.length,
+          });
+          return {
+            ok: true as const, reply: text,
+            source: "lovable-gateway-fallback" as const,
+            model, runId, attempts,
+          };
+        } catch (err) {
+          const ms = Date.now() - t0;
+          const message = err instanceof Error ? err.message : String(err);
+          attempts.push({ model, ok: false, ms, providers: ["lovable-fallback"], error: message.slice(0, 200) });
+          console.warn("[ai/debug] fallback model failed", { runId, model, ms, error: message.slice(0, 200) });
+          lastError = err;
+
+          if (/402|payment required|credits?|insufficient/i.test(message)) {
+            await recordEvent({
+              run_id: runId, language: data.language, executor: data.provider || "",
+              exit_code: data.exitCode, key_source: "lovable-gateway-fallback", success: false,
+              final_model: null, attempts, error: "credits exhausted",
+              code_bytes: data.code.length, stderr_bytes: data.stderr.length, reply_bytes: 0,
+            });
+            return {
+              ok: false as const, runId, attempts,
+              message: `OpenRouter free models are unavailable, and Lovable AI credits are exhausted. Tried OpenRouter: ${tried}.`,
+            };
+          }
+        }
+      }
+    }
+
+    console.error("[ai/debug] all models failed", { runId, attempts });
     await recordEvent({
       run_id: runId, language: data.language, executor: data.provider || "",
       exit_code: data.exitCode, key_source: keySource, success: false,
