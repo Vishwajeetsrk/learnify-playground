@@ -181,6 +181,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     const userKey = data.userApiKey?.trim();
     const lovableKey = process.env.LOVABLE_API_KEY?.trim();
     const envOpenRouterKey = process.env.OPENROUTER_API_KEY?.trim();
+    const hasOpenRouterKey = !!(userKey || envOpenRouterKey);
     const runId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
     // Routing: explicit choice via aiProvider, else auto (OpenRouter when a key exists, otherwise Lovable AI).
@@ -188,7 +189,8 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     let useOpenRouter: boolean;
     if (choice === "openrouter") useOpenRouter = true;
     else if (choice === "lovable") useOpenRouter = false;
-    else useOpenRouter = !!(userKey || envOpenRouterKey);
+    else useOpenRouter = hasOpenRouterKey;
+    const canFallbackToOpenRouter = choice !== "lovable" && hasOpenRouterKey;
 
     const keySource = useOpenRouter
       ? (userKey ? "user-byo" : envOpenRouterKey ? "env-openrouter" : "none")
@@ -254,6 +256,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
           lastError = err;
 
           if (/402|payment required|credits?|insufficient/i.test(message)) {
+            if (canFallbackToOpenRouter) break;
             await recordEvent({
               run_id: runId, language: data.language, executor: data.provider || "",
               exit_code: data.exitCode, key_source: keySource, success: false,
@@ -282,6 +285,9 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
 
       const detail = lastError instanceof Error ? lastError.message : String(lastError ?? "unknown");
       console.error("[ai/debug] all lovable models failed", { runId, attempts });
+      if (canFallbackToOpenRouter) {
+        console.warn("[ai/debug] falling back to openrouter", { runId, failedRoute: "lovable" });
+      } else {
       await recordEvent({
         run_id: runId, language: data.language, executor: data.provider || "",
         exit_code: data.exitCode, key_source: keySource, success: false,
@@ -292,6 +298,7 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
         ok: false as const, runId, attempts,
         message: `Lovable AI couldn't complete the request (tried ${attempts.map(a => a.model).join(", ")}). Last error: ${detail}`,
       };
+      }
     }
 
     // ----- OpenRouter path (user supplied a BYO key or project key) -----
