@@ -174,12 +174,12 @@ ${data.question ? `USER QUESTION: ${data.question}` : "Diagnose any issue and re
     const envOpenRouterKey = process.env.OPENROUTER_API_KEY?.trim();
     const runId = `ai_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 
-    // Routing: explicit choice via aiProvider, else auto (BYO key → OpenRouter, else Lovable).
+    // Routing: explicit choice via aiProvider, else auto (Lovable first; OpenRouter only when no gateway is available).
     const choice = data.aiProvider ?? "auto";
     let useOpenRouter: boolean;
     if (choice === "openrouter") useOpenRouter = true;
     else if (choice === "lovable") useOpenRouter = false;
-    else useOpenRouter = !!userKey;
+    else useOpenRouter = !lovableKey && !!userKey;
 
     const keySource = useOpenRouter
       ? (userKey ? "user-byo" : envOpenRouterKey ? "env-openrouter" : "none")
